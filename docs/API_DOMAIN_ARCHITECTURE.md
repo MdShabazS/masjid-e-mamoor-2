@@ -523,7 +523,10 @@ Server validates:
 -   required reason
 -   idempotency
 
-Exact rejected-payment resubmission semantics remain an open decision.
+Rejected-payment resubmission semantics are approved for v1:
+a rejected payment remains historically recorded and any resubmission creates
+a new payment submission with a new operation ID. A rejected payment is never
+silently converted into a verified payment.
 
 ------------------------------------------------------------------------
 
@@ -1806,7 +1809,7 @@ documented reason.
 
 # 92. Status
 
-**Current status: API domain architecture generated for review.**
+**Current status: API domain architecture synchronized with the approved v1 decision baseline; remaining implementation details are tracked explicitly.**
 
 Exact transport, Supabase client usage, database functions, and SDK
 implementation details must be finalized after verification against

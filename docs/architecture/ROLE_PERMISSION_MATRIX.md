@@ -333,20 +333,34 @@ This document feeds the following documents:
 
 ---
 
-## 14. Open Decisions
+## 14. Remaining Implementation Decisions
 
-Only the following decisions remain intentionally deferred:
+Only implementation-level details remain intentionally deferred:
 
-| Decision area | Follow-up document |
+| Decision area | Follow-up |
 |---|---|
-| Roles only versus roles plus explicit permission overrides | `DATABASE_ARCHITECTURE.md` and `RLS_SECURITY_MODEL.md` |
-| Exact database representation of role and permission assignments | `DATABASE_ARCHITECTURE.md` |
-| Exact RLS helper functions and authorization predicates | `RLS_SECURITY_MODEL.md` |
-| Exact maker-checker or dual-approval requirements for financial workflows | `DATABASE_ARCHITECTURE.md` and `RLS_SECURITY_MODEL.md` |
+| Exact physical role/permission representation | DATABASE_ARCHITECTURE.md |
+| Exact RLS helper functions and authorization predicates | RLS_SECURITY_MODEL.md |
+| Exact attendance event identity | BUSINESS_RULES.md |
+| Exact GPS radius/policy | BUSINESS_RULES.md |
+| Notification event catalogue | NOTIFICATION_ARCHITECTURE.md |
+| Exact retention periods | SECURITY_OPERATIONS.md / operational policy |
+| Incident escalation workflow | SECURITY_OPERATIONS.md |
 
-No deferred decision may weaken the backend-controlled authorization, RLS, trusted-operation, atomicity, idempotency, auditability, or least-privilege requirements in this document.
+V1 authorization decisions are already approved:
 
----
+- one active application role per application user;
+- no arbitrary per-user permission overrides;
+- role capabilities are defined at role level;
+- elevated role assignment requires an authorized administrative workflow;
+- maker/checker controls apply to the approved financial workflows;
+- backend authorization and RLS remain the security boundary.
+
+No remaining implementation decision may weaken least privilege,
+separation of duties, backend authorization, RLS, auditability, atomicity,
+or idempotency.
+
+------------------------------------------------------------------------
 
 ## 15. Exit Criteria
 

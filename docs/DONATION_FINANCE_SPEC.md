@@ -546,14 +546,16 @@ The proof should not be silently deleted.
 
 # 32. Resubmission After Rejection
 
-The final product must define whether a rejected payment can:
+A rejected payment remains historically recorded as rejected.
 
--   be resubmitted
--   be corrected
--   create a new payment submission
--   retain the same payment identity
+A resubmission creates a new payment submission with:
 
-This is an open implementation/product decision.
+- a new payment identity;
+- a new operation identity;
+- its own proof and verification lifecycle where applicable.
+
+A rejected payment is never silently converted into verified and its
+historical record is not rewritten.
 
 ------------------------------------------------------------------------
 
@@ -1802,17 +1804,16 @@ Where cached aggregates are used, reconciliation mechanisms must exist.
 
 # 126. Monthly Closing
 
-If the organization introduces monthly closing, the process must define:
+Formal hard monthly closing is **not enabled in v1**.
 
--   close date
--   authorized role
--   treatment of late payments
--   corrections after close
--   reopening process
+Late entries remain possible.
 
-This is currently an open decision.
+Business date and server timestamps remain distinct.
 
-------------------------------------------------------------------------
+Corrections and reversals remain available through their authorized workflows.
+
+If a formal monthly closing capability is introduced in a future version, its close date, authorization, late-entry treatment, post-close correction rules and reopening process must be explicitly designed before implementation.
+
 
 # 127. Future-Month Obligations
 
@@ -2333,48 +2334,31 @@ The finance module is implementation-ready when:
 
 ------------------------------------------------------------------------
 
-# 163. Open Decisions
+# 163. V1 Approved Decisions
 
-  -----------------------------------------------------------------------
-  Decision                            Status
-  ----------------------------------- -----------------------------------
-  Exact monthly obligation            Review
-  change/effective-date rule          
+The following financial business decisions are approved for v1.
 
-  Minimum partial-payment amount      Open
+| Decision | Approved v1 policy |
+|---|---|
+| Exact monthly obligation change/effective-date rule | Monthly obligations use an explicit effective month; historical obligations are not rewritten. |
+| Minimum partial-payment amount | ₹1 minimum positive payment. |
+| Rejected-payment resubmission model | Rejected submissions remain historical; resubmission creates a new payment and operation ID. |
+| Overpayment treatment | Remaining amount after eligible FIFO recurring allocation becomes an additional donation. |
+| Future-month prepayment policy | No automatic future-month prepayment in v1. |
+| Waiver workflow | Controlled authorized waiver preserving original obligation history, amount, reason, actor and operation identity. |
+| Monthly closing | No formal hard monthly close in v1. |
+| Cash reconciliation workflow | Cash received, held and deposited/transferred are distinguishable financial states/effects. |
+| Expense approval thresholds | All posted expenses use maker/checker separation; creator cannot approve own expense. |
+| Correction approval thresholds | Financial corrections require authorized second-person approval and explicit reason. |
+| Reversal approval thresholds | Reversals require controlled second-person approval, explicit reason and compensating financial effect. |
+| Account taxonomy | Bank, UPI, Cash, Other. |
+| Exact transaction category taxonomy | Controlled categories: recurring donation, additional donation, anonymous donation, Jummah donation, expense, transfer in/out, correction and reversal. |
+| Financial retention period | Category-specific governed retention; exact legal/organizational requirements must be verified before production settings. |
+| Currency configuration | INR with exact numeric monetary representation and two decimal places. |
+| Exact financial RPC/transaction design | Engineering implementation decision; must preserve the approved financial integrity baseline. |
 
-  Rejected-payment resubmission model Open
+These decisions supersede the corresponding unresolved organizational decisions for v1.
 
-  Overpayment treatment               Open
-
-  Future-month prepayment policy      Open
-
-  Waiver workflow                     Open
-
-  Monthly closing                     Open
-
-  Cash reconciliation workflow        Open
-
-  Expense approval thresholds         Open
-
-  Correction approval thresholds      Open
-
-  Reversal approval thresholds        Open
-
-  Account taxonomy                    Open
-
-  Exact transaction category taxonomy Open
-
-  Financial retention period          Verify organizational/legal
-                                      requirements
-
-  Currency configuration              Confirm
-
-  Exact financial RPC/transaction     Verify during implementation
-  design                              
-  -----------------------------------------------------------------------
-
-------------------------------------------------------------------------
 
 # 164. Implementation Order
 

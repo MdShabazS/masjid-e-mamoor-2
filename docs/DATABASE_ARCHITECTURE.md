@@ -208,39 +208,31 @@ finalized.
 
 # 6. Role and Permission Model
 
-The application supports:
+The application uses a controlled role-assignment model.
 
-1.  President / Super Admin
-2.  Vice President
-3.  Secretary
-4.  Finance
-5.  Auditor
-6.  Committee Member
-7.  Member
+Supported application roles:
 
-The final implementation may represent roles using a role table, enum,
-or controlled assignment model.
+1. President / Super Admin
+2. Vice President
+3. Secretary
+4. Finance
+5. Auditor
+6. Committee Member
+7. Member
 
-The decision must be consistent with `ROLE_PERMISSION_MATRIX.md` and
-`RLS_SECURITY_MODEL.md`.
+V1 authorization follows:
 
-Conceptual model:
+application_user -> controlled role assignment -> application role -> role-level permissions
 
-``` text
-application_user
-      |
-      v
-role_assignment
-      |
-      v
-role
-      |
-      v
-permission
-```
+V1 decisions:
 
-If permission overrides are introduced, they require explicit
-architecture approval.
+- each application user has at most one active application role;
+- roles are assigned only through an authorized administrative workflow;
+- arbitrary per-user permission overrides are not supported in v1;
+- permission capabilities are defined at role level;
+- backend authorization and RLS remain the security boundary.
+
+The exact physical role/permission tables and authorization helper functions remain implementation-design decisions and must remain consistent with `ROLE_PERMISSION_MATRIX.md` and `RLS_SECURITY_MODEL.md`.
 
 ------------------------------------------------------------------------
 
@@ -343,19 +335,19 @@ The exact uniqueness key depends on the finalized obligation model.
 
 # 11. Donation Obligation History
 
-If obligation values can change over time, historical records must
-preserve the values that were actually applicable.
+Each active member receives one recurring obligation for each applicable
+calendar month.
 
-Do not overwrite historical financial meaning merely because a current
-monthly amount changed.
+The obligation stores the authoritative amount applicable to that month.
+The amount is determined by the effective rule for that month and is not
+rewritten when a later monthly amount changes.
 
-Possible implementation patterns:
+The authoritative implementation model is an immutable obligation record
+containing the member, effective month, authoritative amount, and lifecycle
+status. Historical obligation meaning must remain stable.
 
--   effective-dated records
--   immutable obligation snapshots
--   versioned obligation records
-
-The final implementation must select one explicit model.
+A future change in the recurring amount therefore affects future
+obligations only and never silently rewrites historical obligations.
 
 ------------------------------------------------------------------------
 
@@ -364,24 +356,39 @@ The final implementation must select one explicit model.
 A payment submission represents a payment claim/request awaiting the
 applicable verification process.
 
+The v1 lifecycle is:
+
+submitted -> under_review -> verified
+
+or:
+
+submitted -> under_review -> rejected
+
 Conceptual fields:
 
-  Field              Purpose
-  ------------------ -----------------------------------------
-  `id`               Payment identifier
-  `member_id`        Submitting member where applicable
-  `amount`           Submitted amount
-  `payment_method`   UPI/cash/other approved type
-  `status`           Payment lifecycle
-  `operation_id`     Idempotency reference where required
-  `submitted_at`     Submission timestamp
-  `verified_at`      Verification timestamp where applicable
-  `verified_by`      Verifying user where applicable
-  `created_at`       Creation timestamp
-  `updated_at`       Update timestamp
+| Field | Purpose |
+|---|---|
+| id | Payment identifier |
+| member_id | Submitting member where applicable |
+| amount | Submitted amount |
+| payment_method | UPI/cash/other approved type |
+| status | Payment lifecycle status |
+| operation_id | Idempotency/operation reference where required |
+| submitted_at | Submission timestamp |
+| verified_at | Verification timestamp where applicable |
+| verified_by | Verifying user where applicable |
+| created_at | Creation timestamp |
+| updated_at | Last update timestamp |
 
-Payment status names must be finalized consistently across API and
-database specifications.
+A rejected payment remains historically recorded as rejected. Resubmission
+creates a new payment submission with a new payment identity and new
+operation identity. A rejected payment is never silently converted into
+verified.
+
+A verified payment may later enter the controlled reversal flow where the
+applicable financial controls permit it.
+
+Proof submission does not itself constitute verification.
 
 ------------------------------------------------------------------------
 
@@ -1493,27 +1500,47 @@ Retained
 
 ------------------------------------------------------------------------
 
-# 67. Open Database Decisions
+# 67. Remaining Database Decisions
 
-The following require explicit review before migration implementation:
+The following implementation details remain intentionally deferred:
 
-  Decision                               Impact
-  -------------------------------------- ----------------------
-  Exact role storage model               Auth/RLS
-  Permission override model              Authorization
-  Member/application-user relationship   Identity
-  Obligation effective-date model        Donation history
-  Payment status enum                    Finance/API
-  Exact accounting representation        Financial integrity
-  Transaction/ledger model               Account balances
-  Expense approval structure             Separation of duties
-  Transfer approval structure            Financial controls
-  Attendance event model                 Offline/GPS
-  Offline payload storage                Sync security
-  Notification schema                    Realtime/outbox
-  Audit before/after representation      Audit/privacy
-  Retention periods                      Operations
-  Physical table naming convention       Migrations
+| Decision area | Current v1 direction |
+|---|---|
+| Exact physical role/permission table structure | Implementation design, must preserve controlled role assignment |
+| Exact authorization helper functions | Implementation design, must preserve backend authorization and RLS |
+| Exact physical table naming convention | Implementation detail |
+| Exact attendance event identity | Deferred business decision |
+| Exact GPS radius/policy | Deferred business decision |
+| Notification event catalogue/schema | Deferred design decision |
+| Exact retention periods | Deferred operational/legal decision |
+| Incident escalation workflow | Deferred operational/security decision |
+| Locking/isolation implementation details | Implementation design |
+
+The following are already approved and are not open decisions:
+
+- one active application role per application user;
+- no arbitrary per-user permission overrides in v1;
+- application user may have zero or one member profile;
+- monthly obligations use an explicit effective month and preserve historical amounts;
+- payment lifecycle is submitted -> under_review -> verified/rejected, with controlled reversal after verification;
+- rejected payments remain historical and resubmission creates a new payment and operation identity;
+- minimum payment is ₹1;
+- eligible recurring obligations use FIFO allocation;
+- no automatic future-month prepayment in v1;
+- overpayment after eligible recurring obligations becomes additional donation;
+- waivers preserve original amount, waived amount, reason, actor, timestamp, and operation identity;
+- expenses and transfers use maker/checker approval;
+- creator cannot approve their own expense or transfer;
+- transfers are atomic and idempotent;
+- corrections and reversals preserve original history and require controlled approval;
+- v1 has no hard monthly financial close;
+- accounts use Bank, UPI, Cash, and Other taxonomy;
+- the authoritative ledger is append-oriented;
+- balances are calculated from authoritative financial effects;
+- cash reconciliation distinguishes received, held, and deposited/transferred cash;
+- formal reconciliation is monthly and on demand;
+- successful financial idempotency records are retained for at least one year;
+- authoritative monetary values use INR with exact numeric representation and two decimal places.
 
 ------------------------------------------------------------------------
 

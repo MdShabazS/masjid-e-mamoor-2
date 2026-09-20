@@ -272,8 +272,9 @@ must explicitly identify the excess.
 
 ## BR-OVERPAY-002 --- No Silent Future Prepayment
 
-Excess amount must not silently become future-month prepayment unless
-the approved future-month rules explicitly permit it.
+Excess amount must not silently become future-month prepayment.
+In v1, no automatic future-month prepayment is permitted unless a future
+version explicitly introduces and approves such a workflow.
 
 ## BR-OVERPAY-003 --- Additional Donation Classification
 
@@ -811,43 +812,32 @@ approved business rules.
 
 ------------------------------------------------------------------------
 
-# 31. Open Business Decisions
+# 31. Remaining Business Decisions
 
-The following require explicit product/finance decisions before their
-implementation:
+The following business decisions remain intentionally unresolved and must
+not be silently determined by implementation:
 
-  -----------------------------------------------------------------------
-  Decision                            Why it matters
-  ----------------------------------- -----------------------------------
-  Exact monthly obligation creation   Determines obligation lifecycle
-  schedule                            
+| Decision | Why it matters |
+|---|---|
+| Exact attendance event identity | Determines duplicate prevention and authoritative attendance identity. |
+| Exact GPS acceptance radius/policy | Determines attendance location validation. |
+| Exact notification event catalogue | Determines notification/outbox triggers. |
+| Exact retention periods | Determines audit/storage/security lifecycle and requires organizational/legal verification. |
+| Incident escalation process | Determines operational/security response responsibilities. |
 
-  Exact future-month payment policy   Determines allocation/prepayment
-                                      behavior
+The following financial decisions have been approved for v1 and are recorded
+in `DECISION_BASELINE_V1.md`:
 
-  Exact overpayment treatment         Determines additional vs future
-                                      allocation
+- monthly obligation effective-month behavior,
+- future-month payment policy,
+- overpayment treatment,
+- rejected-payment resubmission behavior,
+- expense maker/checker requirements,
+- transfer maker/checker requirements,
+- correction/reversal approval requirements.
 
-  Exact payment rejection/reversal    Determines financial state
-  workflow                            transitions
+No implementation should silently decide the remaining unresolved items.
 
-  Exact expense approval thresholds   Determines separation of duties
-
-  Exact transfer approval             Determines maker/checker behavior
-  requirements                        
-
-  Exact attendance event identity     Determines duplicate prevention
-
-  Exact GPS acceptance radius/policy  Determines attendance validation
-
-  Exact notification event catalogue  Determines outbox triggers
-
-  Exact retention periods             Determines audit/storage lifecycle
-  -----------------------------------------------------------------------
-
-No implementation should silently decide these items.
-
-------------------------------------------------------------------------
 
 # 32. Business Rule Acceptance Criteria
 

@@ -1297,24 +1297,37 @@ RLS/security architecture is implementation-ready when:
 
 ------------------------------------------------------------------------
 
-# 64. Open Security Decisions
+# 64. Remaining Security Implementation Decisions
 
-These require explicit review before final RLS migrations:
+The following details remain intentionally deferred to implementation or
+later operational decisions:
 
-  Decision                              Impact
-  ------------------------------------- -----------------------------
-  Exact role representation             RLS helper functions
-  Role + permission override model      Authorization
-  Exact Finance permissions             Financial RLS
-  Exact Auditor scope                   Read policies
-  Exact President/VP/Secretary scopes   Administrative RLS
-  Maker/checker rules                   Trusted financial functions
-  Exact GPS access scope                Privacy
-  Storage bucket structure              Object security
-  Audit read scope                      Governance
-  Session revocation strategy           Authentication/RLS
-  Offline operation payload design      Security
-  Security-event retention              Operations
+| Decision area | Current v1 direction |
+|---|---|
+| Exact role representation | Controlled role assignment; one active role per application user |
+| Exact RLS helper functions and predicates | Implementation design |
+| Exact Finance permission-to-policy mapping | Must follow approved role permission matrix |
+| Exact Auditor policy scope | Read-oriented oversight; exact predicates remain implementation detail |
+| Exact President/VP/Secretary policy predicates | Must follow approved role capabilities |
+| Exact GPS access policy | Deferred business decision |
+| Storage bucket/policy structure | Implementation design |
+| Audit read policy | Least-privilege governance access |
+| Session revocation mechanism | Authentication implementation detail |
+| Offline payload schema | Must use typed operation records and stable operation identities |
+| Security-event retention period | Deferred operational/legal decision |
+
+The following security principles are already approved:
+
+- RLS is a database security boundary;
+- backend authorization and RLS are both required;
+- UI hiding is never treated as authorization;
+- no arbitrary per-user permission overrides in v1;
+- sensitive financial operations use trusted backend/database operations;
+- trusted operations recheck authentication, authorization, current state, invariants, idempotency, and concurrency requirements;
+- clients cannot directly mutate or delete audit history;
+- offline clients cannot submit arbitrary database commands;
+- offline financial operations remain subject to final server-side authority;
+- one active application role exists per application user.
 
 ------------------------------------------------------------------------
 
@@ -1359,7 +1372,7 @@ Security behavior must never change silently through UI implementation.
 
 # 67. Status
 
-**Current status: RLS security model generated for review.**
+**Current status: RLS security model synchronized with the approved v1 decision baseline; remaining implementation details are tracked explicitly.**
 
 No production authorization policy should be considered final until the
 authentication, role matrix, database, API, storage, and

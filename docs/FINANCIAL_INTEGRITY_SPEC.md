@@ -893,12 +893,12 @@ or equivalent safe conflict should be returned.
 
 # 57. Idempotency Retention
 
-Idempotency records must remain available long enough to cover realistic
-retry/replay windows.
+Successful financial idempotency records must be retained for a minimum of one year.
 
-Exact retention is operationally configurable.
+This retention period covers realistic financial retry/replay windows and supports reconciliation of delayed or repeated operations.
 
-------------------------------------------------------------------------
+Financial history and audit references remain independently traceable and are not dependent solely on the operational idempotency record.
+
 
 # 58. Idempotency and Offline Sync
 
@@ -1860,24 +1860,27 @@ note containing:
 
 ------------------------------------------------------------------------
 
-# 131. Open Decisions
+# 131. V1 Approved / Deferred Decisions
 
-  Decision                              Status
-  ------------------------------------- ----------------
-  Exact ledger model                    Review
-  Materialized vs calculated balances   Review
-  Exact PostgreSQL locking strategy     Implementation
-  Transaction isolation levels          Implementation
-  Idempotency retention                 Open
-  Overpayment classification            Open
-  Future-month policy                   Open
-  Period/month closing                  Open
-  Correction approval levels            Open
-  Reversal approval levels              Open
-  Reconciliation schedule               Open
-  Incident escalation process           Open
+The following decisions are resolved for v1.
 
-------------------------------------------------------------------------
+| Decision | V1 status / policy |
+|---|---|
+| Exact ledger model | Approved: append-oriented authoritative financial-effect model. |
+| Materialized vs calculated balances | Approved: calculated authoritative balances; any materialized value is derived/cache data and must be reconcilable. |
+| Exact PostgreSQL locking strategy | Implementation decision; must preserve financial invariants and concurrency safety. |
+| Transaction isolation levels | Implementation decision; select according to operation contention and integrity requirements. |
+| Idempotency retention | Approved: successful financial idempotency records retained for a minimum of one year. |
+| Overpayment classification | Approved: remaining amount after eligible FIFO recurring allocation becomes an additional donation. |
+| Future-month policy | Approved: no automatic future-month prepayment in v1. |
+| Period/month closing | Approved: no formal hard monthly close in v1. |
+| Correction approval levels | Approved: second-person authorization with explicit reason. |
+| Reversal approval levels | Approved: controlled second-person authorization with explicit reason and compensating effect. |
+| Reconciliation schedule | Approved: formal monthly reconciliation plus on-demand reconciliation. |
+| Incident escalation process | Remains an operational/security process decision and is not silently invented by the financial implementation. |
+
+The implementation decisions above must preserve the approved v1 financial integrity baseline.
+
 
 # 132. Status
 
