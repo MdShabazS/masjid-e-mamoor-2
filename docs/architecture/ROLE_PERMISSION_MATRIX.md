@@ -335,44 +335,15 @@ This document feeds the following documents:
 
 ## 14. Remaining Implementation Decisions
 
-Only implementation-level details remain intentionally deferred:
+V1 implementation decisions are closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`.
 
-| Decision area | Follow-up |
-|---|---|
-| Exact physical role/permission representation | DATABASE_ARCHITECTURE.md |
-| Exact RLS helper functions and authorization predicates | RLS_SECURITY_MODEL.md |
-| Exact attendance event identity | BUSINESS_RULES.md |
-| Exact GPS radius/policy | BUSINESS_RULES.md |
-| Notification event catalogue | NOTIFICATION_ARCHITECTURE.md |
-| Exact retention periods | SECURITY_OPERATIONS.md / operational policy |
-| Incident escalation workflow | SECURITY_OPERATIONS.md |
+This matrix remains the authorization source for role capabilities.
+Physical RLS predicates, helper functions, and trusted-operation checks
+must implement it without widening scope.
 
-V1 authorization decisions are already approved:
+Deferred/non-blocking:
+- organizational/legal retention;
+- formal incident-notification policy.
 
-- one active application role per application user;
-- no arbitrary per-user permission overrides;
-- role capabilities are defined at role level;
-- elevated role assignment requires an authorized administrative workflow;
-- maker/checker controls apply to the approved financial workflows;
-- backend authorization and RLS remain the security boundary.
-
-No remaining implementation decision may weaken least privilege,
-separation of duties, backend authorization, RLS, auditability, atomicity,
-or idempotency.
-
-------------------------------------------------------------------------
-
-## 15. Exit Criteria
-
-This document is complete when:
-
-- All seven roles are defined.
-- Permission domains are defined.
-- Sensitive financial permissions are explicit.
-- Member privacy boundaries are explicit.
-- Separation of duties is documented.
-- RLS mapping principles are documented.
-- No client-side authorization is treated as authoritative.
-- Later architecture dependencies are identified.
-
-Until these criteria and the linked follow-up architecture decisions are satisfied, this document remains a draft.
+Client-side role switching is never authorization.

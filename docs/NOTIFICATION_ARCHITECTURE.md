@@ -2125,86 +2125,17 @@ The system must support:
 
 # 131. Open Decisions
 
-  -----------------------------------------------------------------------
-  Decision                            Status
-  ----------------------------------- -----------------------------------
-  Exact notification table schema     Review
+V1 notification decisions are closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`.
 
-  Exact outbox schema                 Review
+Approved:
+- authoritative business events create outbox work;
+- the V1 event catalogue is fixed by the implementation baseline;
+- preferences apply to non-mandatory categories;
+- security/account-state notifications are mandatory where applicable;
+- mobile delivery initially uses `expo-notifications` / Expo Push Service;
+- outbox and delivery status are separate;
+- retries are bounded and idempotent;
+- payloads contain minimum authorized data.
 
-  Push provider implementation        Review
-
-  Email/SMS support                   Future/Open
-
-  Mandatory notification categories   Open
-
-  Default preferences                 Open
-
-  Push payload format                 Open
-
-  Retry count/backoff                 Open
-
-  Notification retention              Open
-
-  Quiet hours                         Future/Open
-
-  Broadcast feature                   Open
-
-  Aggregation rules                   Future/Open
-
-  Exact Supabase Realtime             Verify during implementation
-  subscription strategy               
-  -----------------------------------------------------------------------
-
-------------------------------------------------------------------------
-
-# 132. Implementation Order
-
-1.  Finalize event catalogue
-2.  Finalize notification categories
-3.  Finalize notification schema
-4.  Finalize outbox schema
-5.  Implement in-app notification persistence
-6.  Implement trusted event creation
-7.  Implement realtime delivery
-8.  Implement read state
-9.  Implement preferences
-10. Implement push token registration
-11. Implement push delivery
-12. Implement retries
-13. Implement cleanup
-14. Add localization
-15. Add deep links
-16. Add security tests
-17. Add financial notification tests
-18. Add operational monitoring
-
-------------------------------------------------------------------------
-
-# 133. Change Control
-
-Changes to notification behavior must review:
-
--   business rules
--   user flows
--   API architecture
--   realtime architecture
--   offline architecture
--   localization
--   privacy/security
--   role permissions
-
-A notification change must not alter authoritative business behavior
-unless the business specification is explicitly changed.
-
-------------------------------------------------------------------------
-
-# 134. Status
-
-**Current status: Notification architecture generated for review.**
-
-This document defines the notification domain, reliability model,
-privacy boundaries, and delivery architecture. Exact provider APIs,
-Supabase Realtime implementation, push infrastructure, and final
-timing/retention policies must be verified and finalized during
-implementation.
+Long-term retention remains non-blocking policy work.

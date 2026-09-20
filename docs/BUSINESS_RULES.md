@@ -306,10 +306,9 @@ identifiers, dates, request payloads, or UI state.
 Future-month transactions, if permitted, must remain distinguishable
 from current-month obligation settlement.
 
-## BR-FUTURE-004 --- Unresolved Details
+## BR-FUTURE-004 --- V1 Policy
 
-The exact future-month policy must be finalized before implementation of
-the corresponding financial workflow.
+V1 does not permit automatic future-month prepayment. Eligible recurring obligations are settled by FIFO and any remaining excess follows the approved overpayment/additional-donation rules.
 
 ------------------------------------------------------------------------
 
@@ -814,30 +813,19 @@ approved business rules.
 
 # 31. Remaining Business Decisions
 
-The following business decisions remain intentionally unresolved and must
-not be silently determined by implementation:
+The V1 business decisions required for implementation are closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`.
 
-| Decision | Why it matters |
-|---|---|
-| Exact attendance event identity | Determines duplicate prevention and authoritative attendance identity. |
-| Exact GPS acceptance radius/policy | Determines attendance location validation. |
-| Exact notification event catalogue | Determines notification/outbox triggers. |
-| Exact retention periods | Determines audit/storage/security lifecycle and requires organizational/legal verification. |
-| Incident escalation process | Determines operational/security response responsibilities. |
+Deferred non-blocking policy work:
+- exact legal/organizational retention periods;
+- formal external incident-notification obligations.
 
-The following financial decisions have been approved for v1 and are recorded
-in `DECISION_BASELINE_V1.md`:
+Attendance event identity, GPS policy, notification events, membership
+lifecycle, and referral behavior are approved in the V1 implementation
+baseline.
 
-- monthly obligation effective-month behavior,
-- future-month payment policy,
-- overpayment treatment,
-- rejected-payment resubmission behavior,
-- expense maker/checker requirements,
-- transfer maker/checker requirements,
-- correction/reversal approval requirements.
-
-No implementation should silently decide the remaining unresolved items.
-
+No developer may introduce different behavior without updating the
+relevant specification first.
 
 # 32. Business Rule Acceptance Criteria
 

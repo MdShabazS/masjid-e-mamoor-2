@@ -1750,21 +1750,21 @@ The API architecture is implementation-ready when:
 
 # 89. Open API Decisions
 
-  Decision                          Impact
-  --------------------------------- ---------------------
-  Exact transport architecture      Web/server/mobile
-  Route vs RPC conventions          API implementation
-  Exact DTO catalogue               Client contracts
-  Error-code naming                 UX/testing
-  Idempotency transport             Retry behavior
-  Cursor/pagination standard        Queries
-  Direct Supabase read boundaries   RLS/API
-  Exact trusted function set        Security/finance
-  Report export architecture        Reporting
-  File upload flow                  Storage
-  API rate limits                   Security/operations
+V1 API decisions are closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`.
 
-------------------------------------------------------------------------
+Approved:
+- Supabase/PostgREST + RLS for reads;
+- PostgreSQL RPC/trusted operations for sensitive atomic workflows;
+- Supabase Edge Functions for external integrations/protected HTTP
+  orchestration;
+- Next.js Route Handlers only as a web BFF where useful;
+- shared Zod DTOs;
+- `Idempotency-Key` for retryable mutations;
+- cursor pagination;
+- stable machine-readable errors;
+- no client authority over actor, role, permissions, balances, or final
+  financial allocation.
 
 # 90. Implementation Order
 

@@ -1502,126 +1502,21 @@ Retained
 
 # 67. Remaining Database Decisions
 
-The following implementation details remain intentionally deferred:
+The V1 database implementation decisions are closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`.
 
-| Decision area | Current v1 direction |
-|---|---|
-| Exact physical role/permission table structure | Implementation design, must preserve controlled role assignment |
-| Exact authorization helper functions | Implementation design, must preserve backend authorization and RLS |
-| Exact physical table naming convention | Implementation detail |
-| Exact attendance event identity | Deferred business decision |
-| Exact GPS radius/policy | Deferred business decision |
-| Notification event catalogue/schema | Deferred design decision |
-| Exact retention periods | Deferred operational/legal decision |
-| Incident escalation workflow | Deferred operational/security decision |
-| Locking/isolation implementation details | Implementation design |
+Approved:
+- controlled role/permission tables;
+- trusted RLS helpers;
+- member profile lifecycle `active | inactive`;
+- attendance uniqueness on `attendance_event_id + member_id`;
+- transactional PostgreSQL functions/RPCs for atomic multi-record
+  financial workflows;
+- cursor pagination;
+- PostgreSQL transaction locking/constraints for concurrency.
 
-The following are already approved and are not open decisions:
+Operational/legal retention and formal incident-notification policy are
+deferred and do not block schema implementation.
 
-- one active application role per application user;
-- no arbitrary per-user permission overrides in v1;
-- application user may have zero or one member profile;
-- monthly obligations use an explicit effective month and preserve historical amounts;
-- payment lifecycle is submitted -> under_review -> verified/rejected, with controlled reversal after verification;
-- rejected payments remain historical and resubmission creates a new payment and operation identity;
-- minimum payment is ₹1;
-- eligible recurring obligations use FIFO allocation;
-- no automatic future-month prepayment in v1;
-- overpayment after eligible recurring obligations becomes additional donation;
-- waivers preserve original amount, waived amount, reason, actor, timestamp, and operation identity;
-- expenses and transfers use maker/checker approval;
-- creator cannot approve their own expense or transfer;
-- transfers are atomic and idempotent;
-- corrections and reversals preserve original history and require controlled approval;
-- v1 has no hard monthly financial close;
-- accounts use Bank, UPI, Cash, and Other taxonomy;
-- the authoritative ledger is append-oriented;
-- balances are calculated from authoritative financial effects;
-- cash reconciliation distinguishes received, held, and deposited/transferred cash;
-- formal reconciliation is monthly and on demand;
-- successful financial idempotency records are retained for at least one year;
-- authoritative monetary values use INR with exact numeric representation and two decimal places.
-
-------------------------------------------------------------------------
-
-# 68. Implementation Order
-
-The database implementation should proceed approximately in this
-dependency order:
-
-1.  Base extensions/configuration
-2.  Application user/profile
-3.  Roles/permissions
-4.  Membership/referrals
-5.  Donation obligations
-6.  Payment submissions
-7.  Payment proofs/storage metadata
-8.  Allocation model
-9.  Finance accounts
-10. Financial transactions
-11. Transfers
-12. Expenses
-13. Corrections/reversals
-14. Committee tasks/meetings
-15. Attendance
-16. Offline operations
-17. Notifications/outbox
-18. Audit
-19. RLS policies
-20. Trusted functions
-21. Indexes and performance tuning
-22. Seed/test data
-
-This order may change after the API/security documents are finalized.
-
-------------------------------------------------------------------------
-
-# 69. Database Definition of Done
-
-The database architecture is implementation-ready when:
-
--   entities are documented
--   relationships are documented
--   ownership is documented
--   financial authority is documented
--   donation allocation is documented
--   constraints are identified
--   indexes are identified
--   RLS boundaries are identified
--   trusted operations are identified
--   idempotency is identified
--   offline storage model is identified
--   audit model is identified
--   storage metadata is identified
--   migration strategy is defined
--   test requirements are defined
--   retention dependencies are defined
--   open decisions are explicitly tracked
-
-------------------------------------------------------------------------
-
-# 70. Change Control
-
-A database design change must not be made only because implementation is
-inconvenient.
-
-For every material schema change:
-
-1.  Identify the affected business rule.
-2.  Identify affected user flows.
-3.  Identify API/RLS/security impact.
-4.  Identify migration impact.
-5.  Update this document and dependent specifications.
-6.  Review the change.
-7.  Implement through a migration.
-
-------------------------------------------------------------------------
-
-# 71. Status
-
-**Current status: Database architecture specification generated for
-review.**
-
-No production schema should be created solely from this document until
-the dependent authentication, RLS, financial-integrity, API, storage,
-and offline specifications are aligned.
+No migration may silently introduce a product decision that contradicts
+the V1 baseline.

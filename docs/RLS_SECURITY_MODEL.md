@@ -1299,37 +1299,22 @@ RLS/security architecture is implementation-ready when:
 
 # 64. Remaining Security Implementation Decisions
 
-The following details remain intentionally deferred to implementation or
-later operational decisions:
+The V1 security implementation decisions are closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`.
 
-| Decision area | Current v1 direction |
-|---|---|
-| Exact role representation | Controlled role assignment; one active role per application user |
-| Exact RLS helper functions and predicates | Implementation design |
-| Exact Finance permission-to-policy mapping | Must follow approved role permission matrix |
-| Exact Auditor policy scope | Read-oriented oversight; exact predicates remain implementation detail |
-| Exact President/VP/Secretary policy predicates | Must follow approved role capabilities |
-| Exact GPS access policy | Deferred business decision |
-| Storage bucket/policy structure | Implementation design |
-| Audit read policy | Least-privilege governance access |
-| Session revocation mechanism | Authentication implementation detail |
-| Offline payload schema | Must use typed operation records and stable operation identities |
-| Security-event retention period | Deferred operational/legal decision |
+Approved:
+- existing controlled role/permission representation;
+- trusted current-user/permission helpers;
+- Finance/Auditor and President/VP/Secretary scopes follow the approved
+  matrix;
+- GPS follows the approved attendance policy;
+- sensitive storage uses private buckets;
+- account restriction/deactivation is checked on protected operations;
+- offline payloads are typed and idempotent.
 
-The following security principles are already approved:
-
-- RLS is a database security boundary;
-- backend authorization and RLS are both required;
-- UI hiding is never treated as authorization;
-- no arbitrary per-user permission overrides in v1;
-- sensitive financial operations use trusted backend/database operations;
-- trusted operations recheck authentication, authorization, current state, invariants, idempotency, and concurrency requirements;
-- clients cannot directly mutate or delete audit history;
-- offline clients cannot submit arbitrary database commands;
-- offline financial operations remain subject to final server-side authority;
-- one active application role exists per application user.
-
-------------------------------------------------------------------------
+Security-event retention remains a non-blocking organizational/legal policy
+item. No automated destructive deletion occurs before that policy is
+approved.
 
 # 65. Implementation Order
 

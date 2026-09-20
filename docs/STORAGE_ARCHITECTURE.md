@@ -1604,24 +1604,23 @@ The storage architecture is implementation-ready when:
 
 # 89. Open Decisions
 
-  Decision                              Status
-  ------------------------------------- ------------------------------
-  Exact bucket names                    Review
-  Exact bucket count                    Review
-  Maximum file sizes                    Open
-  Accepted MIME types                   Open
-  Direct vs proxied upload              Open
-  Signed URL expiry                     Open
-  Malware scanning                      Open
-  Thumbnail generation                  Open
-  Retention periods                     Open
-  Export retention                      Open
-  Physical deletion workflow            Open
-  Backup provider/strategy              Open
-  Storage access function design        Open
-  Exact Supabase Storage RLS policies   Verify during implementation
+V1 storage decisions are closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`.
 
-------------------------------------------------------------------------
+Approved:
+- private buckets: `payment-proofs`, `expense-proofs`,
+  `financial-attachments`, `member-documents`;
+- 10 MB maximum;
+- PDF/JPEG/PNG;
+- authenticated or short-lived signed access;
+- 5-minute default signed URLs;
+- no public sensitive data;
+- no direct client deletion;
+- no malware-scanning or thumbnail capability is claimed unless actually
+  deployed.
+
+Retention/deletion periods remain organizational/legal policy work; V1
+has no automated destructive retention job.
 
 # 90. Implementation Order
 

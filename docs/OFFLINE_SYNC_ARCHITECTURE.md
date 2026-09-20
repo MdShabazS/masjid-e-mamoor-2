@@ -1226,24 +1226,22 @@ Offline architecture is implementation-ready when:
 
 # 66. Open Offline Decisions
 
-  Decision                              Impact
-  ------------------------------------- ---------------------
-  Exact mobile persistence technology   Storage
-  Encryption strategy                   Security
-  Offline authentication lifetime       Authentication
-  Exact attendance offline scope        Product
-  GPS evidence retention                Privacy
-  Sync queue implementation             Mobile architecture
-  Retry backoff values                  Reliability
-  Conflict response contract            API
-  Offline cache freshness               UX/data
-  Attachment offline support            Storage
-  Background sync scope                 Expo/OS limits
+V1 offline decisions are closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`.
 
-These decisions must be finalized before implementing the corresponding
-offline infrastructure.
+Approved:
+- `expo-sqlite` persistence;
+- platform secure storage for sensitive session material;
+- attendance and approved non-financial drafts only;
+- no authoritative financial mutation offline;
+- typed operation records and stable IDs;
+- server revalidation;
+- bounded exponential retry;
+- accepted/already-applied/rejected/requires-reconciliation outcomes;
+- minimized GPS evidence.
 
-------------------------------------------------------------------------
+No new offline workflow may be added without explicit authority and
+conflict semantics.
 
 # 67. Implementation Order
 

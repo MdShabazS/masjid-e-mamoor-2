@@ -1211,24 +1211,19 @@ Before release ask:
 
 ## 111. Open Decisions
 
-Finalize:
+V1 security implementation decisions are closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`.
 
-1. production security owner;
-2. incident severity matrix;
-3. exact operator access model;
-4. break-glass procedure;
-5. MFA requirements for operators;
-6. vulnerability disclosure/response process;
-7. dependency scanning provider;
-8. secret-scanning provider;
-9. security monitoring/alerting provider;
-10. penetration-testing schedule;
-11. retention periods for security logs;
-12. backup access model;
-13. production support-access model;
-14. exact rate limits;
-15. exact export controls;
-16. security incident communication procedure.
+Non-blocking operational/policy work:
+1. exact security-owner designation;
+2. legal/security-log retention;
+3. formal external incident-notification obligations;
+4. future penetration-testing cadence;
+5. future dependency/security-provider selection.
+
+V1 engineering uses the approved S1/S2/S3 incident handling model,
+preserves evidence, and performs no automatic destructive retention
+without approved policy.
 
 ## 112. Definition of Done
 

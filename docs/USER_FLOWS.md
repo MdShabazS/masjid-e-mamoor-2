@@ -1096,25 +1096,24 @@ The following flows depend on later specifications:
 
 # 50. Open Flow Decisions
 
-The following flows require explicit decisions before implementation:
+The V1 flow decisions are closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`.
 
--   exact referral expiration behavior
--   exact member activation/deactivation lifecycle
--   exact future-month payment workflow
--   exact overpayment destination
--   exact rejected-payment resubmission workflow
--   exact cancellation vs reversal semantics
--   exact expense approval chain
--   exact transfer approval chain
--   exact GPS radius and location validation
--   exact offline attendance conflict behavior
--   exact notification event catalogue
--   exact report export permissions
+Approved:
+- no referral auto-expiration;
+- active/inactive member lifecycle;
+- no automatic future-month prepayment;
+- FIFO plus additional-donation overpayment;
+- new operation for rejected-payment resubmission;
+- controlled cancellation/reversal;
+- maker/checker expense and transfer approval;
+- 100 m GPS attendance;
+- stable offline operation IDs and server revalidation;
+- authoritative notification events;
+- role-matrix-controlled report/export permissions.
 
-These must be resolved in the relevant specification rather than guessed
-during coding.
-
-------------------------------------------------------------------------
+Only organizational/legal retention and formal incident-notification policy
+remain deferred and do not block V1 implementation.
 
 # 51. User Flow Acceptance Criteria
 

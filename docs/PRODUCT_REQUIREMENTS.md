@@ -739,38 +739,21 @@ It feeds:
 
 ## 27. Open Product Decisions
 
-The following should be explicitly resolved before implementation of the
-affected areas:
+V1 product decisions required for implementation are closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`.
 
-  -----------------------------------------------------------------------
-  Decision                            Follow-up
-  ----------------------------------- -----------------------------------
-  Exact member registration fields    Database architecture
+Resolved:
+- member fields;
+- member activation/deactivation lifecycle;
+- referral lifecycle and attribution;
+- attendance identity and GPS policy;
+- notification event catalogue;
+- API/trusted-operation boundary;
+- offline scope;
+- protected storage defaults.
 
-  Exact donation obligation fields    Database architecture / business
-  and lifecycle                       rules
-
-  Exact future-month handling         Business rules / finance
-                                      specification
-
-  Exact payment rejection/reversal    Finance specification
-  behavior                            
-
-  Exact approval requirements for     Finance specification
-  transfers/expenses                  
-
-  Exact attendance GPS policy         Attendance/security specification
-
-  Exact notification event catalogue  Notification architecture
-
-  Exact report catalogue and filters  Reporting/UI specification
-
-  Exact localization coverage         Accessibility/i18n specification
-  -----------------------------------------------------------------------
-
-Open decisions must not be silently resolved in code.
-
-------------------------------------------------------------------------
+Only organizational/legal retention and incident-notification policy remain
+deferred; these are non-blocking for V1 implementation.
 
 ## 28. Change Control
 
