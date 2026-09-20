@@ -1,0 +1,24 @@
+{
+  "name": "@masjid-e-mamoor/types",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests --config ../../vitest.config.ts",
+    "test:unit": "vitest run --passWithNoTests --config ../../vitest.config.ts"
+  },
+  "description": "Shared platform-neutral TypeScript domain and API types.",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "masjid-e-mamoor-2",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@12.4.2",
+  "scripts": {
+    "lint": "pnpm --filter web lint && pnpm --filter mobile lint && pnpm --filter './packages/*' lint",
+    "typecheck": "pnpm --filter web typecheck && pnpm --filter mobile typecheck && pnpm --filter './packages/*' typecheck",
+    "test": "pnpm run test:unit && pnpm run test:mobile",
+    "test:unit": "pnpm --filter web test:unit && pnpm --filter './packages/*' test:unit",
+    "test:mobile": "pnpm --filter mobile test",
+    "test:e2e": "playwright test",
+    "build:web": "pnpm --filter web build",
+    "format:check": "prettier --check .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.13.6",
+    "eslint": "^9.39.5",
+    "globals": "^17.12.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^5.0.1"
+  }
+}
