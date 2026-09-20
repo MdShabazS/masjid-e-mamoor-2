@@ -19,3 +19,6 @@ web-build/
 .env
 .env.*
 !.env.example
+
+# Local database backups
+.local-backups/
