@@ -1,27 +1,11 @@
 {
   "name": "@masjid-e-mamoor/shared",
-  "version": "0.1.0",
   "private": true,
+  "version": "0.1.0",
   "type": "module",
-  "main": "./src/index.ts",
   "scripts": {
-    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests --config ../../vitest.config.ts",
-    "test:unit": "vitest run --passWithNoTests --config ../../vitest.config.ts"
-  },
-  "description": "Shared platform-neutral utility foundation.",
-  "types": "./src/index.ts",
-  "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
-    }
-  },
-  "files": [
-    "src"
-  ],
-  "dependencies": {
-    "@masjid-e-mamoor/types": "workspace:*"
+    "lint": "eslint .",
+    "test:unit": "vitest run --passWithNoTests"
   }
 }

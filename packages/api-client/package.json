@@ -1,29 +1,11 @@
 {
   "name": "@masjid-e-mamoor/api-client",
-  "version": "0.1.0",
   "private": true,
+  "version": "0.1.0",
   "type": "module",
-  "main": "./src/index.ts",
   "scripts": {
-    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests --config ../../vitest.config.ts",
-    "test:unit": "vitest run --passWithNoTests --config ../../vitest.config.ts"
-  },
-  "description": "Shared typed API client foundation for app integrations.",
-  "types": "./src/index.ts",
-  "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
-    }
-  },
-  "files": [
-    "src"
-  ],
-  "dependencies": {
-    "@masjid-e-mamoor/types": "workspace:*",
-    "@masjid-e-mamoor/validation": "workspace:*",
-    "@supabase/supabase-js": "^2.116.0"
+    "lint": "eslint .",
+    "test:unit": "vitest run --passWithNoTests"
   }
 }
