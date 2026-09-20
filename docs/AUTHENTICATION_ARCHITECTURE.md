@@ -290,15 +290,20 @@ Application-user creation must:
 
 # 13. Default Role
 
-A newly registered ordinary member must not automatically receive an
+A newly registered ordinary member does not automatically receive an
 administrative role.
 
-The exact default application role/status must be finalized with the
-product and role matrix.
+For v1, the default application state for a newly provisioned ordinary
+member is:
+
+- Application status: `pending`
+- Application role: `Member`
+
+The application account becomes `active` only through the approved
+registration/provisioning workflow.
 
 Any elevated role assignment must use an authorized administrative
-workflow.
-
+workflow and the corresponding backend authorization controls.
 ------------------------------------------------------------------------
 
 # 14. Role Resolution
@@ -330,18 +335,34 @@ or user-editable profile values.
 
 # 15. Multiple Role Assignments
 
-If multiple roles are supported in the future, the architecture must
-explicitly define:
+For v1, each application user has one active application role.
 
--   whether multiple simultaneous roles are allowed
--   how permissions are combined
--   how conflicting permissions are resolved
--   how the active role is selected
--   whether switching role changes authorization or only UI context
+The authorization model therefore resolves:
 
-Until approved, the implementation should not invent a multi-role
-authorization model.
+authenticated subject
+    |
+    v
+application user
+    |
+    v
+active role assignment
+    |
+    v
+permissions
 
+Multiple simultaneous roles are deferred.
+
+Future multi-role support requires an explicit architecture decision
+covering:
+
+- whether multiple simultaneous roles are allowed
+- how permissions are combined
+- how conflicting permissions are resolved
+- how the active role is selected
+- whether switching role changes authorization or only UI context
+
+Implementation must not introduce multi-role authorization before that
+decision is approved.
 ------------------------------------------------------------------------
 
 # 16. Session Model
@@ -518,19 +539,26 @@ suspended.
 
 Application account status is separate from authentication status.
 
-Conceptual states may include:
+For v1, the approved application account states are:
 
-``` text
-active
-pending
-restricted
-deactivated
-```
+- `pending`
+- `active`
+- `restricted`
+- `deactivated`
 
-Exact states must be finalized in the product/database specifications.
+A newly provisioned ordinary member starts in `pending`.
+
+The approved registration/provisioning workflow changes the account to
+`active` when application access is granted.
+
+`restricted` limits application access without deleting the application
+record.
+
+`deactivated` disables application access while preserving required
+historical records.
 
 An authenticated Supabase identity can therefore exist while application
-access is restricted.
+access is pending, restricted, or deactivated.
 
 ------------------------------------------------------------------------
 
