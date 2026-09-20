@@ -630,11 +630,9 @@ The final accounting model must preserve reconstructability.
 
 ------------------------------------------------------------------------
 
-# 24. Cancellation/Reversal Entity
+# 24. Reversal Entity
 
-Where a financial action must be cancelled or reversed, the database
-must preserve the relationship between the original action and the
-corrective action.
+Where a financial action must be reversed, the database must preserve the relationship between the original action and the compensating corrective action.
 
 A reversal must not make the original historical record disappear.
 

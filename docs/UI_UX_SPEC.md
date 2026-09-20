@@ -1040,8 +1040,7 @@ Require explicit confirmation.
 Destructive/high-impact actions include:
 
 -   deactivation
--   reversal
--   cancellation
+-   financial reversal
 -   financial correction
 -   deleting permitted files
 

@@ -840,7 +840,7 @@ Test:
 - review/approval where applicable
 - proof
 - account impact
-- cancellation
+- reversal
 - correction
 - unauthorized access
 - duplicate submission

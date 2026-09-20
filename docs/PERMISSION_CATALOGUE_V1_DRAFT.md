@@ -1,6 +1,6 @@
-# Masjid-e-Mamoor — V1 Permission Catalogue Draft
+# Masjid-e-Mamoor — V1 Permission Catalogue
 
-**Document Status:** Draft — Architecture/Security Review Required
+**Document Status:** Implemented seed vocabulary; remaining trusted-operation/RLS details under review
 **Version:** 1.0
 **Phase:** Authorization Design
 **Repository:** `MdShabazS/masjid-e-mamoor-2`
@@ -9,11 +9,7 @@
 
 ## 1. Purpose
 
-This document defines the proposed canonical V1 permission vocabulary for Masjid-e-Mamoor.
-
-It translates the approved role capability model into stable permission identifiers that can later be represented in the database.
-
-This document is a draft. It is not yet the authoritative database permission catalogue.
+This document defines the canonical V1 permission vocabulary for Masjid-e-Mamoor. It translates the approved role capability model into stable permission identifiers seeded by `supabase/migrations/20260920185000_authorization_permission_catalogue.sql`. Exact RLS predicates, trusted-operation boundaries, and future renames remain controlled implementation work.
 
 ---
 
@@ -52,7 +48,7 @@ audit.records.read
 
 ---
 
-## 4. Proposed Permission Catalogue
+## 4. Permission Catalogue
 
 ### 4.1 Identity
 
@@ -106,7 +102,7 @@ audit.records.read
 | `finance.expenses.create` | Create/submit expenses |
 | `finance.expenses.approve` | Approve expenses subject to maker/checker rules |
 | `finance.corrections.create` | Initiate authorized financial corrections |
-| `finance.cancellations.create` | Initiate authorized financial cancellations/reversals |
+| `finance.cancellations.create` | Existing seeded key for initiating authorized financial reversals; retained for migration compatibility until a future approved rename/migration occurs |
 | `finance.reconciliation.manage` | Perform authorized financial reconciliation |
 | `finance.reports.read` | Read authorized financial reports |
 | `finance.proofs.read` | Read authorized financial proofs and bills |
@@ -206,7 +202,7 @@ Sensitive operations require current authorization, business-rule validation, tr
 
 ## 7. Role Mapping
 
-The role-to-permission mapping will be defined only after this permission vocabulary is reviewed.
+The initial role-to-permission mapping is seeded by `supabase/migrations/20260920185000_authorization_permission_catalogue.sql`. This mapping grants role-level capabilities only; it does not bypass RLS, scope checks, maker/checker controls, trusted-operation validation, idempotency, audit, or current-state validation.
 
 The authoritative V1 roles are:
 
@@ -218,7 +214,7 @@ The authoritative V1 roles are:
 6. Committee Member
 7. Member
 
-No additional role is introduced by this draft.
+No additional role is introduced by this catalogue.
 
 ---
 
@@ -226,7 +222,7 @@ No additional role is introduced by this draft.
 
 Permission identifiers found under `docs/archive/legacy-v1/` are historical and are not authoritative for the V1 implementation.
 
-They must not be copied into the V1 database unless explicitly re-approved.
+Current permission identifiers are seeded in the V1 database foundation and must not be expanded without explicit approval.
 
 ---
 
@@ -252,15 +248,13 @@ RLS remains deny-by-default.
 
 ## 10. Open Review Items
 
-The following require explicit review before this catalogue becomes authoritative:
+The following remain explicit implementation/review items:
 
-1. Whether every proposed permission is required in V1.
-2. Whether any permission should be split into more granular capabilities.
-3. Whether any permission should be removed or renamed.
-4. Exact role-to-permission mapping.
-5. Exact RLS predicates and helper functions.
-6. Exact trusted-operation boundaries.
-7. Exact treatment of President/VP/Secretary permissions marked as "Explicit grant" in the role matrix.
+1. Exact domain RLS predicates beyond the authorization foundation.
+2. Exact trusted-operation boundaries for each sensitive domain workflow.
+3. Exact resource-scope rules for Own, Assigned, Organizational, and Full access.
+4. Whether the seeded key `finance.cancellations.create` should be renamed in a future migration to match the approved reversal terminology. No migration is changed by this documentation note.
+5. Exact treatment of President/VP/Secretary permissions marked as "Explicit grant" in the role matrix.
 
 ---
 
@@ -268,9 +262,7 @@ The following require explicit review before this catalogue becomes authoritativ
 
 This document must be reviewed before:
 
-- seeding V1 permission records;
-- inserting role-permission mappings;
-- implementing permission-based RLS helpers;
-- creating Migration 002.
-
-No database permission catalogue should be generated directly from this draft until the open review items are resolved.
+- changing seeded V1 permission records;
+- changing role-permission mappings;
+- implementing new permission-based RLS helpers;
+- adding any future permission migration.

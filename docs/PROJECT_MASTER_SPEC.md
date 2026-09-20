@@ -194,7 +194,7 @@ The role list must not be silently expanded by an implementation tool.
 -   transfers
 -   expenses
 -   corrections
--   cancellations
+-   reversals
 -   reconciliation
 -   bills/proofs
 -   financial reports
@@ -314,9 +314,9 @@ not bypass them by manipulating request data.
 
 A combined outstanding payment is a trusted atomic operation.
 
-### Financial corrections and cancellations
+### Financial corrections and reversals
 
-Corrections and cancellations are controlled operations, not ordinary
+Corrections and reversals are controlled operations, not ordinary
 unrestricted edits.
 
 ------------------------------------------------------------------------
@@ -334,7 +334,7 @@ Sensitive operations include:
 -   account transfers
 -   expense posting
 -   corrections
--   cancellations
+-   reversals
 -   reconciliation
 -   role/permission changes affecting financial access
 

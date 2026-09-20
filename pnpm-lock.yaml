@@ -389,11 +389,19 @@ importers:
 
   packages/config: {}
 
-  packages/shared: {}
+  packages/shared:
+    dependencies:
+      '@masjid-e-mamoor/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/types: {}
 
-  packages/validation: {}
+  packages/validation:
+    dependencies:
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
 
 packages:
 

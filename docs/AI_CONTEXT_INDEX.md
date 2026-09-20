@@ -29,18 +29,19 @@ The repository documentation, implementation, tests, and Git history form the pr
 
 When sources appear to conflict, use this order:
 
-1. explicit approved product/business decision;
-2. `PROJECT_MASTER_SPEC.md`;
-3. domain-specific approved specification;
-4. `SYSTEM_ARCHITECTURE.md`;
-5. `ROLE_PERMISSION_MATRIX.md`;
-6. security/RLS/financial integrity rules;
-7. development and testing standards;
-8. verified implementation behavior;
-9. current official external provider documentation;
-10. AI suggestions.
+1. `DECISION_BASELINE_V1.md`;
+2. `V1_IMPLEMENTATION_DECISION_CLOSURE.md`;
+3. `architecture/SYSTEM_ARCHITECTURE.md`;
+4. `architecture/ROLE_PERMISSION_MATRIX.md`;
+5. `PERMISSION_CATALOGUE_V1_DRAFT.md`;
+6. current domain-specific specifications such as product, business, donation/finance, financial integrity, database, authentication, API, offline, realtime, notification, storage, security operations, backup/recovery, error handling, observability, accessibility/i18n, UI/UX, user flows, testing, and deployment documents;
+7. AI/development/process documentation;
+8. verified implementation behavior, only for implementation status and code behavior, not for silently changing approved requirements;
+9. archived legacy documents, only when they do not conflict with current documentation;
+10. current official external provider documentation for provider-specific behavior;
+11. AI suggestions.
 
-AI-generated suggestions never silently override approved project decisions.
+AI-generated suggestions never silently override approved project decisions. Archived legacy documents never override current documentation. If a verified implementation conflicts with approved requirements, record the conflict and resolve it explicitly instead of treating the implementation as the new requirement.
 
 ---
 
@@ -158,34 +159,39 @@ The main domains are:
 
 | Document | Primary purpose |
 |---|---|
-| `PROJECT_MASTER_SPEC.md` | Overall project contract |
+| `DECISION_BASELINE_V1.md` | Highest-authority approved V1 business, financial, accounting, offline, audit, and security decisions |
+| `V1_IMPLEMENTATION_DECISION_CLOSURE.md` | Closed implementation decisions and explicitly deferred legal/organizational policy items |
+| `PROJECT_MASTER_SPEC.md` | Overall project contract and documentation-first rule |
 | `PRODUCT_REQUIREMENTS.md` | Product behavior and requirements |
 | `BUSINESS_RULES.md` | Business invariants and domain rules |
-| `USER_FLOWS.md` | End-to-end user journeys |
-| `SYSTEM_ARCHITECTURE.md` | Overall technical architecture |
-| `ROLE_PERMISSION_MATRIX.md` | Role and permission authority |
+| `DONATION_FINANCE_SPEC.md` | Donation and finance behavior |
+| `FINANCIAL_INTEGRITY_SPEC.md` | Financial invariants, append-oriented financial effects, idempotency, and auditability |
+| `architecture/SYSTEM_ARCHITECTURE.md` | Overall technical architecture |
+| `architecture/ROLE_PERMISSION_MATRIX.md` | Role capability and scope authority |
+| `PERMISSION_CATALOGUE_V1_DRAFT.md` | Canonical V1 permission vocabulary and implemented seeded permission catalogue status |
 | `DATABASE_ARCHITECTURE.md` | Data model and database behavior |
 | `RLS_SECURITY_MODEL.md` | Row-level authorization |
-| `AUTHENTICATION_ARCHITECTURE.md` | Identity, OTP, sessions |
-| `REALTIME_DATA_FLOW.md` | Realtime behavior |
-| `OFFLINE_SYNC_ARCHITECTURE.md` | Offline data and replay |
+| `AUTHENTICATION_ARCHITECTURE.md` | Identity, OTP, sessions, account status, and role resolution |
 | `API_DOMAIN_ARCHITECTURE.md` | Domain APIs and command/query boundaries |
-| `STORAGE_ARCHITECTURE.md` | File/storage security |
+| `OFFLINE_SYNC_ARCHITECTURE.md` | Offline operation records, stable operation IDs, replay, and server revalidation |
+| `REALTIME_DATA_FLOW.md` | Authoritative database state, realtime transport, client cache/UI state, and reconciliation |
 | `NOTIFICATION_ARCHITECTURE.md` | In-app and push notifications |
-| `DONATION_FINANCE_SPEC.md` | Donation and finance behavior |
-| `FINANCIAL_INTEGRITY_SPEC.md` | Financial invariants and atomicity |
-| `UI_UX_SPEC.md` | Product UX |
-| `DESIGN_SYSTEM.md` | Visual/component system |
-| `ACCESSIBILITY_I18N_SPEC.md` | Accessibility and localization |
-| `DEVELOPMENT_STANDARDS.md` | Coding and engineering standards |
-| `TESTING_STRATEGY.md` | Testing and release verification |
+| `STORAGE_ARCHITECTURE.md` | File/storage security |
+| `SECURITY_OPERATIONS.md` | Operational security |
+| `BACKUP_RECOVERY_SPEC.md` | Backup and recovery |
 | `ERROR_HANDLING_SPEC.md` | Error contracts and recovery |
 | `OBSERVABILITY_SPEC.md` | Logs, metrics, traces, alerts |
-| `ENVIRONMENT_DEPLOYMENT_SPEC.md` | Environments and deployment |
-| `BACKUP_RECOVERY_SPEC.md` | Backup and recovery |
-| `SECURITY_OPERATIONS.md` | Operational security |
+| `ACCESSIBILITY_I18N_SPEC.md` | Accessibility and localization |
+| `UI_UX_SPEC.md` | Product UX |
+| `DESIGN_SYSTEM.md` | Visual/component system |
+| `USER_FLOWS.md` | End-to-end user journeys |
+| `TESTING_STRATEGY.md` | Unit, integration, RLS, financial invariant, idempotency, offline, realtime, E2E, accessibility, and release verification |
+| `ENVIRONMENT_DEPLOYMENT_SPEC.md` | Local, test/CI, staging, and production environment/deployment rules |
+| `DEVELOPMENT_STANDARDS.md` | Coding and engineering standards |
 | `AI_DEVELOPMENT_GUIDE.md` | AI-assisted development rules |
+| `IMPLEMENTATION_STATUS.md` | Evidence-based project implementation status and next sequence |
 | `AI_CONTEXT_INDEX.md` | This navigation/index document |
+| `docs/archive/legacy-v1/` | Legacy documents retained for history; not authoritative over current docs |
 
 ---
 
@@ -905,64 +911,42 @@ Before creating a new directory, inspect the existing repository structure and c
 
 The architecture foundation includes:
 
-- `SYSTEM_ARCHITECTURE.md`
-- `ROLE_PERMISSION_MATRIX.md`
+- `architecture/SYSTEM_ARCHITECTURE.md`;
+- `architecture/ROLE_PERMISSION_MATRIX.md`;
+- `DATABASE_ARCHITECTURE.md`;
+- `AUTHENTICATION_ARCHITECTURE.md`;
+- `API_DOMAIN_ARCHITECTURE.md`;
+- `RLS_SECURITY_MODEL.md`;
+- `OFFLINE_SYNC_ARCHITECTURE.md`;
+- `REALTIME_DATA_FLOW.md`;
+- `STORAGE_ARCHITECTURE.md`;
+- `NOTIFICATION_ARCHITECTURE.md`.
 
-These define the initial technical architecture and authorization model.
-
-They are drafts until the documentation review phase is completed.
+These define the technical architecture and authorization model. Implementation may proceed only within their approved boundaries and the higher-authority V1 decision baseline.
 
 ---
 
 ## 42. Documentation Set Completion
 
-The documentation-first set currently includes:
+The documentation-first set currently includes the decision baseline, implementation decision closure, master/project specifications, domain specifications, architecture/security specifications, operational specifications, AI/development process documents, and `IMPLEMENTATION_STATUS.md`.
 
-1. `PROJECT_MASTER_SPEC.md`
-2. `PRODUCT_REQUIREMENTS.md`
-3. `BUSINESS_RULES.md`
-4. `USER_FLOWS.md`
-5. `DATABASE_ARCHITECTURE.md`
-6. `RLS_SECURITY_MODEL.md`
-7. `AUTHENTICATION_ARCHITECTURE.md`
-8. `REALTIME_DATA_FLOW.md`
-9. `OFFLINE_SYNC_ARCHITECTURE.md`
-10. `API_DOMAIN_ARCHITECTURE.md`
-11. `STORAGE_ARCHITECTURE.md`
-12. `NOTIFICATION_ARCHITECTURE.md`
-13. `DONATION_FINANCE_SPEC.md`
-14. `FINANCIAL_INTEGRITY_SPEC.md`
-15. `UI_UX_SPEC.md`
-16. `DESIGN_SYSTEM.md`
-17. `ACCESSIBILITY_I18N_SPEC.md`
-18. `DEVELOPMENT_STANDARDS.md`
-19. `TESTING_STRATEGY.md`
-20. `ERROR_HANDLING_SPEC.md`
-21. `OBSERVABILITY_SPEC.md`
-22. `ENVIRONMENT_DEPLOYMENT_SPEC.md`
-23. `BACKUP_RECOVERY_SPEC.md`
-24. `SECURITY_OPERATIONS.md`
-25. `AI_DEVELOPMENT_GUIDE.md`
-26. `AI_CONTEXT_INDEX.md`
+Use this index as the map, not as a duplicate copy of each specification.
 
 ---
 
 ## 43. Documentation Status
 
-The documents are currently a documentation-generation baseline.
+The current documentation baseline and V1 implementation decisions are complete enough to guide controlled implementation, subject to normal review and change control.
 
-They should be reviewed for:
+Current status distinctions:
 
-- contradictions;
-- missing requirements;
-- duplicated rules;
-- terminology consistency;
-- permission consistency;
-- financial consistency;
-- security consistency;
-- implementation feasibility.
+- **Decided:** V1 decision baseline and implementation decision closure.
+- **Specified:** Product/domain/architecture/security/testing/deployment behavior documented in the current specs.
+- **Implemented:** Supabase local foundation, identity/membership database foundation, permission catalogue seed, and authorization/RLS foundation.
+- **Partially implemented:** web foundation, mobile foundation, shared package skeleton, and foundation test configuration.
+- **Pending:** member, donation, finance, committee, attendance, offline sync, notifications, reports, full realtime product behavior, meaningful domain tests, staging, and production deployment.
 
-Do not begin substantial application implementation solely because all filenames exist.
+Do not claim a feature is implemented, tested, production-ready, or complete unless repository evidence supports that exact claim.
 
 ---
 
@@ -1625,12 +1609,15 @@ AI agents should identify unresolved decisions instead of hiding them.
 
 Examples include:
 
-- exact notification provider;
+- legal/organizational retention periods;
+- formal external incident-notification obligations;
 - exact production observability provider;
 - exact rate limits;
 - final backup retention;
-- final role administration workflow;
+- final production browser/platform support matrix;
 - final deployment configuration.
+
+Do not invent answers to open decisions inside implementation code or documentation. Record the open decision and route it to the owning product, security, operations, or legal/organizational authority.
 
 ---
 
@@ -1898,17 +1885,7 @@ Before implementation begins after the documentation phase:
 
 The documentation set is intentionally comprehensive.
 
-The next step after this document is not to blindly start coding every feature.
-
-The next step is:
-
-1. move all generated documents into the repository;
-2. inspect them together;
-3. run consistency checks;
-4. resolve contradictions;
-5. approve the documentation baseline;
-6. commit the baseline;
-7. begin controlled implementation.
+The next step after this document is controlled implementation from the approved baseline, starting with the sequence in `IMPLEMENTATION_STATUS.md`.
 
 ---
 
@@ -1922,6 +1899,6 @@ The next step is:
 
 **Status:** Draft — Review Required
 
-**Documentation set:** 26/26 planned documents generated.
+**Documentation set:** Current baseline, architecture, domain, security, testing, deployment, AI/process, and implementation-status documents are present.
 
-**Next phase:** Repository consolidation and cross-document review before substantial application feature development.
+**Next phase:** Controlled implementation from `IMPLEMENTATION_STATUS.md`, beginning with authentication stabilization, identity/RLS tests, and the member-management vertical slice.

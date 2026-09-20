@@ -32,7 +32,7 @@ It establishes:
 -   transfers
 -   expenses
 -   corrections
--   reversals/cancellations
+-   reversals
 -   financial reporting
 -   auditability
 -   concurrency
@@ -264,7 +264,6 @@ open
 partially_paid
 paid
 waived
-cancelled
 closed
 ```
 
@@ -319,7 +318,7 @@ submitted
    +--> rejected
 ```
 
-Additional states may be required for reversal/cancellation.
+Additional states may be required for approved reversal workflows.
 
 ------------------------------------------------------------------------
 
@@ -450,7 +449,6 @@ under_review
 verified
 rejected
 reversed
-cancelled
 ```
 
 Exact final state model must be reconciled with the database
@@ -906,11 +904,11 @@ handled atomically.
 
 ------------------------------------------------------------------------
 
-# 59. Cancellation
+# 59. Reversal
 
-Cancellation applies only where the business state permits it.
+Reversal applies only where the business state permits it.
 
-A cancelled record must remain historically traceable.
+A reversed record must preserve the original history and remain traceable to the compensating operation.
 
 ------------------------------------------------------------------------
 
@@ -1053,7 +1051,7 @@ submitted
 approved
 rejected
 posted
-cancelled/reversed
+reversed
 ```
 
 Exact state model remains subject to final finance approval.
@@ -1105,12 +1103,11 @@ They should not be silently deleted.
 
 ------------------------------------------------------------------------
 
-# 75. Expense Cancellation
+# 75. Expense Reversal
 
-Cancellation must preserve history.
+Expense reversal must preserve history.
 
-If the expense has already posted financially, a reversal/correction may
-be required instead of simple deletion.
+If the expense has already posted financially, a reversal/correction is required instead of simple deletion.
 
 ------------------------------------------------------------------------
 
@@ -1316,7 +1313,6 @@ draft
 approved
 posted
 reversed
-cancelled
 ```
 
 according to final state definitions.
@@ -1458,7 +1454,7 @@ approved
 posted
   |
   v
-reversed/cancelled
+reversed
 ```
 
 These are conceptual state machines and must be reconciled with the
@@ -2017,7 +2013,7 @@ createExpense
 submitExpenseForApproval
 approveExpense
 rejectExpense
-cancelExpense
+reverseExpense
 createFinancialCorrection
 reverseFinancialOperation
 ```

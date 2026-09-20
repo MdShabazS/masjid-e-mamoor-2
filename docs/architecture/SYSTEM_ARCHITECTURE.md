@@ -152,7 +152,7 @@ The client must never be the authority for final financial state. The following 
 - Financial transfers
 - Expense posting
 - Corrections
-- Cancellations
+- Reversals
 
 Each operation must execute through an authorized trusted boundary, validate its inputs and current state, enforce relevant database constraints, and produce an auditable result. Sensitive financial operations must be protected against duplicate processing through stable operation/idempotency references and appropriate uniqueness or transactional checks.
 
@@ -163,7 +163,7 @@ Multi-record changes must use an explicit database transaction or trusted atomic
 - Payment verification and its allocation records
 - Financial transfers and all affected account/ledger records
 - Expense posting and related financial records
-- Corrections or cancellations and their resulting state changes
+- Corrections or reversals and their resulting state changes
 - Audit-related state transitions where the audit record is required for a valid mutation
 
 Partial completion must not leave authoritative records in a state that contradicts the operation result. Failure must be explicit and must not be represented as a successful mutation.
@@ -255,7 +255,7 @@ The backend and shared contracts are organized around these domains:
 - **Identity:** authenticated identities, profiles, and backend-controlled role assignments.
 - **Membership:** member records, household or membership relationships, and member lifecycle data.
 - **Donations:** donation obligations, donation history, payment records, allocations, and donation intake.
-- **Finance:** accounts, transfers, expenses, corrections, cancellations, reconciliation, and financial reporting.
+- **Finance:** accounts, transfers, expenses, corrections, reversals, reconciliation, and financial reporting.
 - **Committee Operations:** committee work, tasks, meetings, referrals, and accountability records.
 - **Attendance:** attendance events and attendance workflows, including approved offline capture.
 - **Notifications:** notification records, preferences, delivery, and delivery status.

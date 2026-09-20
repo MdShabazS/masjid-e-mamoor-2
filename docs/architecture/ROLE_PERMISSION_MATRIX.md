@@ -66,7 +66,7 @@ Membership, committee, and administrative operations, including meetings, tasks,
 
 ### 3.4 Finance
 
-Financial operations including donation/payment verification, allocation, accounts, transfers, expenses, authorized corrections/cancellations, financial reports, and payment-proof handling. This role cannot arbitrarily change roles or authorization.
+Financial operations including donation/payment verification, allocation, accounts, transfers, expenses, authorized corrections/reversals, financial reports, and payment-proof handling. This role cannot arbitrarily change roles or authorization.
 
 ### 3.5 Auditor
 
@@ -185,7 +185,7 @@ Donation verification and allocation are trusted atomic operations. The matrix d
 | Create expense | Explicit grant | Explicit grant | None | Full | None | None | None |
 | Approve expense | Explicit grant | Explicit grant | None | Explicit grant | None | None | None |
 | Corrections | Explicit grant | Explicit grant | None | Explicit grant | None | None | None |
-| Cancellations | Explicit grant | Explicit grant | None | Explicit grant | None | None | None |
+| Reversals | Explicit grant | Explicit grant | None | Explicit grant | None | None | None |
 | Reconciliation | Full | Read | None | Full | Read | None | None |
 | Financial reports | Full | Read | None | Full | Read | None | None |
 | Financial proofs/bills | Full | Read | None | Full | Read | None | None |
@@ -250,7 +250,7 @@ Audit records are protected from ordinary modification. All role and permission 
 
 Finance handles operational financial processing. Auditor has oversight and read access rather than unrestricted mutation. President / Super Admin has administrative oversight but still operates through authorization controls.
 
-A user does not automatically receive every financial permission merely because they are an administrator. Payment verification, financial posting, corrections, cancellations, and approval workflows require explicit permissions. Any future maker-checker or dual-approval workflow must be defined separately rather than assumed.
+A user does not automatically receive every financial permission merely because they are an administrator. Payment verification, financial posting, corrections, reversals, and approval workflows require explicit permissions. Any future maker-checker or dual-approval workflow must be defined separately rather than assumed.
 
 ---
 
@@ -278,7 +278,7 @@ The following require trusted backend/database enforcement:
 - Financial transfers
 - Expense posting
 - Corrections
-- Cancellations
+- Reversals
 - Audit-sensitive mutations
 
 Client validation alone must never authorize these operations. They require current backend-controlled authorization, applicable RLS or trusted-operation checks, database constraints, atomic transaction boundaries, idempotency/duplicate prevention, and audit records where applicable.

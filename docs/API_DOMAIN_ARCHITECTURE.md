@@ -690,7 +690,7 @@ createExpense(input)
 submitExpenseForApproval(expenseId)
 approveExpense(expenseId)
 rejectExpense(expenseId)
-cancelExpense(expenseId)
+reverseExpense(expenseId)
 ```
 
 Exact workflow depends on final finance approval rules.
@@ -715,7 +715,7 @@ corrective operation.
 
 ------------------------------------------------------------------------
 
-# 30. Cancellation/Reversal Command
+# 30. Reversal Command
 
 Conceptual:
 

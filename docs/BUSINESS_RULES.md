@@ -209,7 +209,7 @@ authoritative payment verification.
 
 A payment must have a clear state that distinguishes at least the
 relevant lifecycle stages such as pending, verified, rejected, or
-cancelled/reversed where those states are approved.
+reversed where that state is approved.
 
 Exact status names are finalized in the database/API architecture.
 
@@ -478,25 +478,23 @@ Corrections must be auditable.
 
 ------------------------------------------------------------------------
 
-# 17. Cancellation Rules
+# 17. Reversal Rules
 
-## BR-CANCEL-001 --- Explicit Cancellation
+## BR-REVERSAL-001 --- Explicit Reversal
 
-Cancellation is an explicit state transition.
+A reversal is an explicit controlled financial operation.
 
-## BR-CANCEL-002 --- No Silent Deletion
+## BR-REVERSAL-002 --- No Silent Deletion
 
-A financial record must not be silently deleted when cancellation is the
-correct business action.
+A financial record must not be silently deleted when a reversal is the correct business action. The original record remains historical.
 
-## BR-CANCEL-003 --- Authorization
+## BR-REVERSAL-003 --- Authorization
 
-Cancellation requires explicit permission.
+Reversal requires explicit permission and the applicable controlled approval.
 
-## BR-CANCEL-004 --- Audit
+## BR-REVERSAL-004 --- Audit
 
-Cancellation must be auditable with appropriate actor, timestamp,
-reason, and operation reference.
+Reversal must be auditable with appropriate actor, timestamp, reason, original reference, compensating effect where applicable, and operation reference.
 
 ------------------------------------------------------------------------
 
@@ -843,7 +841,7 @@ This document is ready for implementation dependency when:
 -   future-month behavior is explicitly identified
 -   additional/anonymous/Jummah donation rules are defined
 -   finance rules are defined
--   correction/cancellation rules are defined
+-   correction/reversal rules are defined
 -   attendance rules are defined
 -   offline rules are defined
 -   notification rules are defined

@@ -325,7 +325,6 @@ Examples:
 - fully allocated
 - overpayment
 - reversed
-- cancelled
 - reconciled
 
 Financial state presentation should prioritize explicit labels.

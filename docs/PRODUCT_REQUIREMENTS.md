@@ -73,7 +73,7 @@ The platform must provide a unified system for:
 -   Transfers
 -   Expenses
 -   Corrections
--   Cancellations
+-   Reversals
 -   Bills/proofs
 -   Committee tasks
 -   Task assignments
@@ -402,12 +402,11 @@ Financial corrections must be controlled operations.
 The product should preserve the original context rather than silently
 overwriting historical financial truth.
 
-### 10.6 Cancellations
+### 10.6 Reversals
 
-Financial cancellation must be an explicit authorized operation.
+Financial reversal must be an explicit authorized operation.
 
-The system must preserve sufficient history for audit and
-reconciliation.
+The system must preserve the original record and create an auditable compensating effect for audit and reconciliation.
 
 ### 10.7 Reconciliation
 

@@ -613,9 +613,9 @@ Correction is not equivalent to silent deletion/editing.
 
 ------------------------------------------------------------------------
 
-# 25. Cancellation/Reversal Flow
+# 25. Reversal Flow
 
-## UF-025 --- Cancel or Reverse Financial Operation
+## UF-025 --- Reverse Financial Operation
 
 **Actor:** Authorized role
 
@@ -623,7 +623,7 @@ Correction is not equivalent to silent deletion/editing.
 
 1.  User selects eligible record.
 2.  System checks current state.
-3.  User provides required cancellation/reversal information.
+3.  User provides required reversal information.
 4.  Backend validates permission.
 5.  Appropriate state/financial reversal operation is executed.
 6.  Audit record is written.
@@ -1105,7 +1105,7 @@ Approved:
 - no automatic future-month prepayment;
 - FIFO plus additional-donation overpayment;
 - new operation for rejected-payment resubmission;
-- controlled cancellation/reversal;
+- controlled reversal;
 - maker/checker expense and transfer approval;
 - 100 m GPS attendance;
 - stable offline operation IDs and server revalidation;
@@ -1133,7 +1133,7 @@ The flow documentation is considered implementation-ready when:
 -   anonymous donation is defined
 -   Jummah cash is defined
 -   finance account operations are defined
--   expenses/corrections/cancellations are defined
+-   expenses/corrections/reversals are defined
 -   committee workflows are defined
 -   attendance is defined
 -   offline attendance is defined
