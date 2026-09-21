@@ -34,3 +34,18 @@ export interface AuthContext {
   role: ApplicationRole;
   permissions: string[];
 }
+
+export interface MemberProfile {
+  id: string;
+  applicationUserId: string;
+  status: "active" | "inactive";
+  displayName: string;
+  phone: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemberPageCursor {
+  createdAt: string;
+  id: string;
+}
