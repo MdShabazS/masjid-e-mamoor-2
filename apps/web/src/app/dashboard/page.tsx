@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getDonationManagementCapabilities } from "@/lib/donations/server";
 import { hasAdminMemberReadAccess } from "@/lib/members/server";
 import { signOut } from "../login/actions";
 
@@ -14,7 +15,17 @@ export default async function DashboardPage() {
   }
 
   const userId = data.claims.sub;
-  const canOpenMemberManagement = await hasAdminMemberReadAccess();
+  const [
+    canOpenMemberManagement,
+    donationCapabilities,
+  ] = await Promise.all([
+    hasAdminMemberReadAccess(),
+    getDonationManagementCapabilities(),
+  ]);
+
+  const canOpenDonationManagement =
+    donationCapabilities.canVerify ||
+    donationCapabilities.canManageObligations;
 
   return (
     <main className="min-h-screen px-6 py-10">
@@ -28,8 +39,8 @@ export default async function DashboardPage() {
               Application Dashboard
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
-              Authenticated successfully. Role and permission resolution will
-              be connected to the application database next.
+              Authenticated successfully. Available modules and management
+              actions are resolved from your application permissions.
             </p>
           </div>
 
@@ -45,7 +56,9 @@ export default async function DashboardPage() {
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/profile" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">My Profile</Link>
+          <Link href="/donations" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">Donations</Link>
           {canOpenMemberManagement ? <Link href="/members" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">Member Management</Link> : null}
+          {canOpenDonationManagement ? <Link href="/donations/manage" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">Donation Management</Link> : null}
         </div>
 
         <div className="mt-8 rounded-2xl border border-black/10 bg-white p-6">
