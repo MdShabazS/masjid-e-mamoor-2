@@ -300,10 +300,12 @@ Possible fields:
 -   referred member/application identity
 -   status
 -   created timestamp
--   expiration where approved
 
-Exact expiration and lifecycle rules remain open until the product
-decision is finalized.
+V1 referral lifecycle and attribution are closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`. Referrals do not
+automatically expire in V1. Do not add an expiration timestamp,
+expiration job, or automatic expiry state transition unless a later
+approved product and architecture decision introduces that behavior.
 
 ------------------------------------------------------------------------
 

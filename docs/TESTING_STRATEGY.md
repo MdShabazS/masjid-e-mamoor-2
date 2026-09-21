@@ -384,7 +384,7 @@ Test:
 
 - valid referral
 - invalid referral
-- expired/invalid referral if supported
+- already used referral
 - duplicate use
 - registration completion
 - member linking

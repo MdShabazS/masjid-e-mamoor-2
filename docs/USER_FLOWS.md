@@ -142,7 +142,7 @@ User reaches the appropriate authorized application area.
 ### Failure Cases
 
 -   Invalid referral
--   Expired referral
+-   Already used referral
 -   Duplicate identity
 -   Missing required information
 -   Authentication failure
@@ -712,18 +712,28 @@ specification.
 1.  User opens eligible Jummah attendance event.
 2.  Application requests location permission where required.
 3.  Current location is collected.
-4.  Client sends attendance request with event/operation context.
-5.  Backend validates event eligibility and applicable location policy.
+4.  Client sends attendance request with event/operation context and
+    permitted location evidence.
+5.  Backend validates event eligibility and the approved V1 100 metre
+    location rule.
 6.  Attendance is accepted or rejected.
 7.  Result is stored authoritatively.
 8.  User sees the final state.
 
 ### Rules
 
+-   V1 GPS attendance uses a 100 metre acceptance radius.
 -   GPS data is collected only when required.
--   Client-side location checks cannot replace backend validation where
-    authoritative validation is required.
--   Exact radius/policy remains an open business decision.
+-   Trusted server-side logic must determine whether submitted location
+    evidence satisfies the attendance location requirement.
+-   Client-side location checks or distance calculations may be used for
+    user feedback only and cannot replace authoritative backend
+    validation.
+-   The client must not supply or override the authoritative acceptance
+    radius.
+-   Do not introduce GPS accuracy thresholds, spoof-detection algorithms,
+    background tracking, continuous tracking or additional location
+    requirements unless separately approved.
 
 ------------------------------------------------------------------------
 

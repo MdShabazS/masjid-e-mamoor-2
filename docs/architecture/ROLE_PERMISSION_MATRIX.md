@@ -258,6 +258,8 @@ A user does not automatically receive every financial permission merely because 
 
 - Users may access their own member data according to the `Own` scope.
 - Other member data requires an explicit role and authorized operational scope.
+- Committee Members do not receive a general organization-wide member directory. They may access their own permitted profile information and only the minimum member information required by an explicitly authorized workflow in which they participate, such as an authorized referral, task, meeting, attendance, or other approved workflow. No workflow association means no access.
+- The `membership.members.read` permission is a role-level capability and does not by itself mean "read every member". Role permission and resource/data scope are separate concepts.
 - Financial and donation information is restricted to the member's own records or authorized finance, oversight, and reporting scopes.
 - Payment proofs, bills, and receipts require authorization and protected Supabase Storage policies; they are not assumed public.
 - Audit records are restricted to authorized oversight roles and are not ordinary member data.

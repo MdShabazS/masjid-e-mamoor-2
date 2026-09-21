@@ -252,7 +252,7 @@ The following remain explicit implementation/review items:
 
 1. Exact domain RLS predicates beyond the authorization foundation.
 2. Exact trusted-operation boundaries for each sensitive domain workflow.
-3. Exact resource-scope rules for Own, Assigned, Organizational, and Full access.
+3. Exact SQL/resource predicates implementing the approved Own, Assigned, Organizational, and Full access rules without widening scope.
 4. Whether the seeded key `finance.cancellations.create` should be renamed in a future migration to match the approved reversal terminology. No migration is changed by this documentation note.
 5. Exact treatment of President/VP/Secretary permissions marked as "Explicit grant" in the role matrix.
 

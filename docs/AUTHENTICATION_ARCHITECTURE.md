@@ -1028,25 +1028,30 @@ Authentication architecture is implementation-ready when:
 
 ------------------------------------------------------------------------
 
-# 55. Open Authentication Decisions
+# 55. Authentication Decisions and Technical Configuration
+
+The V1 identity and membership implementation baseline is closed by
+`docs/V1_IMPLEMENTATION_DECISION_CLOSURE.md`. Application-user statuses,
+one active role per application user, member-profile linkage boundaries,
+role assignment authority, and account deactivation behavior must follow
+that closure document and must not be reopened during implementation.
+
+Technical or provider-specific configuration still requires
+implementation-time research against current official Supabase, Expo,
+and Next.js documentation:
 
   Decision                                  Impact
   ----------------------------------------- -------------------
   Exact Supabase OTP configuration          Authentication
-  New-user default status                   Provisioning
-  Exact member-linking strategy             Identity
-  Role assignment workflow                  Authorization
-  Multiple simultaneous roles               Authorization
   Phone-change workflow                     Identity security
   Account recovery policy                   Account security
-  Deactivation propagation behavior         Session/RLS
   Exact web session implementation          Next.js/Supabase
   Exact mobile persistence implementation   Expo/Supabase
   Deep-link redirect allowlist              Security
   Session lifetime/settings                 Security/UX
 
-These must be resolved using the current official Supabase/Expo/Next.js
-documentation before implementation.
+These technical decisions must preserve the closed V1 identity,
+authorization, membership, and security rules.
 
 ------------------------------------------------------------------------
 

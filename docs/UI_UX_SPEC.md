@@ -566,7 +566,6 @@ Registration complete
 Show clear states for:
 
 -   invalid referral
--   expired referral
 -   already used referral
 -   registration conflict
 -   OTP failure

@@ -313,6 +313,14 @@ A member may read only permitted own-profile information.
 Authorized administrative users may read member profiles according to
 their role scope.
 
+Committee Members do not receive general organization-wide member
+browsing. Their member-profile access is limited to their own permitted
+profile information and the minimum member information required by an
+explicitly authorized workflow in which they participate. The
+`membership.members.read` permission is not sufficient by itself to read
+every member profile; backend authorization and RLS/trusted operations
+must enforce the effective resource scope.
+
 ## INSERT
 
 Member creation must follow the approved registration/trusted workflow.
@@ -561,10 +569,20 @@ Rules:
 -   restrict raw location access
 -   validate event eligibility
 -   validate user identity
--   apply the approved geographic rule server-side
+-   apply the approved V1 100 metre geographic rule server-side
+-   treat client-side distance calculations as advisory feedback only
+-   never allow the client to supply or override the authoritative
+    acceptance radius
 -   retain only the data required by the approved retention policy
 
-Exact radius and retention policy remain open decisions.
+The V1 GPS acceptance radius is 100 metres. Trusted server-side logic
+must determine whether submitted location evidence satisfies the
+attendance location requirement.
+
+Retention policy remains a separate open decision. Do not introduce GPS
+accuracy thresholds, spoof-detection algorithms, background tracking,
+continuous tracking or additional location requirements unless separately
+approved.
 
 ------------------------------------------------------------------------
 
@@ -1307,6 +1325,8 @@ Approved:
 - trusted current-user/permission helpers;
 - Finance/Auditor and President/VP/Secretary scopes follow the approved
   matrix;
+- Committee Member member-data access is workflow-scoped and does not
+  include organization-wide member browsing;
 - GPS follows the approved attendance policy;
 - sensitive storage uses private buckets;
 - account restriction/deactivation is checked on protected operations;
