@@ -9,8 +9,15 @@ import {
 } from "@/lib/donations/server";
 
 import {
+  getOwnMemberProfile,
+  hasPermission,
+} from "@/lib/members/server";
+
+
+import {
   submitAdditionalDonation,
   submitPayment,
+  uploadPaymentProof,
 } from "./actions";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -54,6 +61,13 @@ function messageFor(
     };
   }
 
+  if (searchParams.proof_uploaded === "1") {
+    return {
+      kind: "success",
+      text: "Payment proof uploaded securely.",
+    };
+  }
+
   const error = searchParams.error;
 
   if (typeof error !== "string") {
@@ -68,6 +82,14 @@ function messageFor(
       "Enter a valid additional donation amount.",
     additional_donation_failed:
       "The additional donation could not be recorded.",
+    proof_required:
+      "Choose a payment proof to upload.",
+    invalid_proof:
+      "Proof must be a valid JPEG, PNG, or PDF no larger than 5 MiB.",
+    proof_upload_failed:
+      "The payment proof could not be uploaded. Please try again.",
+    proof_registration_pending:
+      "The proof reached protected storage but registration could not finish. Submit the same file again to retry safely.",
   };
 
   return {
@@ -89,12 +111,18 @@ export default async function DonationsPage({
     allocations,
     waivers,
     additionalDonations,
+    ownMemberProfile,
+    canUploadProof,
   ] = await Promise.all([
     getDonationObligations(),
     getDonationPayments(),
     getDonationAllocations(),
     getDonationWaivers(),
     getAdditionalDonations(),
+    getOwnMemberProfile(),
+    hasPermission(
+      "donations.payments.proof_upload",
+    ),
   ]);
 
   const allocatedByObligation = new Map<string, number>();
@@ -264,8 +292,8 @@ export default async function DonationsPage({
           </form>
 
           <p className="mt-4 text-xs text-zinc-500">
-            Payment-proof upload will be enabled after the protected
-            proof-storage workflow is installed.
+            After submitting a payment, you can attach a JPEG, PNG,
+            or PDF proof up to 5 MiB while it is pending review.
           </p>
         </section>
 
@@ -380,7 +408,8 @@ export default async function DonationsPage({
                   <th className="pb-3 pr-4">Amount</th>
                   <th className="pb-3 pr-4">Method</th>
                   <th className="pb-3 pr-4">Status</th>
-                  <th className="pb-3">Allocated</th>
+                  <th className="pb-3 pr-4">Allocated</th>
+                  <th className="pb-3">Proof</th>
                 </tr>
               </thead>
               <tbody>
@@ -420,8 +449,46 @@ export default async function DonationsPage({
                           ? ` — ${payment.rejectionReason}`
                           : ""}
                       </td>
-                      <td className="py-3">
+                      <td className="py-3 pr-4">
                         {formatMoney(allocated)}
+                      </td>
+                      <td className="py-3">
+                        {canUploadProof &&
+                        ownMemberProfile?.id ===
+                          payment.memberProfileId &&
+                        (payment.status === "submitted" ||
+                          payment.status === "under_review") ? (
+                          <form
+                            action={uploadPaymentProof}
+                            className="flex min-w-56 flex-col gap-2"
+                          >
+                            <input
+                              type="hidden"
+                              name="paymentId"
+                              value={payment.id}
+                            />
+                            <input
+                              type="file"
+                              name="proof"
+                              accept="image/jpeg,image/png,application/pdf"
+                              required
+                              className="block text-xs"
+                            />
+                            <button
+                              type="submit"
+                              className="w-fit rounded border px-3 py-1 text-xs font-medium"
+                            >
+                              Upload proof
+                            </button>
+                          </form>
+                        ) : (
+                          <span className="text-xs text-zinc-500">
+                            {payment.status === "submitted" ||
+                            payment.status === "under_review"
+                              ? "Not available"
+                              : "Closed"}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );

@@ -210,27 +210,119 @@ describe("donation SQL security boundaries", () => {
     );
   });
 
-  it("does not expose proof upload before protected storage is implemented", () => {
-    const donationPage = readFileSync(
+  it("uses protected private storage for donation payment proofs", () => {
+    const storageFoundation = readFileSync(
       repoFile(
-        "apps/web/src/app/donations/page.tsx",
+        "supabase/migrations/20260921235500_donation_payment_proof_storage.sql",
+      ),
+      "utf8",
+    );
+
+    const storageHardening = readFileSync(
+      repoFile(
+        "supabase/migrations/20260922000500_donation_payment_proof_storage_hardening.sql",
+      ),
+      "utf8",
+    );
+
+    const donationPage = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/app/donations/page.tsx",
       ),
       "utf8",
     );
 
     const donationActions = readFileSync(
-      repoFile(
-        "apps/web/src/app/donations/actions.ts",
+      resolve(
+        process.cwd(),
+        "src/app/donations/actions.ts",
       ),
       "utf8",
     );
 
-    expect(donationPage).not.toContain(
+    expect(storageFoundation).toContain(
+      "'donation-payment-proofs'",
+    );
+
+    expect(storageFoundation).toMatch(
+      /'donation-payment-proofs'[\s\S]*?false[\s\S]*?5242880/,
+    );
+
+    expect(storageFoundation).toContain(
+      "donation_payment_proofs_storage_insert",
+    );
+
+    expect(storageFoundation).toContain(
+      "donation_payment_proofs_storage_select",
+    );
+
+    expect(storageFoundation).not.toMatch(
+      /donation_payment_proofs_storage_[\w]*update/i,
+    );
+
+    expect(storageFoundation).not.toMatch(
+      /donation_payment_proofs_storage_[\w]*delete/i,
+    );
+
+    expect(storageHardening).toContain(
+      "so.owner_id = auth.uid()::text",
+    );
+
+    expect(storageHardening).toContain(
+      "register_donation_payment_proof",
+    );
+
+    expect(donationActions).toContain(
+      ".from(DONATION_PROOF_BUCKET)",
+    );
+
+    expect(donationActions).toContain(
+      '"register_donation_payment_proof"',
+    );
+
+    expect(donationActions).toContain(
+      "upsert: false",
+    );
+
+    expect(donationPage).toContain(
       'type="file"',
     );
 
-    expect(donationActions).not.toMatch(
-      /\.storage\s*\./,
+    expect(donationPage).toContain(
+      'accept="image/jpeg,image/png,application/pdf"',
+    );
+
+    expect(donationPage).toContain(
+      '"donations.payments.proof_upload"',
+    );
+
+    expect(donationPage).toContain(
+      "ownMemberProfile?.id",
+    );
+
+    expect(donationActions).toContain(
+      'createHash("sha256")',
+    );
+
+    expect(donationActions).toContain(
+      "validateDonationProofBytes",
+    );
+
+    expect(donationActions).toContain(
+      "proof_registration_pending",
+    );
+
+    const nextConfig = readFileSync(
+      resolve(
+        process.cwd(),
+        "next.config.ts",
+      ),
+      "utf8",
+    );
+
+    expect(nextConfig).toContain(
+      'bodySizeLimit: "6mb"',
     );
   });
 });

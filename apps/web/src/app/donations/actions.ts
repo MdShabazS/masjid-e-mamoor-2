@@ -1,6 +1,13 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import {
+  DONATION_PROOF_BUCKET,
+  donationProofExtension,
+  parseRupeesToPaise,
+  validateDonationProofBytes,
+  validateDonationProofFile,
+} from "@/lib/donations/input";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -26,21 +33,7 @@ import {
   verifyAndAllocateDonationPayment,
   waiveDonationObligation,
 } from "@/lib/donations/server";
-
-function rupeesToPaise(value: FormDataEntryValue | null) {
-  const raw = String(value ?? "").trim();
-
-  if (!/^\d+(\.\d{1,2})?$/.test(raw)) {
-    return Number.NaN;
-  }
-
-  const [rupees, paise = ""] = raw.split(".");
-
-  return (
-    Number(rupees) * 100 +
-    Number(paise.padEnd(2, "0"))
-  );
-}
+import { createClient } from "@/lib/supabase/server";
 
 function refreshDonationPaths() {
   revalidatePath("/donations");
@@ -50,7 +43,7 @@ function refreshDonationPaths() {
 
 export async function submitPayment(formData: FormData) {
   const parsed = donationPaymentSubmitSchema.safeParse({
-    amountPaise: rupeesToPaise(formData.get("amount")),
+    amountPaise: parseRupeesToPaise(String(formData.get("amount") ?? "")) ?? Number.NaN,
     paymentMethod: String(
       formData.get("paymentMethod") ?? "",
     ),
@@ -75,7 +68,7 @@ export async function submitAdditionalDonation(
   formData: FormData,
 ) {
   const parsed = additionalDonationCreateSchema.safeParse({
-    amountPaise: rupeesToPaise(formData.get("amount")),
+    amountPaise: parseRupeesToPaise(String(formData.get("amount") ?? "")) ?? Number.NaN,
     operationId: randomUUID(),
   });
 
@@ -161,9 +154,9 @@ export async function waiveObligation(formData: FormData) {
     obligationId: String(
       formData.get("obligationId") ?? "",
     ),
-    waivedAmountPaise: rupeesToPaise(
-      formData.get("waivedAmount"),
-    ),
+    waivedAmountPaise: parseRupeesToPaise(
+      String(formData.get("waivedAmount") ?? ""),
+    ) ?? Number.NaN,
     reason: String(formData.get("reason") ?? "").trim(),
     operationId: randomUUID(),
   });
@@ -190,9 +183,9 @@ export async function createObligationRule(
       effectiveFromMonth: String(
         formData.get("effectiveMonth") ?? "",
       ),
-      monthlyAmountPaise: rupeesToPaise(
-        formData.get("monthlyAmount"),
-      ),
+      monthlyAmountPaise: parseRupeesToPaise(
+        String(formData.get("monthlyAmount") ?? ""),
+      ) ?? Number.NaN,
       operationId: randomUUID(),
     });
 
@@ -235,4 +228,148 @@ export async function generateObligations(
 
   refreshDonationPaths();
   redirect("/donations/manage?generated=1");
+}
+
+
+export async function uploadPaymentProof(
+  formData: FormData,
+) {
+  const paymentId = String(
+    formData.get("paymentId") ?? "",
+  ).trim();
+
+  const proof = formData.get("proof");
+
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      paymentId,
+    )
+  ) {
+    redirect("/donations?error=invalid_payment");
+  }
+
+  if (!(proof instanceof File)) {
+    redirect("/donations?error=proof_required");
+  }
+
+  const validationError =
+    validateDonationProofFile(proof);
+
+  if (validationError) {
+    redirect("/donations?error=invalid_proof");
+  }
+
+  const extension =
+    donationProofExtension(proof.type);
+
+  if (!extension) {
+    redirect("/donations?error=invalid_proof");
+  }
+
+  const bytes = new Uint8Array(
+    await proof.arrayBuffer(),
+  );
+
+  const contentError =
+    validateDonationProofBytes(
+      proof.type,
+      bytes,
+    );
+
+  if (contentError) {
+    redirect("/donations?error=invalid_proof");
+  }
+
+  const digest = createHash("sha256")
+    .update(bytes)
+    .digest("hex");
+
+  const objectId = [
+    digest.slice(0, 8),
+    digest.slice(8, 12),
+    digest.slice(12, 16),
+    digest.slice(16, 20),
+    digest.slice(20, 32),
+  ].join("-");
+
+  const objectPath =
+    `${paymentId}/${objectId}.${extension}`;
+
+  const supabase = await createClient();
+
+  async function proofIsRegistered() {
+    const { data, error } = await supabase
+      .from("donation_payment_proofs")
+      .select("id")
+      .eq("payment_id", paymentId)
+      .eq(
+        "storage_object_path",
+        objectPath,
+      )
+      .maybeSingle();
+
+    return !error && Boolean(data);
+  }
+
+  async function registerProof() {
+    const { error } = await supabase.rpc(
+      "register_donation_payment_proof",
+      {
+        p_payment_id: paymentId,
+        p_storage_object_path: objectPath,
+      },
+    );
+
+    if (!error) {
+      return true;
+    }
+
+    return proofIsRegistered();
+  }
+
+  const { error: uploadError } =
+    await supabase.storage
+      .from(DONATION_PROOF_BUCKET)
+      .upload(objectPath, bytes, {
+        contentType: proof.type,
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+  if (uploadError) {
+    if (await proofIsRegistered()) {
+      refreshDonationPaths();
+      redirect(
+        "/donations?proof_uploaded=1",
+      );
+    }
+
+    if (await registerProof()) {
+      refreshDonationPaths();
+      redirect(
+        "/donations?proof_uploaded=1",
+      );
+    }
+
+    redirect(
+      "/donations?error=proof_upload_failed",
+    );
+  }
+
+  if (!(await registerProof())) {
+    /*
+     * The object is immutable and cannot be deleted by
+     * the authenticated uploader. Because the object path
+     * is deterministic for this payment + file content,
+     * submitting the same proof again can safely repair
+     * metadata registration without creating another
+     * Storage object.
+     */
+    redirect(
+      "/donations?error=proof_registration_pending",
+    );
+  }
+
+  refreshDonationPaths();
+  redirect("/donations?proof_uploaded=1");
 }
