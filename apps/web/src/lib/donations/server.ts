@@ -469,6 +469,27 @@ export async function createAnonymousDonation(input: {
   return unwrapRpcRow(data, mapAdditionalDonation);
 }
 
+export async function createJummahCashDonation(input: {
+  amountPaise: number;
+  operationId: string;
+}): Promise<AdditionalDonation> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc(
+    "create_jummah_cash_donation",
+    {
+      p_amount_paise: input.amountPaise,
+      p_operation_id: input.operationId,
+    },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return unwrapRpcRow(data, mapAdditionalDonation);
+}
+
 export async function createDonationObligationRule(input: {
   effectiveFromMonth: string;
   monthlyAmountPaise: number;
@@ -539,6 +560,10 @@ export async function getDonationManagementCapabilities() {
       data: canCreateAnonymousDonation,
       error: anonymousError,
     },
+    {
+      data: canCreateJummahCashDonation,
+      error: jummahError,
+    },
   ] = await Promise.all([
     supabase.rpc("has_application_permission", {
       requested_permission: "donations.payments.verify",
@@ -552,13 +577,17 @@ export async function getDonationManagementCapabilities() {
     supabase.rpc("has_application_permission", {
       requested_permission: "donations.anonymous.create",
     }),
+    supabase.rpc("has_application_permission", {
+      requested_permission: "donations.jummah.create",
+    }),
   ]);
 
   if (
     verifyError ||
     allocateError ||
     manageError ||
-    anonymousError
+    anonymousError ||
+    jummahError
   ) {
     throw new Error("Unable to resolve donation management permissions.");
   }
@@ -571,5 +600,7 @@ export async function getDonationManagementCapabilities() {
     canManageObligations: canManageObligations === true,
     canCreateAnonymousDonation:
       canCreateAnonymousDonation === true,
+    canCreateJummahCashDonation:
+      canCreateJummahCashDonation === true,
   };
 }

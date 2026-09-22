@@ -12,6 +12,7 @@ import {
   donationObligationWaiverSchema,
   donationPaymentRejectSchema,
   donationPaymentSubmitSchema,
+  jummahCashDonationCreateSchema,
 } from "@masjid-e-mamoor/validation";
 
 const repoFile = (path: string) =>
@@ -79,6 +80,13 @@ describe("donation validation", () => {
     ).toBe(1);
 
     expect(
+      jummahCashDonationCreateSchema.parse({
+        amountPaise: 1,
+        operationId: "jummah-op-1",
+      }).amountPaise,
+    ).toBe(1);
+
+    expect(
       donationObligationWaiverSchema.parse({
         obligationId:
           "11111111-1111-4111-8111-111111111111",
@@ -134,6 +142,29 @@ describe("donation validation", () => {
 
     expect(() =>
       anonymousDonationCreateSchema.parse({
+        amountPaise: 1,
+        operationId: "",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects invalid Jummah cash donation payloads", () => {
+    expect(() =>
+      jummahCashDonationCreateSchema.parse({
+        amountPaise: 0,
+        operationId: "jummah-op-2",
+      }),
+    ).toThrow();
+
+    expect(() =>
+      jummahCashDonationCreateSchema.parse({
+        amountPaise: -1,
+        operationId: "jummah-op-3",
+      }),
+    ).toThrow();
+
+    expect(() =>
+      jummahCashDonationCreateSchema.parse({
         amountPaise: 1,
         operationId: "",
       }),
@@ -490,6 +521,177 @@ describe("donation SQL security boundaries", () => {
     );
     expect(managementPage).not.toContain(
       'name="member',
+    );
+  });
+
+  it("adds Jummah cash collection without broadening direct writes", () => {
+    const migration = readFileSync(
+      repoFile(
+        "supabase/migrations/20260922144930_jummah_cash_v1.sql",
+      ),
+      "utf8",
+    );
+
+    expect(migration).toContain(
+      "create_jummah_cash_donation",
+    );
+    expect(migration).toMatch(
+      /create or replace function public\.create_jummah_cash_donation[\s\S]*?security definer/i,
+    );
+    expect(migration).toMatch(
+      /set search_path = public,\s*extensions/i,
+    );
+    expect(migration).toContain(
+      "'donations.jummah.create'",
+    );
+    expect(migration).toContain(
+      "'jummah_cash_create'",
+    );
+    expect(migration).toContain(
+      "'anonymous_donation_create'",
+    );
+    expect(migration).toContain(
+      "'additional_donation_create'",
+    );
+    expect(migration).toContain(
+      "'payment_reject'",
+    );
+    expect(migration).toContain(
+      "pg_advisory_xact_lock",
+    );
+    expect(migration).toContain(
+      "operation_id_conflict",
+    );
+    expect(migration).toContain(
+      "target_member_profile_id is not null",
+    );
+    expect(migration).toContain(
+      "additional_donation_id",
+    );
+    expect(migration).toMatch(
+      /member_profile_id,\s+source_payment_id,\s+donation_kind,[\s\S]*?values\s*\(\s*null,\s*null,\s*'jummah_cash'/i,
+    );
+    expect(migration).not.toContain(
+      "active_member_profile_required",
+    );
+    expect(migration).toMatch(
+      /revoke all on function public\.create_jummah_cash_donation\(\s*bigint,\s*text\s*\)\s*from public,\s*anon,\s*authenticated;/i,
+    );
+    expect(migration).toMatch(
+      /grant execute on function public\.create_jummah_cash_donation\(\s*bigint,\s*text\s*\)\s*to authenticated;/i,
+    );
+    expect(migration).not.toMatch(
+      /grant\s+(insert|update|delete|all)\s+on\s+table\s+public\.additional_donations\s+to\s+authenticated/i,
+    );
+  });
+
+  it("wires Jummah cash through the trusted RPC and capability gate", () => {
+    const server = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/lib/donations/server.ts",
+      ),
+      "utf8",
+    );
+    const actions = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/app/donations/actions.ts",
+      ),
+      "utf8",
+    );
+    const managementPage = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/app/donations/manage/page.tsx",
+      ),
+      "utf8",
+    );
+    const dashboardPage = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/app/dashboard/page.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(server).toContain(
+      "createJummahCashDonation",
+    );
+    expect(server).toContain(
+      '"create_jummah_cash_donation"',
+    );
+    expect(server).toContain(
+      "p_amount_paise",
+    );
+    expect(server).toContain(
+      "p_operation_id",
+    );
+    expect(server).toContain(
+      '"donations.jummah.create"',
+    );
+    expect(server).toContain(
+      "canCreateJummahCashDonation",
+    );
+
+    expect(actions).toContain(
+      "jummahCashDonationCreateSchema",
+    );
+    expect(actions).toContain(
+      "recordJummahCashDonation",
+    );
+    expect(actions).toContain(
+      "createJummahCashDonation",
+    );
+    expect(actions).toContain(
+      "parseRupeesToPaise",
+    );
+    expect(actions).toContain(
+      "/donations/manage?jummah_created=1",
+    );
+    expect(actions).toContain(
+      "invalid_jummah_cash",
+    );
+    expect(actions).toContain(
+      "jummah_cash_failed",
+    );
+
+    expect(managementPage).toContain(
+      "capabilities.canCreateJummahCashDonation",
+    );
+    expect(managementPage).toContain(
+      "recordJummahCashDonation",
+    );
+    expect(managementPage).toContain(
+      "Jummah cash collection",
+    );
+    expect(managementPage).toContain(
+      "Record the total cash collected for Jummah.",
+    );
+    expect(managementPage).toContain(
+      "Record Jummah collection",
+    );
+    expect(managementPage).toContain(
+      "Jummah cash collection recorded.",
+    );
+    expect(managementPage).not.toContain(
+      'name="donor',
+    );
+    expect(managementPage).not.toContain(
+      'name="phone',
+    );
+    expect(managementPage).not.toContain(
+      'name="member',
+    );
+    expect(managementPage).not.toContain(
+      'name="createdAt',
+    );
+    expect(managementPage).not.toContain(
+      'name="notes',
+    );
+
+    expect(dashboardPage).toContain(
+      "canCreateJummahCashDonation",
     );
   });
 });

@@ -22,12 +22,14 @@ import {
   donationPaymentReviewSchema,
   donationPaymentSubmitSchema,
   donationPaymentVerifySchema,
+  jummahCashDonationCreateSchema,
 } from "@masjid-e-mamoor/validation";
 
 import {
   createAdditionalDonation,
   createAnonymousDonation,
   createDonationObligationRule,
+  createJummahCashDonation,
   generateMonthlyDonationObligations,
   rejectDonationPayment,
   startDonationPaymentReview,
@@ -116,6 +118,34 @@ export async function recordAnonymousDonation(
 
   refreshDonationPaths();
   redirect("/donations/manage?anonymous_created=1");
+}
+
+export async function recordJummahCashDonation(
+  formData: FormData,
+) {
+  const parsed = jummahCashDonationCreateSchema.safeParse({
+    amountPaise:
+      parseRupeesToPaise(String(formData.get("amount") ?? "")) ??
+      Number.NaN,
+    operationId: randomUUID(),
+  });
+
+  if (!parsed.success) {
+    redirect(
+      "/donations/manage?error=invalid_jummah_cash",
+    );
+  }
+
+  try {
+    await createJummahCashDonation(parsed.data);
+  } catch {
+    redirect(
+      "/donations/manage?error=jummah_cash_failed",
+    );
+  }
+
+  refreshDonationPaths();
+  redirect("/donations/manage?jummah_created=1");
 }
 
 export async function beginPaymentReview(formData: FormData) {
