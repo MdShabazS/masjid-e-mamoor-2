@@ -3,9 +3,8 @@ import Link from "next/link";
 import {
   getAdditionalDonations,
   getDonationAllocations,
-  getDonationObligations,
+  getDonationOutstandingSnapshot,
   getDonationPayments,
-  getDonationWaivers,
 } from "@/lib/donations/server";
 
 import {
@@ -106,18 +105,16 @@ export default async function DonationsPage({
   const params = await searchParams;
 
   const [
-    obligations,
+    outstandingSnapshot,
     payments,
     allocations,
-    waivers,
     additionalDonations,
     ownMemberProfile,
     canUploadProof,
   ] = await Promise.all([
-    getDonationObligations(),
+    getDonationOutstandingSnapshot(),
     getDonationPayments(),
     getDonationAllocations(),
-    getDonationWaivers(),
     getAdditionalDonations(),
     getOwnMemberProfile(),
     hasPermission(
@@ -125,51 +122,11 @@ export default async function DonationsPage({
     ),
   ]);
 
-  const allocatedByObligation = new Map<string, number>();
-  const waivedByObligation = new Map<string, number>();
+  const obligationRows =
+    outstandingSnapshot.obligations;
 
-  for (const allocation of allocations) {
-    allocatedByObligation.set(
-      allocation.obligationId,
-      (allocatedByObligation.get(allocation.obligationId) ?? 0) +
-        allocation.allocatedAmountPaise,
-    );
-  }
-
-  for (const waiver of waivers) {
-    waivedByObligation.set(
-      waiver.obligationId,
-      (waivedByObligation.get(waiver.obligationId) ?? 0) +
-        waiver.waivedAmountPaise,
-    );
-  }
-
-  const obligationRows = obligations.map((obligation) => {
-    const allocated =
-      allocatedByObligation.get(obligation.id) ?? 0;
-    const waived =
-      waivedByObligation.get(obligation.id) ?? 0;
-
-    const outstanding = Math.max(
-      0,
-      obligation.authoritativeAmountPaise -
-        allocated -
-        waived,
-    );
-
-    return {
-      ...obligation,
-      allocated,
-      waived,
-      outstanding,
-    };
-  });
-
-  const totalOutstanding = obligationRows.reduce(
-    (total, obligation) =>
-      total + obligation.outstanding,
-    0,
-  );
+  const totalOutstanding =
+    outstandingSnapshot.totalOutstandingPaise;
 
   const message = messageFor(params);
 
@@ -224,7 +181,7 @@ export default async function DonationsPage({
             Monthly obligations
           </p>
           <p className="mt-2 text-2xl font-semibold">
-            {obligations.length}
+            {outstandingSnapshot.obligationCount}
           </p>
         </div>
 
@@ -371,13 +328,13 @@ export default async function DonationsPage({
                       )}
                     </td>
                     <td className="py-3 pr-4">
-                      {formatMoney(obligation.allocated)}
+                      {formatMoney(obligation.allocatedAmountPaise)}
                     </td>
                     <td className="py-3 pr-4">
-                      {formatMoney(obligation.waived)}
+                      {formatMoney(obligation.waivedAmountPaise)}
                     </td>
                     <td className="py-3 pr-4 font-medium">
-                      {formatMoney(obligation.outstanding)}
+                      {formatMoney(obligation.outstandingAmountPaise)}
                     </td>
                     <td className="py-3 capitalize">
                       {obligation.status.replaceAll("_", " ")}

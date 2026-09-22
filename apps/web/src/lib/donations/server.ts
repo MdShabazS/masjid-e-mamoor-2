@@ -4,6 +4,7 @@ import type {
   AdditionalDonation,
   DonationObligation,
   DonationObligationRule,
+  DonationOutstandingSnapshot,
   DonationObligationWaiver,
   DonationPayment,
   DonationPaymentAllocation,
@@ -34,6 +35,80 @@ function mapObligation(row: DbRow): DonationObligation {
     authoritativeAmountPaise: asNumber(row.authoritative_amount_paise),
     status: row.status as DonationObligation["status"],
     createdAt: asString(row.created_at),
+  };
+}
+
+function mapOutstandingSnapshot(
+  value: unknown,
+): DonationOutstandingSnapshot {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value)
+  ) {
+    throw new Error(
+      "Outstanding snapshot returned an invalid result.",
+    );
+  }
+
+  const snapshot = value as DbRow;
+
+  const rawObligations = Array.isArray(
+    snapshot.obligations,
+  )
+    ? snapshot.obligations
+    : [];
+
+  return {
+    totalOutstandingPaise: asNumber(
+      snapshot.total_outstanding_paise ?? 0,
+    ),
+    obligationCount: asNumber(
+      snapshot.obligation_count ?? 0,
+    ),
+    obligations: rawObligations.map((value) => {
+      if (
+        !value ||
+        typeof value !== "object" ||
+        Array.isArray(value)
+      ) {
+        throw new Error(
+          "Outstanding snapshot contains an invalid obligation.",
+        );
+      }
+
+      const row = value as DbRow;
+
+      return {
+        id: asString(row.id),
+        memberProfileId: asString(
+          row.member_profile_id,
+        ),
+        obligationRuleId: asNullableString(
+          row.obligation_rule_id,
+        ),
+        effectiveMonth: asString(
+          row.effective_month,
+        ),
+        authoritativeAmountPaise: asNumber(
+          row.authoritative_amount_paise,
+        ),
+        allocatedAmountPaise: asNumber(
+          row.allocated_amount_paise,
+        ),
+        waivedAmountPaise: asNumber(
+          row.waived_amount_paise,
+        ),
+        outstandingAmountPaise: asNumber(
+          row.outstanding_amount_paise,
+        ),
+        status:
+          row.status as DonationOutstandingSnapshot[
+            "obligations"
+          ][number]["status"],
+        createdAt: asString(row.created_at),
+      };
+    }),
   };
 }
 
@@ -112,6 +187,20 @@ function unwrapRpcRow<T>(
   }
 
   return mapper(row as DbRow);
+}
+
+export async function getDonationOutstandingSnapshot(): Promise<DonationOutstandingSnapshot> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc(
+    "get_donation_outstanding_snapshot",
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return mapOutstandingSnapshot(data);
 }
 
 export async function getDonationObligations(): Promise<

@@ -78,6 +78,25 @@ export interface DonationObligation {
   createdAt: string;
 }
 
+export interface DonationOutstandingObligation {
+  id: string;
+  memberProfileId: string;
+  obligationRuleId: string | null;
+  effectiveMonth: string;
+  authoritativeAmountPaise: number;
+  allocatedAmountPaise: number;
+  waivedAmountPaise: number;
+  outstandingAmountPaise: number;
+  status: DonationObligationStatus;
+  createdAt: string;
+}
+
+export interface DonationOutstandingSnapshot {
+  totalOutstandingPaise: number;
+  obligationCount: number;
+  obligations: DonationOutstandingObligation[];
+}
+
 export interface DonationPayment {
   id: string;
   memberProfileId: string;
