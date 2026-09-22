@@ -25,7 +25,8 @@ export default async function DashboardPage() {
 
   const canOpenDonationManagement =
     donationCapabilities.canVerify ||
-    donationCapabilities.canManageObligations;
+    donationCapabilities.canManageObligations ||
+    donationCapabilities.canCreateAnonymousDonation;
 
   return (
     <main className="min-h-screen px-6 py-10">

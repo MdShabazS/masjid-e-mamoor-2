@@ -14,6 +14,7 @@ import { redirect } from "next/navigation";
 
 import {
   additionalDonationCreateSchema,
+  anonymousDonationCreateSchema,
   donationObligationGenerationSchema,
   donationObligationRuleCreateSchema,
   donationObligationWaiverSchema,
@@ -25,6 +26,7 @@ import {
 
 import {
   createAdditionalDonation,
+  createAnonymousDonation,
   createDonationObligationRule,
   generateMonthlyDonationObligations,
   rejectDonationPayment,
@@ -86,6 +88,34 @@ export async function submitAdditionalDonation(
 
   refreshDonationPaths();
   redirect("/donations?additional=1");
+}
+
+export async function recordAnonymousDonation(
+  formData: FormData,
+) {
+  const parsed = anonymousDonationCreateSchema.safeParse({
+    amountPaise:
+      parseRupeesToPaise(String(formData.get("amount") ?? "")) ??
+      Number.NaN,
+    operationId: randomUUID(),
+  });
+
+  if (!parsed.success) {
+    redirect(
+      "/donations/manage?error=invalid_anonymous_donation",
+    );
+  }
+
+  try {
+    await createAnonymousDonation(parsed.data);
+  } catch {
+    redirect(
+      "/donations/manage?error=anonymous_donation_failed",
+    );
+  }
+
+  refreshDonationPaths();
+  redirect("/donations/manage?anonymous_created=1");
 }
 
 export async function beginPaymentReview(formData: FormData) {

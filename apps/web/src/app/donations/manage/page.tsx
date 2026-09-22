@@ -14,6 +14,7 @@ import {
   createObligationRule,
   generateObligations,
   rejectPayment,
+  recordAnonymousDonation,
   verifyPayment,
   waiveObligation,
 } from "../actions";
@@ -45,6 +46,7 @@ function messageFor(
     ["waived", "Obligation waiver recorded."],
     ["rule_created", "Monthly obligation rule created."],
     ["generated", "Monthly obligations generated."],
+    ["anonymous_created", "Anonymous donation recorded."],
   ];
 
   for (const [key, text] of successMessages) {
@@ -72,6 +74,10 @@ function messageFor(
       "Select a valid obligation month.",
     generation_failed:
       "Monthly obligations could not be generated.",
+    invalid_anonymous_donation:
+      "Enter a valid anonymous donation amount.",
+    anonymous_donation_failed:
+      "The anonymous donation could not be recorded.",
   };
 
   return {
@@ -92,7 +98,8 @@ export default async function DonationManagementPage({
 
   if (
     !capabilities.canVerify &&
-    !capabilities.canManageObligations
+    !capabilities.canManageObligations &&
+    !capabilities.canCreateAnonymousDonation
   ) {
     redirect("/donations");
   }
@@ -198,6 +205,46 @@ export default async function DonationManagementPage({
           </p>
         </div>
       </section>
+
+      {capabilities.canCreateAnonymousDonation ? (
+        <section className="mb-8 rounded-xl border p-6">
+          <h2 className="text-xl font-semibold">
+            Anonymous donation
+          </h2>
+
+          <p className="mt-2 text-sm text-zinc-500">
+            The donor identity is not stored. The authenticated staff
+            operator is retained for audit.
+          </p>
+
+          <form
+            action={recordAnonymousDonation}
+            className="mt-5 flex flex-wrap items-end gap-3"
+          >
+            <label className="block min-w-64 flex-1">
+              <span className="mb-1 block text-sm font-medium">
+                Amount (₹)
+              </span>
+
+              <input
+                type="number"
+                name="amount"
+                min="0.01"
+                step="0.01"
+                required
+                className="w-full rounded-lg border px-3 py-2"
+              />
+            </label>
+
+            <button
+              type="submit"
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+            >
+              Record anonymous donation
+            </button>
+          </form>
+        </section>
+      ) : null}
 
       {capabilities.canVerify ? (
         <section className="rounded-xl border p-6">

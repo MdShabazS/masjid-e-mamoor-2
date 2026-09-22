@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   additionalDonationCreateSchema,
+  anonymousDonationCreateSchema,
   donationMonthInputSchema,
   donationObligationGenerationSchema,
   donationObligationRuleCreateSchema,
@@ -71,6 +72,13 @@ describe("donation validation", () => {
     ).toBe(1);
 
     expect(
+      anonymousDonationCreateSchema.parse({
+        amountPaise: 1,
+        operationId: "anonymous-op-1",
+      }).amountPaise,
+    ).toBe(1);
+
+    expect(
       donationObligationWaiverSchema.parse({
         obligationId:
           "11111111-1111-4111-8111-111111111111",
@@ -105,6 +113,29 @@ describe("donation validation", () => {
           "11111111-1111-4111-8111-111111111111",
         reason: "   ",
         operationId: "reject-op-1",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects invalid anonymous donation payloads", () => {
+    expect(() =>
+      anonymousDonationCreateSchema.parse({
+        amountPaise: 0,
+        operationId: "anonymous-op-2",
+      }),
+    ).toThrow();
+
+    expect(() =>
+      anonymousDonationCreateSchema.parse({
+        amountPaise: -1,
+        operationId: "anonymous-op-3",
+      }),
+    ).toThrow();
+
+    expect(() =>
+      anonymousDonationCreateSchema.parse({
+        amountPaise: 1,
+        operationId: "",
       }),
     ).toThrow();
   });
@@ -323,6 +354,142 @@ describe("donation SQL security boundaries", () => {
 
     expect(nextConfig).toContain(
       'bodySizeLimit: "6mb"',
+    );
+  });
+
+  it("adds anonymous donation creation without broadening direct writes", () => {
+    const migration = readFileSync(
+      repoFile(
+        "supabase/migrations/20260922141324_anonymous_donation_v1.sql",
+      ),
+      "utf8",
+    );
+
+    expect(migration).toContain(
+      "create_anonymous_donation",
+    );
+    expect(migration).toMatch(
+      /create or replace function public\.create_anonymous_donation[\s\S]*?security definer/i,
+    );
+    expect(migration).toContain(
+      "'donations.anonymous.create'",
+    );
+    expect(migration).toContain(
+      "'anonymous_donation_create'",
+    );
+    expect(migration).toContain(
+      "'additional_donation_create'",
+    );
+    expect(migration).toContain(
+      "'payment_reject'",
+    );
+    expect(migration).toContain(
+      "pg_advisory_xact_lock",
+    );
+    expect(migration).toContain(
+      "operation_id_conflict",
+    );
+    expect(migration).toContain(
+      "target_member_profile_id is not null",
+    );
+    expect(migration).toContain(
+      "additional_donation_id",
+    );
+    expect(migration).toMatch(
+      /member_profile_id,\s+source_payment_id,\s+donation_kind,[\s\S]*?values\s*\(\s*null,\s*null,\s*'anonymous'/i,
+    );
+    expect(migration).not.toContain(
+      "active_member_profile_required",
+    );
+    expect(migration).toMatch(
+      /revoke all on function public\.create_anonymous_donation\(\s*bigint,\s*text\s*\)\s*from public,\s*anon,\s*authenticated;/i,
+    );
+    expect(migration).toMatch(
+      /grant execute on function public\.create_anonymous_donation\(\s*bigint,\s*text\s*\)\s*to authenticated;/i,
+    );
+    expect(migration).not.toMatch(
+      /grant\s+(insert|update|delete|all)\s+on\s+table\s+public\.additional_donations\s+to\s+authenticated/i,
+    );
+  });
+
+  it("wires anonymous donations through the trusted RPC and capability gate", () => {
+    const server = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/lib/donations/server.ts",
+      ),
+      "utf8",
+    );
+    const actions = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/app/donations/actions.ts",
+      ),
+      "utf8",
+    );
+    const managementPage = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/app/donations/manage/page.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(server).toContain(
+      "createAnonymousDonation",
+    );
+    expect(server).toContain(
+      '"create_anonymous_donation"',
+    );
+    expect(server).toContain(
+      "p_amount_paise",
+    );
+    expect(server).toContain(
+      "p_operation_id",
+    );
+    expect(server).toContain(
+      '"donations.anonymous.create"',
+    );
+    expect(server).toContain(
+      "canCreateAnonymousDonation",
+    );
+    expect(server).toContain(
+      "recorded_by_application_user_id",
+    );
+
+    expect(actions).toContain(
+      "anonymousDonationCreateSchema",
+    );
+    expect(actions).toContain(
+      "recordAnonymousDonation",
+    );
+    expect(actions).toContain(
+      "createAnonymousDonation",
+    );
+    expect(actions).toContain(
+      "/donations/manage?anonymous_created=1",
+    );
+    expect(actions).toContain(
+      "anonymous_donation_failed",
+    );
+
+    expect(managementPage).toContain(
+      "capabilities.canCreateAnonymousDonation",
+    );
+    expect(managementPage).toContain(
+      "recordAnonymousDonation",
+    );
+    expect(managementPage).toContain(
+      "The donor identity is not stored.",
+    );
+    expect(managementPage).toContain(
+      "Record anonymous donation",
+    );
+    expect(managementPage).not.toContain(
+      'name="donor',
+    );
+    expect(managementPage).not.toContain(
+      'name="member',
     );
   });
 });

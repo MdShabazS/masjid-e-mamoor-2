@@ -129,12 +129,19 @@ export interface DonationObligationWaiver {
   createdAt: string;
 }
 
+export type AdditionalDonationKind =
+  | "additional"
+  | "overpayment"
+  | "anonymous"
+  | "jummah_cash";
+
 export interface AdditionalDonation {
   id: string;
   memberProfileId: string | null;
   sourcePaymentId: string | null;
-  donationKind: string;
+  donationKind: AdditionalDonationKind;
   amountPaise: number;
+  recordedByApplicationUserId: string;
   createdAt: string;
 }
 

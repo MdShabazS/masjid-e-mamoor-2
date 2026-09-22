@@ -161,8 +161,11 @@ function mapAdditionalDonation(row: DbRow): AdditionalDonation {
     id: asString(row.id),
     memberProfileId: asNullableString(row.member_profile_id),
     sourcePaymentId: asNullableString(row.source_payment_id),
-    donationKind: asString(row.donation_kind),
+    donationKind: row.donation_kind as AdditionalDonation["donationKind"],
     amountPaise: asNumber(row.amount_paise),
+    recordedByApplicationUserId: asString(
+      row.recorded_by_application_user_id,
+    ),
     createdAt: asString(row.created_at),
   };
 }
@@ -445,6 +448,27 @@ export async function createAdditionalDonation(input: {
   return unwrapRpcRow(data, mapAdditionalDonation);
 }
 
+export async function createAnonymousDonation(input: {
+  amountPaise: number;
+  operationId: string;
+}): Promise<AdditionalDonation> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc(
+    "create_anonymous_donation",
+    {
+      p_amount_paise: input.amountPaise,
+      p_operation_id: input.operationId,
+    },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return unwrapRpcRow(data, mapAdditionalDonation);
+}
+
 export async function createDonationObligationRule(input: {
   effectiveFromMonth: string;
   monthlyAmountPaise: number;
@@ -511,6 +535,10 @@ export async function getDonationManagementCapabilities() {
     { data: canVerify, error: verifyError },
     { data: canAllocate, error: allocateError },
     { data: canManageObligations, error: manageError },
+    {
+      data: canCreateAnonymousDonation,
+      error: anonymousError,
+    },
   ] = await Promise.all([
     supabase.rpc("has_application_permission", {
       requested_permission: "donations.payments.verify",
@@ -521,9 +549,17 @@ export async function getDonationManagementCapabilities() {
     supabase.rpc("has_application_permission", {
       requested_permission: "donations.obligations.manage",
     }),
+    supabase.rpc("has_application_permission", {
+      requested_permission: "donations.anonymous.create",
+    }),
   ]);
 
-  if (verifyError || allocateError || manageError) {
+  if (
+    verifyError ||
+    allocateError ||
+    manageError ||
+    anonymousError
+  ) {
     throw new Error("Unable to resolve donation management permissions.");
   }
 
@@ -533,5 +569,7 @@ export async function getDonationManagementCapabilities() {
     canVerifyAndAllocate:
       canVerify === true && canAllocate === true,
     canManageObligations: canManageObligations === true,
+    canCreateAnonymousDonation:
+      canCreateAnonymousDonation === true,
   };
 }

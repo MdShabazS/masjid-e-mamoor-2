@@ -110,6 +110,11 @@ export const additionalDonationCreateSchema = z.object({
   operationId: donationOperationIdSchema,
 });
 
+export const anonymousDonationCreateSchema = z.object({
+  amountPaise: donationPositiveAmountPaiseSchema,
+  operationId: donationOperationIdSchema,
+});
+
 export const donationMonthInputSchema = z
   .string()
   .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
