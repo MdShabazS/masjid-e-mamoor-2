@@ -5,6 +5,7 @@ import {
   getDonationAllocations,
   getDonationOutstandingSnapshot,
   getDonationPayments,
+  getDonationPaymentProofs,
 } from "@/lib/donations/server";
 
 import {
@@ -41,6 +42,16 @@ function formatMonth(value: string) {
     month: "long",
     year: "numeric",
   }).format(date);
+}
+
+function addToPaymentMap<T extends { paymentId: string }>(
+  map: Map<string, T[]>,
+  item: T,
+) {
+  map.set(item.paymentId, [
+    ...(map.get(item.paymentId) ?? []),
+    item,
+  ]);
 }
 
 function messageFor(
@@ -108,6 +119,7 @@ export default async function DonationsPage({
     outstandingSnapshot,
     payments,
     allocations,
+    paymentProofs,
     additionalDonations,
     ownMemberProfile,
     canUploadProof,
@@ -115,6 +127,7 @@ export default async function DonationsPage({
     getDonationOutstandingSnapshot(),
     getDonationPayments(),
     getDonationAllocations(),
+    getDonationPaymentProofs(),
     getAdditionalDonations(),
     getOwnMemberProfile(),
     hasPermission(
@@ -129,6 +142,14 @@ export default async function DonationsPage({
     outstandingSnapshot.totalOutstandingPaise;
 
   const message = messageFor(params);
+  const proofsByPaymentId = new Map<
+    string,
+    (typeof paymentProofs)[number][]
+  >();
+
+  for (const proof of paymentProofs) {
+    addToPaymentMap(proofsByPaymentId, proof);
+  }
 
   return (
     <main className="mx-auto min-h-screen max-w-6xl px-6 py-10">
@@ -410,7 +431,25 @@ export default async function DonationsPage({
                         {formatMoney(allocated)}
                       </td>
                       <td className="py-3">
-                        {canUploadProof &&
+                        {(proofsByPaymentId.get(payment.id) ?? [])
+                          .length > 0 ? (
+                          <div className="flex min-w-32 flex-col gap-2">
+                            {(
+                              proofsByPaymentId.get(payment.id) ?? []
+                            ).map((proof, index, proofs) => (
+                              <Link
+                                key={proof.id}
+                                href={`/donations/proofs/${proof.id}`}
+                                className="w-fit rounded border px-3 py-1 text-xs font-medium"
+                                prefetch={false}
+                              >
+                                {proofs.length === 1
+                                  ? "View proof"
+                                  : `View proof ${index + 1}`}
+                              </Link>
+                            ))}
+                          </div>
+                        ) : canUploadProof &&
                         ownMemberProfile?.id ===
                           payment.memberProfileId &&
                         (payment.status === "submitted" ||

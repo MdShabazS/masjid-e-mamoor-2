@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -385,6 +385,177 @@ describe("donation SQL security boundaries", () => {
 
     expect(nextConfig).toContain(
       'bodySizeLimit: "6mb"',
+    );
+  });
+
+  it("adds private proof viewing without changing storage or RLS boundaries", () => {
+    const migrationFiles = readdirSync(
+      repoFile("supabase/migrations"),
+    );
+
+    const server = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/lib/donations/server.ts",
+      ),
+      "utf8",
+    );
+    const route = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/app/donations/proofs/[proofId]/route.ts",
+      ),
+      "utf8",
+    );
+    const donationPage = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/app/donations/page.tsx",
+      ),
+      "utf8",
+    );
+    const managementPage = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/app/donations/manage/page.tsx",
+      ),
+      "utf8",
+    );
+    const donationActions = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/app/donations/actions.ts",
+      ),
+      "utf8",
+    );
+    const donationInput = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/lib/donations/input.ts",
+      ),
+      "utf8",
+    );
+    const appProofViewingFiles = [
+      server,
+      route,
+      donationPage,
+      managementPage,
+    ].join("\n");
+
+    expect(
+      migrationFiles.filter((file) =>
+        /proof.*(view|signed|url)|signed.*proof|private.*proof/i.test(
+          file,
+        ),
+      ),
+    ).toEqual([]);
+
+    expect(server).toContain(
+      "DonationPaymentProof",
+    );
+    expect(server).toContain(
+      "getDonationPaymentProofs",
+    );
+    expect(server).toContain(
+      "createDonationPaymentProofSignedUrl",
+    );
+    expect(server).toContain(
+      '.from("donation_payment_proofs")',
+    );
+    expect(server).toContain(
+      '.eq("id", proofId)',
+    );
+    expect(server).toContain(
+      ".maybeSingle()",
+    );
+    expect(server).toContain(
+      ".from(proof.storageBucket)",
+    );
+    expect(server).toContain(
+      ".createSignedUrl(proof.storageObjectPath, 60)",
+    );
+    expect(server).not.toContain(
+      "createSignedUrl(storageObjectPath",
+    );
+    expect(server).not.toContain(
+      "createSignedUrl(objectPath",
+    );
+
+    expect(route).toContain(
+      "createDonationPaymentProofSignedUrl(proofId)",
+    );
+    expect(route).toContain(
+      "NextResponse.redirect",
+    );
+    expect(route).toContain(
+      '"Cache-Control", "no-store"',
+    );
+    expect(route).toContain(
+      "status: 404",
+    );
+    expect(route).not.toContain(
+      "storageBucket",
+    );
+    expect(route).not.toContain(
+      "storageObjectPath",
+    );
+
+    expect(donationPage).toContain(
+      "getDonationPaymentProofs",
+    );
+    expect(donationPage).toContain(
+      "proofsByPaymentId",
+    );
+    expect(donationPage).toContain(
+      "View proof",
+    );
+    expect(donationPage).toContain(
+      "/donations/proofs/${proof.id}",
+    );
+    expect(donationPage).toContain(
+      "uploadPaymentProof",
+    );
+    expect(donationPage).toContain(
+      'type="file"',
+    );
+    expect(donationPage).toContain(
+      'accept="image/jpeg,image/png,application/pdf"',
+    );
+
+    expect(managementPage).toContain(
+      "getDonationPaymentProofs",
+    );
+    expect(managementPage).toContain(
+      "proofsByPaymentId",
+    );
+    expect(managementPage).toContain(
+      "View proof",
+    );
+    expect(managementPage).toContain(
+      "No proof attached",
+    );
+    expect(managementPage).toContain(
+      "/donations/proofs/${proof.id}",
+    );
+
+    expect(donationActions).toContain(
+      ".from(DONATION_PROOF_BUCKET)",
+    );
+    expect(donationActions).toContain(
+      '"register_donation_payment_proof"',
+    );
+    expect(donationInput).toContain(
+      'DONATION_PROOF_BUCKET =\n  "donation-payment-proofs"',
+    );
+
+    expect(appProofViewingFiles).not.toContain(
+      "getPublicUrl",
+    );
+    expect(appProofViewingFiles).not.toMatch(
+      /service[_-]?role/i,
+    );
+    expect(appProofViewingFiles).not.toMatch(
+      /create\s+policy|alter\s+policy|drop\s+policy|storage\.objects/i,
     );
   });
 

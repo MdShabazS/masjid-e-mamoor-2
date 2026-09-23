@@ -6,6 +6,7 @@ import {
   getDonationObligationRules,
   getDonationObligations,
   getDonationPayments,
+  getDonationPaymentProofs,
   getDonationWaivers,
 } from "@/lib/donations/server";
 
@@ -35,6 +36,16 @@ function formatDate(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function addToPaymentMap<T extends { paymentId: string }>(
+  map: Map<string, T[]>,
+  item: T,
+) {
+  map.set(item.paymentId, [
+    ...(map.get(item.paymentId) ?? []),
+    item,
+  ]);
 }
 
 function messageFor(
@@ -111,9 +122,10 @@ export default async function DonationManagementPage({
     redirect("/donations");
   }
 
-  const [payments, obligations, waivers, rules] =
+  const [payments, paymentProofs, obligations, waivers, rules] =
     await Promise.all([
       getDonationPayments(),
+      getDonationPaymentProofs(),
       getDonationObligations(),
       getDonationWaivers(),
       getDonationObligationRules(),
@@ -130,6 +142,10 @@ export default async function DonationManagementPage({
   );
 
   const waivedByObligation = new Map<string, number>();
+  const proofsByPaymentId = new Map<
+    string,
+    (typeof paymentProofs)[number][]
+  >();
 
   for (const waiver of waivers) {
     waivedByObligation.set(
@@ -137,6 +153,10 @@ export default async function DonationManagementPage({
       (waivedByObligation.get(waiver.obligationId) ?? 0) +
         waiver.waivedAmountPaise,
     );
+  }
+
+  for (const proof of paymentProofs) {
+    addToPaymentMap(proofsByPaymentId, proof);
   }
 
   return (
@@ -347,6 +367,32 @@ export default async function DonationManagementPage({
                           </button>
                         </form>
                       ) : null}
+                    </div>
+
+                    <div className="mt-5 border-t pt-4">
+                      {(proofsByPaymentId.get(payment.id) ?? [])
+                        .length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {(
+                            proofsByPaymentId.get(payment.id) ?? []
+                          ).map((proof, index, proofs) => (
+                            <Link
+                              key={proof.id}
+                              href={`/donations/proofs/${proof.id}`}
+                              className="w-fit rounded border px-3 py-2 text-sm font-medium"
+                              prefetch={false}
+                            >
+                              {proofs.length === 1
+                                ? "View proof"
+                                : `View proof ${index + 1}`}
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-zinc-500">
+                          No proof attached
+                        </p>
+                      )}
                     </div>
 
                     {payment.status === "under_review" ? (

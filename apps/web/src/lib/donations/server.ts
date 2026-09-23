@@ -14,6 +14,25 @@ import { createClient } from "@/lib/supabase/server";
 
 type DbRow = Record<string, unknown>;
 
+const donationPaymentProofIdPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export interface DonationPaymentProof {
+  id: string;
+  paymentId: string;
+  storageBucket: string;
+  storageObjectPath: string;
+  uploadedByApplicationUserId: string;
+  createdAt: string;
+}
+
+export class DonationPaymentProofAccessError extends Error {
+  constructor() {
+    super("Donation payment proof is not available.");
+    this.name = "DonationPaymentProofAccessError";
+  }
+}
+
 function asString(value: unknown): string {
   return String(value);
 }
@@ -179,6 +198,19 @@ function mapRule(row: DbRow): DonationObligationRule {
   };
 }
 
+function mapPaymentProof(row: DbRow): DonationPaymentProof {
+  return {
+    id: asString(row.id),
+    paymentId: asString(row.payment_id),
+    storageBucket: asString(row.storage_bucket),
+    storageObjectPath: asString(row.storage_object_path),
+    uploadedByApplicationUserId: asString(
+      row.uploaded_by_application_user_id,
+    ),
+    createdAt: asString(row.created_at),
+  };
+}
+
 function unwrapRpcRow<T>(
   data: unknown,
   mapper: (row: DbRow) => T,
@@ -312,6 +344,58 @@ export async function getDonationObligationRules(): Promise<
   }
 
   return (data ?? []).map((row) => mapRule(row));
+}
+
+export async function getDonationPaymentProofs(): Promise<
+  DonationPaymentProof[]
+> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("donation_payment_proofs")
+    .select("*")
+    .order("payment_id", { ascending: true })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((row) => mapPaymentProof(row));
+}
+
+export async function createDonationPaymentProofSignedUrl(
+  proofId: string,
+): Promise<string> {
+  if (!donationPaymentProofIdPattern.test(proofId)) {
+    throw new DonationPaymentProofAccessError();
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("donation_payment_proofs")
+    .select("*")
+    .eq("id", proofId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new DonationPaymentProofAccessError();
+  }
+
+  const proof = mapPaymentProof(data);
+
+  const { data: signedData, error: signedError } =
+    await supabase.storage
+      .from(proof.storageBucket)
+      .createSignedUrl(proof.storageObjectPath, 60);
+
+  if (signedError || !signedData?.signedUrl) {
+    throw new DonationPaymentProofAccessError();
+  }
+
+  return signedData.signedUrl;
 }
 
 export async function submitDonationPayment(input: {
