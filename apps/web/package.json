@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "test:unit": "vitest run --passWithNoTests"
+    "test:unit": "vitest run --passWithNoTests",
+    "bootstrap:system-admin": "node scripts/bootstrap-system-admin.mjs",
+    "provision:auth-v2-local": "node scripts/provision-auth-v2-local.mjs"
   },
   "dependencies": {
     "@masjid-e-mamoor/api-client": "workspace:*",

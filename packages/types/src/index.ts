@@ -1,4 +1,5 @@
 export const APPLICATION_ROLES = [
+  "system_admin",
   "president",
   "vice_president",
   "secretary",
@@ -25,6 +26,8 @@ export interface AuthApplicationUser {
   authUserId: string;
   status: ApplicationUserStatus;
   role: ApplicationRole;
+  username: string | null;
+  mustChangePassword: boolean;
 }
 
 export interface AuthContext {

@@ -59,6 +59,88 @@ export const memberSearchSchema = z.object({
   search: z.string().trim().max(120).default(""),
 });
 
+export const usernameSchema = z
+  .string()
+  .trim()
+  .min(3, "Username must be at least 3 characters.")
+  .max(40, "Username must be 40 characters or fewer.")
+  .regex(
+    /^[A-Za-z0-9._-]+$/,
+    "Use only letters, numbers, dot, underscore, or hyphen.",
+  );
+
+export const passwordSchema = z
+  .string()
+  .min(10, "Password must be at least 10 characters.")
+  .regex(/[a-z]/, "Password must include a lowercase letter.")
+  .regex(/[A-Z]/, "Password must include an uppercase letter.")
+  .regex(/\d/, "Password must include a number.");
+
+export const accountRoleSchema = z.enum([
+  "president",
+  "vice_president",
+  "secretary",
+  "finance",
+  "auditor",
+  "committee_member",
+  "member",
+]);
+
+export const accountStatusSchema = z.enum([
+  "active",
+  "deactivated",
+]);
+
+export const usernamePasswordLoginSchema = z.object({
+  username: usernameSchema,
+  password: z.string().min(1),
+});
+
+export const ownPasswordChangeSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string().min(1),
+  })
+  .refine(
+    (value) => value.password === value.confirmPassword,
+    {
+      path: ["confirmPassword"],
+      message: "Passwords must match.",
+    },
+  );
+
+export const accountCreateSchema = z.object({
+  username: usernameSchema,
+  role: accountRoleSchema,
+  displayName: memberDisplayNameSchema.optional(),
+  password: passwordSchema.optional(),
+});
+
+export const accountUsernameChangeSchema = z.object({
+  accountId: z.string().uuid(),
+  username: usernameSchema,
+});
+
+export const ownUsernameChangeSchema = z.object({
+  username: usernameSchema,
+  currentPassword: z.string().min(1),
+});
+
+export const accountPasswordResetSchema = z.object({
+  accountId: z.string().uuid(),
+  password: passwordSchema.optional(),
+});
+
+export const accountRoleChangeSchema = z.object({
+  accountId: z.string().uuid(),
+  role: accountRoleSchema,
+});
+
+export const accountStatusChangeSchema = z.object({
+  accountId: z.string().uuid(),
+  status: accountStatusSchema,
+});
+
 export const donationOperationIdSchema = z.string().trim().min(1).max(200);
 
 export const donationPositiveAmountPaiseSchema = z

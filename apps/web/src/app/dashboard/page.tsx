@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { canManageAccounts } from "@/lib/accounts/server";
 import { getDonationManagementCapabilities } from "@/lib/donations/server";
 import { hasAdminMemberReadAccess } from "@/lib/members/server";
 import { signOut } from "../login/actions";
@@ -18,9 +19,11 @@ export default async function DashboardPage() {
   const [
     canOpenMemberManagement,
     donationCapabilities,
+    canOpenAccountManagement,
   ] = await Promise.all([
     hasAdminMemberReadAccess(),
     getDonationManagementCapabilities(),
+    canManageAccounts(),
   ]);
 
   const canOpenDonationManagement =
@@ -61,6 +64,7 @@ export default async function DashboardPage() {
           <Link href="/donations" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">Donations</Link>
           {canOpenMemberManagement ? <Link href="/members" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">Member Management</Link> : null}
           {canOpenDonationManagement ? <Link href="/donations/manage" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">Donation Management</Link> : null}
+          {canOpenAccountManagement ? <Link href="/accounts" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">Account Administration</Link> : null}
         </div>
 
         <div className="mt-8 rounded-2xl border border-black/10 bg-white p-6">

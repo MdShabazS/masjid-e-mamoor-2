@@ -1,14 +1,16 @@
-import { signInWithUsernamePassword } from "./actions";
+import { changePassword } from "./actions";
 
-type LoginPageProps = {
+type ChangePasswordPageProps = {
   searchParams: Promise<{
     error?: string;
   }>;
 };
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
+export default async function ChangePasswordPage({
+  searchParams,
+}: ChangePasswordPageProps) {
   const params = await searchParams;
-  const hasError = params.error === "invalid_credentials";
+  const hasError = params.error === "invalid_password";
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-12">
@@ -17,36 +19,40 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <p className="text-sm font-medium text-zinc-500">
             Masjid-e-Mamoor
           </p>
-          <h1 className="mt-2 text-3xl font-semibold">Sign in</h1>
+          <h1 className="mt-2 text-3xl font-semibold">
+            Change password
+          </h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Use the username and password issued by an administrator.
+            Set a new password before continuing.
           </p>
         </div>
 
         {hasError ? (
           <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            Username or password is incorrect.
+            Passwords must match and meet the required strength rules.
           </div>
         ) : null}
 
-        <form action={signInWithUsernamePassword} className="space-y-5">
+        <form action={changePassword} className="space-y-5">
           <label className="block text-sm font-medium">
-            Username
+            New password
             <input
-              name="username"
-              type="text"
-              autoComplete="username"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              minLength={10}
               required
               className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-3 outline-none focus:border-zinc-900"
             />
           </label>
 
           <label className="block text-sm font-medium">
-            Password
+            Confirm password
             <input
-              name="password"
+              name="confirmPassword"
               type="password"
-              autoComplete="current-password"
+              autoComplete="new-password"
+              minLength={10}
               required
               className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-3 outline-none focus:border-zinc-900"
             />
@@ -56,7 +62,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             type="submit"
             className="w-full rounded-lg bg-zinc-900 px-4 py-3 font-medium text-white hover:bg-zinc-800"
           >
-            Sign in
+            Continue
           </button>
         </form>
       </section>

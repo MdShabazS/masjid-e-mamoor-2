@@ -39,7 +39,45 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+
+  if (!claims?.sub) {
+    return response;
+  }
+
+  const pathname = request.nextUrl.pathname;
+  const isLogin = pathname === "/login";
+  const isChangePassword = pathname === "/change-password";
+
+  const { data: account } = await supabase
+    .from("application_users")
+    .select("status, must_change_password")
+    .eq("auth_user_id", claims.sub)
+    .maybeSingle();
+
+  if (!account || account.status !== "active") {
+    if (isLogin) return response;
+
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.search = "?error=invalid_credentials";
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (account.must_change_password && !isChangePassword) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/change-password";
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (!account.must_change_password && isChangePassword) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/dashboard";
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl);
+  }
 
   return response;
 }

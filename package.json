@@ -11,6 +11,8 @@
     "test:mobile": "pnpm --filter mobile test",
     "test:e2e": "playwright test",
     "build:web": "pnpm --filter web build",
+    "bootstrap:system-admin": "pnpm --filter web bootstrap:system-admin",
+    "provision:auth-v2-local": "pnpm --filter web provision:auth-v2-local",
     "format:check": "prettier --check .",
     "format": "prettier --write ."
   },

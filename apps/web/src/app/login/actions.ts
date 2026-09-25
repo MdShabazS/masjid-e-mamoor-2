@@ -1,49 +1,38 @@
- "use server";
+"use server";
 
 import { redirect } from "next/navigation";
+import { usernamePasswordLoginSchema } from "@masjid-e-mamoor/validation";
+import { getLoginAccountByUsername } from "@/lib/accounts/server";
 import { createClient } from "@/lib/supabase/server";
 
-export async function signInWithOtp(formData: FormData) {
-  const phone = String(formData.get("phone") ?? "").trim();
-
-  if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
-    redirect("/login?error=invalid_phone");
-  }
-
-  const supabase = await createClient();
-
-  const { error } = await supabase.auth.signInWithOtp({
-    phone,
-  });
-
-  if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
-  }
-
-  redirect(`/login?sent=1&phone=${encodeURIComponent(phone)}`);
+function invalidLogin(): never {
+  redirect("/login?error=invalid_credentials");
 }
 
-export async function verifyOtp(formData: FormData) {
-  const phone = String(formData.get("phone") ?? "").trim();
-  const token = String(formData.get("token") ?? "").trim();
-
-  if (!/^\+[1-9]\d{7,14}$/.test(phone) || !/^\d{6}$/.test(token)) {
-    redirect("/login?error=invalid_otp");
-  }
-
-  const supabase = await createClient();
-
-  const { error } = await supabase.auth.verifyOtp({
-    phone,
-    token,
-    type: "sms",
+export async function signInWithUsernamePassword(formData: FormData) {
+  const parsed = usernamePasswordLoginSchema.safeParse({
+    username: formData.get("username"),
+    password: formData.get("password"),
   });
 
-  if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  if (!parsed.success) invalidLogin();
+
+  const account = await getLoginAccountByUsername(parsed.data.username);
+
+  if (!account || account.status !== "active") invalidLogin();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: account.authLoginEmail,
+    password: parsed.data.password,
+  });
+
+  if (error || data.user?.id !== account.authUserId) {
+    await supabase.auth.signOut();
+    invalidLogin();
   }
 
-  redirect("/dashboard");
+  redirect(account.mustChangePassword ? "/change-password" : "/dashboard");
 }
 
 export async function signOut() {
