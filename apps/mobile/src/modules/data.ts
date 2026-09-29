@@ -1,5 +1,5 @@
 import { randomUUID } from "expo-crypto";
-import { adminMemberProfileUpdateSchema, adminMemberStatusChangeSchema } from "@masjid-e-mamoor/validation";
+import { adminMemberProfileUpdateSchema, adminMemberStatusChangeSchema, ownMemberProfileUpdateSchema } from "@masjid-e-mamoor/validation";
 import { supabase } from "../lib/supabase";
 import type { MobileReferral, MobileMember, MemberPageCursor } from "./types";
 
@@ -99,10 +99,29 @@ export async function changeMemberStatus(
   if (error) throw new Error(error.message);
 }
 
-export async function listOwnReferrals() {
+export async function updateOwnMemberProfile(
+  displayName: string,
+  phone: string | null,
+) {
+  const parsed = ownMemberProfileUpdateSchema.safeParse({
+    displayName,
+    phone,
+    operationId: randomUUID(),
+  });
+  if (!parsed.success) throw new Error("invalid_profile");
+  const { error } = await supabase.rpc("update_own_member_profile", {
+    p_display_name: parsed.data.displayName,
+    p_phone: parsed.data.phone,
+    p_operation_id: parsed.data.operationId,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function listOwnReferrals(referrerMemberProfileId: string) {
   const { data, error } = await supabase
     .from("referrals")
     .select("id, referral_code, status, applicant_display_name, applicant_phone, created_at, submitted_at, reviewed_at, review_reason, completed_at")
+    .eq("referrer_member_profile_id", referrerMemberProfileId)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => mapReferral(row as Record<string, unknown>));

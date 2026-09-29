@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 export interface MobileCapabilities {
   canReadMembers: boolean;
   canUpdateMembers: boolean;
+  canCreateReferral: boolean;
   canUseReferrals: boolean;
   canManageReferrals: boolean;
 }
@@ -26,11 +27,13 @@ export async function loadCapabilities(
 
   const canManageReferrals =
     account.role === "president" || account.role === "system_admin";
+  const canCreateReferral = Boolean(account.memberProfile) && referralCreate;
 
   return {
     canReadMembers: !memberRead.error && memberRead.data === true,
     canUpdateMembers: memberUpdate,
-    canUseReferrals: canManageReferrals || referralCreate,
+    canCreateReferral,
+    canUseReferrals: canCreateReferral || canManageReferrals,
     canManageReferrals,
   };
 }

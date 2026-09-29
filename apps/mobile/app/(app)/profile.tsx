@@ -1,11 +1,14 @@
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 import { useAuth } from "../../src/auth/AuthProvider";
+import type { MobileMemberProfile } from "../../src/auth/types";
+import { updateOwnMemberProfile } from "../../src/modules/data";
 import { colors, roleLabels } from "../../src/theme/colors";
 
 export default function ProfileScreen() {
-  const { account, signOut } = useAuth();
+  const { account, refreshAccount, signOut } = useAuth();
   if (!account) return null;
 
   return (
@@ -24,15 +27,7 @@ export default function ProfileScreen() {
           <Text style={styles.label}>Password status</Text>
           <Text style={styles.value}>{account.mustChangePassword ? "Change required" : "Up to date"}</Text>
         </View>
-        {account.memberProfile ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Membership details</Text>
-            <Text style={styles.label}>Display name</Text>
-            <Text style={styles.value}>{account.memberProfile.displayName}</Text>
-            <Text style={styles.label}>Phone</Text>
-            <Text style={styles.value}>{account.memberProfile.phone ?? "Not provided"}</Text>
-          </View>
-        ) : null}
+        {account.memberProfile ? <MemberProfileEditor profile={account.memberProfile} onSaved={() => void refreshAccount()} /> : <View style={styles.card}><Text style={styles.cardTitle}>Membership details</Text><Text style={styles.value}>Administrative account — no member membership record is attached.</Text></View>}
         <Pressable onPress={() => router.push("/(auth)/change-password")} style={styles.primaryButton}>
           <Text style={styles.primaryButtonText}>Change password</Text>
         </Pressable>
@@ -44,6 +39,28 @@ export default function ProfileScreen() {
   );
 }
 
+function MemberProfileEditor({ profile, onSaved }: { profile: MobileMemberProfile; onSaved: () => void }) {
+  const [displayName, setDisplayName] = useState(profile.displayName);
+  const [phone, setPhone] = useState(profile.phone ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await updateOwnMemberProfile(displayName, phone.trim() || null);
+      onSaved();
+      Alert.alert("Profile updated", "Your membership details were saved.");
+    } catch {
+      Alert.alert("Could not save", "Check the details and try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return <View style={styles.card}><Text style={styles.cardTitle}>Membership details</Text><Text style={styles.label}>Display name</Text><TextInput onChangeText={setDisplayName} style={styles.input} value={displayName} /><Text style={styles.label}>Phone</Text><TextInput autoCapitalize="none" keyboardType="phone-pad" onChangeText={setPhone} style={styles.input} value={phone} /><Pressable disabled={saving} onPress={() => void save()} style={styles.primaryButton}><Text style={styles.primaryButtonText}>{saving ? "Saving..." : "Save membership details"}</Text></Pressable></View>;
+}
+
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.ivory, flex: 1 },
   content: { padding: 24 },
@@ -53,6 +70,7 @@ const styles = StyleSheet.create({
   cardTitle: { color: colors.text, fontSize: 17, fontWeight: "700", marginBottom: 6 },
   label: { color: colors.secondary, fontSize: 12, fontWeight: "700", marginTop: 14 },
   value: { color: colors.text, fontSize: 16, marginTop: 4 },
+  input: { borderColor: "#D8DED8", borderRadius: 9, borderWidth: 1, color: colors.text, height: 48, marginTop: 7, paddingHorizontal: 12 },
   success: { color: colors.success, fontWeight: "700" },
   primaryButton: { alignItems: "center", backgroundColor: colors.deepEmerald, borderRadius: 10, height: 50, justifyContent: "center", marginTop: 22 },
   primaryButtonText: { color: colors.surface, fontSize: 15, fontWeight: "700" },

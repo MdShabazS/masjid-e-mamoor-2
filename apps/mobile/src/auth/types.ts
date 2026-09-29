@@ -1,6 +1,7 @@
 import type { ApplicationRole, ApplicationUserStatus } from "@masjid-e-mamoor/types";
 
 export interface MobileMemberProfile {
+  id: string;
   displayName: string;
   phone: string | null;
 }

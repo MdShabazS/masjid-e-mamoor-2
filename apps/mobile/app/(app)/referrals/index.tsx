@@ -59,8 +59,8 @@ export default function ReferralsScreen() {
   });
   const ownReferrals = useQuery({
     queryKey: ["referrals", "own", account?.id],
-    queryFn: listOwnReferrals,
-    enabled: capabilities.data?.canUseReferrals === true && capabilities.data.canManageReferrals === false,
+    queryFn: () => listOwnReferrals(account!.memberProfile!.id),
+    enabled: capabilities.data?.canCreateReferral === true && Boolean(account?.memberProfile),
   });
   const managedReferrals = useQuery({
     queryKey: ["referrals", "managed", account?.id],
@@ -129,11 +129,12 @@ export default function ReferralsScreen() {
         <Text style={styles.title}>{capabilities.data.canManageReferrals ? "Referral management" : "Referrals"}</Text>
         {capabilities.data.canManageReferrals ? (
           <Text style={styles.intro}>Review submitted onboarding requests and provision approved members.</Text>
-        ) : (
+        ) : null}
+        {capabilities.data.canCreateReferral ? (
           <Pressable disabled={create.isPending} onPress={() => create.mutate()} style={styles.primaryButton}>
             <Text style={styles.primaryText}>{create.isPending ? "Creating..." : "Create referral"}</Text>
           </Pressable>
-        )}
+        ) : null}
         {credential ? <CredentialPanel credential={credential} onCopy={() => void Clipboard.setStringAsync(credential.password)} onDismiss={() => setCredential(null)} /> : null}
         {provisioningReferral ? (
           <View style={styles.provisionForm}>
@@ -147,21 +148,16 @@ export default function ReferralsScreen() {
             </View>
           </View>
         ) : null}
+        {capabilities.data.canManageReferrals && capabilities.data.canCreateReferral ? <Text style={styles.sectionTitle}>My referrals</Text> : null}
+        {capabilities.data.canManageReferrals && capabilities.data.canCreateReferral && ownReferrals.isLoading ? <LoadingState /> : null}
+        {capabilities.data.canManageReferrals && capabilities.data.canCreateReferral && ownReferrals.isError ? <ErrorState onRetry={() => void ownReferrals.refetch()} /> : null}
+        {capabilities.data.canManageReferrals && capabilities.data.canCreateReferral && !ownReferrals.isLoading && !ownReferrals.isError && ownReferrals.data?.length === 0 ? <EmptyState managed={false} /> : null}
+        {capabilities.data.canManageReferrals && capabilities.data.canCreateReferral ? ownReferrals.data?.map((referral) => <ReferralCard key={referral.id} managed={false} referral={referral} busy={false} onShare={() => void shareReferral(referral)} onApprove={() => undefined} onReject={() => undefined} onProvision={() => undefined} />) : null}
+        {capabilities.data.canManageReferrals ? <Text style={styles.sectionTitle}>Onboarding queue</Text> : null}
         {isLoading ? <LoadingState /> : null}
         {isError ? <ErrorState onRetry={() => void refetch()} /> : null}
         {!isLoading && !isError && referrals.length === 0 ? <EmptyState managed={capabilities.data.canManageReferrals} /> : null}
-        {referrals.map((referral) => (
-          <ReferralCard
-            key={referral.id}
-            managed={capabilities.data.canManageReferrals}
-            referral={referral}
-            busy={approve.isPending || reject.isPending}
-            onShare={() => void shareReferral(referral)}
-            onApprove={() => approve.mutate(referral.id)}
-            onReject={() => reject.mutate(referral.id)}
-            onProvision={() => void provision(referral)}
-          />
-        ))}
+        {referrals.map((referral) => <ReferralCard key={referral.id} managed={capabilities.data.canManageReferrals} referral={referral} busy={approve.isPending || reject.isPending} onShare={() => void shareReferral(referral)} onApprove={() => approve.mutate(referral.id)} onReject={() => reject.mutate(referral.id)} onProvision={() => void provision(referral)} />)}
       </ScrollView>
     </SafeAreaView>
   );
@@ -220,6 +216,7 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.deepEmerald, fontSize: 12, fontWeight: "800", letterSpacing: 1.2 },
   title: { color: colors.text, fontSize: 29, fontWeight: "700", marginTop: 8 },
   intro: { color: colors.secondary, fontSize: 14, lineHeight: 20, marginTop: 10 },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: "700", marginTop: 24 },
   primaryButton: { alignItems: "center", backgroundColor: colors.deepEmerald, borderRadius: 10, height: 48, justifyContent: "center", marginTop: 20 },
   primaryText: { color: colors.surface, fontSize: 14, fontWeight: "700" },
   card: { backgroundColor: colors.surface, borderRadius: 14, marginTop: 14, padding: 16 },

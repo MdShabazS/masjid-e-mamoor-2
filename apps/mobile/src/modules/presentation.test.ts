@@ -6,6 +6,7 @@ describe("mobile workspace presentation", () => {
       visibleWorkspaceModules({
         canReadMembers: false,
         canUpdateMembers: false,
+        canCreateReferral: false,
         canUseReferrals: true,
         canManageReferrals: false,
       }),

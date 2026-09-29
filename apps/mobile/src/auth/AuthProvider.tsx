@@ -12,6 +12,7 @@ import { changePassword as changePasswordRequest, loginWithUsername } from "../l
 import { registerAuthRefreshListener, supabase } from "../lib/supabase";
 import { loadOwnAccount } from "./account";
 import type { MobileAccount } from "./types";
+import { queryClient } from "../query/QueryProvider";
 
 interface AuthContextValue {
   session: Session | null;
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadAccount = useCallback(async (nextSession: Session | null) => {
     if (!nextSession) {
       setAccount(null);
+      queryClient.clear();
       return;
     }
 
@@ -40,10 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!nextAccount || nextAccount.status !== "active") {
       await supabase.auth.signOut();
       setAccount(null);
+      queryClient.clear();
       return;
     }
+    if (nextAccount.id !== account?.id) queryClient.clear();
     setAccount(nextAccount);
-  }, []);
+  }, [account?.id]);
 
   useEffect(() => {
     registerAuthRefreshListener();
@@ -62,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession);
       if (event === "SIGNED_OUT") {
         setAccount(null);
+        queryClient.clear();
         setLoading(false);
         return;
       }
@@ -110,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut();
         setSession(null);
         setAccount(null);
+        queryClient.clear();
       },
     }),
     [account, loading, session],
