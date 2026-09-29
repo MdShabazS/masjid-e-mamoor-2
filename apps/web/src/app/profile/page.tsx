@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { saveOwnProfile } from "./actions";
 import { ChangeOwnPasswordForm } from "./ProfileForms";
+import { OwnUsernameForm } from "../accounts/AccountAdminForms";
 import { getCurrentAccount } from "@/lib/accounts/server";
 import { getOwnMemberProfile } from "@/lib/members/server";
 
@@ -71,6 +72,9 @@ export default async function ProfilePage({ searchParams }: Props) {
             <ChangeOwnPasswordForm />
           </section>
         </div>
+        <section className="mt-6">
+          <OwnUsernameForm username={account.username} />
+        </section>
       </div>
     </main>
   );
