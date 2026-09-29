@@ -5,7 +5,6 @@ import { canManageAccounts, getCurrentAccount, listAccounts } from "@/lib/accoun
 import { getDonationManagementCapabilities } from "@/lib/donations/server";
 import { hasAdminMemberReadAccess } from "@/lib/members/server";
 import { canUseReferrals } from "@/lib/referrals/server";
-import { AppShell } from "@/components/AppShell";
 
 const criticalRoles = ["president", "vice_president", "secretary", "finance", "auditor"] as const;
 
@@ -36,14 +35,14 @@ export default async function DashboardPage() {
   ].filter((module) => module.visible);
 
   return (
-    <AppShell><main className="min-h-screen px-5 py-8 sm:px-8">
+    <main className="min-h-screen px-5 py-8 sm:px-8">
       <div className="mx-auto max-w-7xl">
         <header className="border-b border-emerald-950/10 pb-8"><p className="eyebrow">Masjid E Mamoor 2</p><h1 className="page-title">Management dashboard</h1><p className="page-intro">A clear view of the work available to your account.</p></header>
         <section className="welcome-panel mt-6"><div><p className="welcome-kicker">Assalamu Alaikum</p><h2 className="welcome-title">Masjid E Mamoor 2</h2><p className="welcome-copy">Management Overview</p></div><span className="welcome-role">{roleLabel(account.role)}</span></section>
         <section className="mt-8"><div><p className="eyebrow">Workspace</p><h2 className="section-title">Available modules</h2></div><div className="module-grid mt-4">{modules.map((module) => <Link key={module.href} href={module.href} className="module-card"><span className="module-card-title">{module.title}</span><span className="module-card-copy">{module.description}</span><span className="module-card-link">Open module →</span></Link>)}</div></section>
         {canOpenAccountManagement ? <AccountHealth accounts={accounts} health={health} /> : null}
       </div>
-    </main></AppShell>
+    </main>
   );
 }
 

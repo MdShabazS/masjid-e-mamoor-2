@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import type {
   AdditionalDonation,
@@ -633,7 +634,7 @@ export async function generateMonthlyDonationObligations(input: {
   };
 }
 
-export async function getDonationManagementCapabilities() {
+export const getDonationManagementCapabilities = cache(async function getDonationManagementCapabilities() {
   const supabase = await createClient();
 
   const [
@@ -687,4 +688,4 @@ export async function getDonationManagementCapabilities() {
     canCreateJummahCashDonation:
       canCreateJummahCashDonation === true,
   };
-}
+});

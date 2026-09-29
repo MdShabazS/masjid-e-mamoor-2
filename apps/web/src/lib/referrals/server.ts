@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash, randomUUID } from "node:crypto";
+import { cache } from "react";
 
 import type { AccountRecord } from "@/lib/accounts/server";
 import { createAccount, getCurrentAccount, requireCurrentAccount } from "@/lib/accounts/server";
@@ -77,22 +78,22 @@ function fingerprint(value: unknown) {
     .digest("hex");
 }
 
-export async function canManageReferrals() {
+export const canManageReferrals = cache(async function canManageReferrals() {
   const account = await getCurrentAccount();
   return (
     account?.status === "active" &&
     (account.role === "president" || account.role === "system_admin")
   );
-}
+});
 
-export async function canUseReferrals() {
+export const canUseReferrals = cache(async function canUseReferrals() {
   const account = await getCurrentAccount();
   if (!account || account.status !== "active") return false;
   if (account.role === "president" || account.role === "system_admin") {
     return true;
   }
   return hasPermission("membership.referrals.create");
-}
+});
 
 export async function createReferral() {
   const supabase = await createClient();

@@ -15,7 +15,6 @@ import {
   rejectReferralAction,
 } from "./actions";
 import { ReferralProvisionForm } from "./ReferralProvisionForm";
-import { AppShell } from "@/components/AppShell";
 
 function StatusBadge({ status }: { status: string }) {
   return (
@@ -47,7 +46,7 @@ export default async function ReferralsPage() {
   ]);
 
   return (
-    <AppShell><main className="min-h-screen px-5 py-8 sm:px-8">
+    <main className="min-h-screen px-5 py-8 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -213,6 +212,6 @@ export default async function ReferralsPage() {
           </section>
         ) : null}
       </div>
-    </main></AppShell>
+    </main>
   );
 }

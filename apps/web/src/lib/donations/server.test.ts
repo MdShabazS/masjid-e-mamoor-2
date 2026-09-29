@@ -290,7 +290,7 @@ describe("donation SQL security boundaries", () => {
     const donationPage = readFileSync(
       resolve(
         process.cwd(),
-        "src/app/donations/page.tsx",
+        "src/app/(protected)/donations/page.tsx",
       ),
       "utf8",
     );
@@ -298,7 +298,7 @@ describe("donation SQL security boundaries", () => {
     const donationActions = readFileSync(
       resolve(
         process.cwd(),
-        "src/app/donations/actions.ts",
+        "src/app/(protected)/donations/actions.ts",
       ),
       "utf8",
     );
@@ -403,28 +403,28 @@ describe("donation SQL security boundaries", () => {
     const route = readFileSync(
       resolve(
         process.cwd(),
-        "src/app/donations/proofs/[proofId]/route.ts",
+        "src/app/(protected)/donations/proofs/[proofId]/route.ts",
       ),
       "utf8",
     );
     const donationPage = readFileSync(
       resolve(
         process.cwd(),
-        "src/app/donations/page.tsx",
+        "src/app/(protected)/donations/page.tsx",
       ),
       "utf8",
     );
     const managementPage = readFileSync(
       resolve(
         process.cwd(),
-        "src/app/donations/manage/page.tsx",
+        "src/app/(protected)/donations/manage/page.tsx",
       ),
       "utf8",
     );
     const donationActions = readFileSync(
       resolve(
         process.cwd(),
-        "src/app/donations/actions.ts",
+        "src/app/(protected)/donations/actions.ts",
       ),
       "utf8",
     );
@@ -625,14 +625,14 @@ describe("donation SQL security boundaries", () => {
     const actions = readFileSync(
       resolve(
         process.cwd(),
-        "src/app/donations/actions.ts",
+        "src/app/(protected)/donations/actions.ts",
       ),
       "utf8",
     );
     const managementPage = readFileSync(
       resolve(
         process.cwd(),
-        "src/app/donations/manage/page.tsx",
+        "src/app/(protected)/donations/manage/page.tsx",
       ),
       "utf8",
     );
@@ -767,21 +767,21 @@ describe("donation SQL security boundaries", () => {
     const actions = readFileSync(
       resolve(
         process.cwd(),
-        "src/app/donations/actions.ts",
+        "src/app/(protected)/donations/actions.ts",
       ),
       "utf8",
     );
     const managementPage = readFileSync(
       resolve(
         process.cwd(),
-        "src/app/donations/manage/page.tsx",
+        "src/app/(protected)/donations/manage/page.tsx",
       ),
       "utf8",
     );
     const dashboardPage = readFileSync(
       resolve(
         process.cwd(),
-        "src/app/dashboard/page.tsx",
+        "src/app/(protected)/dashboard/page.tsx",
       ),
       "utf8",
     );

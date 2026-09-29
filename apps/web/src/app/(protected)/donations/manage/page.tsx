@@ -9,7 +9,6 @@ import {
   getDonationPaymentProofs,
   getDonationWaivers,
 } from "@/lib/donations/server";
-import { AppShell } from "@/components/AppShell";
 import { getCurrentAccount } from "@/lib/accounts/server";
 
 import {
@@ -163,7 +162,7 @@ export default async function DonationManagementPage({
   }
 
   return (
-    <AppShell><main className="mx-auto min-h-screen max-w-7xl px-6 py-10">
+    <main className="mx-auto min-h-screen max-w-7xl px-6 py-10">
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-zinc-500">
@@ -652,6 +651,6 @@ export default async function DonationManagementPage({
           </section>
         </>
       ) : null}
-    </main></AppShell>
+    </main>
   );
 }

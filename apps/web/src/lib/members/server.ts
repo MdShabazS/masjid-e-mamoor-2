@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { MemberPageCursor, MemberProfile } from "@masjid-e-mamoor/types";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,13 +38,13 @@ export async function hasPermission(permission: string) {
   return !error && data === true;
 }
 
-export async function hasAdminMemberReadAccess() {
+export const hasAdminMemberReadAccess = cache(async function hasAdminMemberReadAccess() {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc(
     "can_use_member_admin_read_operations",
   );
   return !error && data === true;
-}
+});
 
 export async function getOwnMemberProfile(): Promise<MemberProfile | null> {
   const supabase = await createClient();

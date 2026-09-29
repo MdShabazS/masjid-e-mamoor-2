@@ -6,7 +6,6 @@ import {
   hasAdminMemberReadAccess,
   hasPermission,
 } from "@/lib/members/server";
-import { AppShell } from "@/components/AppShell";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ error?: string; saved?: string }> };
 
@@ -19,7 +18,7 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
   const query = await searchParams;
 
   return (
-    <AppShell><main className="min-h-screen px-6 py-10">
+    <main className="min-h-screen px-6 py-10">
       <div className="mx-auto max-w-3xl">
         <Link href="/members" className="text-sm font-medium text-zinc-600 hover:text-zinc-900">← Back to members</Link>
         <p className="eyebrow mt-6">Community</p><h1 className="page-title">{member.displayName}</h1>
@@ -40,6 +39,6 @@ export default async function MemberDetailPage({ params, searchParams }: Props) 
           </div>
         </section>
       </div>
-    </main></AppShell>
+    </main>
   );
 }

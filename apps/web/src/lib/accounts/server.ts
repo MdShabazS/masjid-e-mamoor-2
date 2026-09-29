@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomBytes, randomUUID } from "node:crypto";
+import { cache } from "react";
 
 import type {
   ApplicationRole,
@@ -186,7 +187,7 @@ async function roleByApplicationUserId(accountIds: string[]) {
   return roles;
 }
 
-export async function getCurrentAccount(): Promise<AccountRecord | null> {
+export const getCurrentAccount = cache(async function getCurrentAccount(): Promise<AccountRecord | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
 
@@ -208,7 +209,7 @@ export async function getCurrentAccount(): Promise<AccountRecord | null> {
   const role = roles.get(String(account.id));
 
   return role ? mapAccount(account, role) : null;
-}
+});
 
 export async function requireCurrentAccount() {
   const account = await getCurrentAccount();

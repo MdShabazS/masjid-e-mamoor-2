@@ -35,7 +35,7 @@ const server = readFileSync(
 
 const page = readFileSync(
   repoFile(
-    "apps/web/src/app/donations/page.tsx",
+    "apps/web/src/app/(protected)/donations/page.tsx",
   ),
   "utf8",
 );

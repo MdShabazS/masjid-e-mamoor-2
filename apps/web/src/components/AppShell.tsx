@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 import { canManageAccounts, getCurrentAccount } from "@/lib/accounts/server";
 import { getDonationManagementCapabilities } from "@/lib/donations/server";
 import { hasAdminMemberReadAccess } from "@/lib/members/server";
@@ -8,8 +9,10 @@ import { signOut } from "@/app/login/actions";
 import { SidebarNav } from "./SidebarNav";
 
 export async function AppShell({ children }: { children: ReactNode }) {
-  const [account, members, donations, accounts, referrals] = await Promise.all([
-    getCurrentAccount(),
+  const account = await getCurrentAccount();
+  if (!account || account.status !== "active") redirect("/login");
+
+  const [members, donations, accounts, referrals] = await Promise.all([
     hasAdminMemberReadAccess(),
     getDonationManagementCapabilities(),
     canManageAccounts(),

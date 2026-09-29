@@ -5,7 +5,6 @@ import {
   hasAdminMemberReadAccess,
   listMemberProfiles,
 } from "@/lib/members/server";
-import { AppShell } from "@/components/AppShell";
 
 type MembersPageProps = { searchParams: Promise<{ search?: string }> };
 
@@ -16,7 +15,7 @@ export default async function MembersPage({ searchParams }: MembersPageProps) {
   const { members } = await listMemberProfiles(search);
 
   return (
-    <AppShell><main className="min-h-screen px-6 py-10">
+    <main className="min-h-screen px-6 py-10">
       <div className="mx-auto max-w-6xl">
         <div className="flex items-start justify-between gap-6">
           <div><p className="eyebrow">Community</p><h1 className="page-title">Members</h1><p className="page-intro">Review member information within your authorized scope.</p></div>
@@ -37,6 +36,6 @@ export default async function MembersPage({ searchParams }: MembersPageProps) {
           ))}
         </div>
       </div>
-    </main></AppShell>
+    </main>
   );
 }
