@@ -1,4 +1,4 @@
-import { parseLoginResponse } from "./mobile-api";
+import { parseLoginResponse, parseProvisionResponse } from "./mobile-api";
 
 describe("mobile login response handling", () => {
   it("accepts only the safe token response shape", () => {
@@ -12,5 +12,10 @@ describe("mobile login response handling", () => {
       }),
     ).toMatchObject({ mustChangePassword: true });
     expect(parseLoginResponse({ accessToken: "access" })).toBeNull();
+  });
+
+  it("accepts a one-time credential response without requiring persistence", () => {
+    expect(parseProvisionResponse({ temporaryPassword: "TempPass1!" })).toEqual({ temporaryPassword: "TempPass1!" });
+    expect(parseProvisionResponse({ temporaryPassword: 42 })).toBeNull();
   });
 });

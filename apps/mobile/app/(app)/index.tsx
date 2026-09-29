@@ -1,11 +1,21 @@
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { router } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../src/auth/AuthProvider";
 import { colors, roleLabels } from "../../src/theme/colors";
+import { loadCapabilities } from "../../src/modules/capabilities";
+import { visibleWorkspaceModules } from "../../src/modules/presentation";
 
 export default function HomeScreen() {
   const { account } = useAuth();
+  const capabilities = useQuery({
+    queryKey: ["capabilities", account?.id],
+    queryFn: () => loadCapabilities(account!),
+    enabled: Boolean(account),
+  });
   if (!account) return null;
+  const visibleModules = capabilities.data ? visibleWorkspaceModules(capabilities.data) : ["profile"];
 
   return (
     <SafeAreaView style={styles.page}>
@@ -24,13 +34,35 @@ export default function HomeScreen() {
           <Text style={styles.role}>{roleLabels[account.role]}</Text>
         </View>
         <Text style={styles.sectionTitle}>Your workspace</Text>
-        <Pressable style={styles.module}>
+        <Pressable onPress={() => router.push("/profile")} style={styles.module}>
           <View>
             <Text style={styles.moduleTitle}>My Profile</Text>
             <Text style={styles.moduleCopy}>Identity and account security</Text>
           </View>
           <Text style={styles.arrow}>›</Text>
         </Pressable>
+        {visibleModules.includes("members") ? (
+          <Pressable onPress={() => router.push("/members")} style={styles.module}>
+            <View>
+              <Text style={styles.moduleTitle}>Members</Text>
+              <Text style={styles.moduleCopy}>Authorized member directory</Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </Pressable>
+        ) : null}
+        {visibleModules.includes("referrals") ? (
+          <Pressable onPress={() => router.push("/referrals")} style={styles.module}>
+            <View>
+              <Text style={styles.moduleTitle}>Referrals</Text>
+              <Text style={styles.moduleCopy}>
+                {capabilities.data?.canManageReferrals
+                  ? "Review and manage onboarding"
+                  : "Create and track referrals"}
+              </Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </Pressable>
+        ) : null}
       </View>
     </SafeAreaView>
   );

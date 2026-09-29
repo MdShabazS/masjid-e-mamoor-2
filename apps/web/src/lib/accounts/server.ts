@@ -188,9 +188,15 @@ async function roleByApplicationUserId(accountIds: string[]) {
   return roles;
 }
 
-export const getCurrentAccount = cache(async function getCurrentAccount(): Promise<AccountRecord | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
+export const getCurrentAccount = cache(async function getCurrentAccount(
+  accessToken?: string,
+): Promise<AccountRecord | null> {
+  const supabase = accessToken
+    ? createMobileAuthClient(accessToken)
+    : await createClient();
+  const { data, error } = accessToken
+    ? await supabase.auth.getUser(accessToken)
+    : await supabase.auth.getUser();
 
   if (error || !data.user) return null;
 
@@ -212,8 +218,8 @@ export const getCurrentAccount = cache(async function getCurrentAccount(): Promi
   return role ? mapAccount(account, role) : null;
 });
 
-export async function requireCurrentAccount() {
-  const account = await getCurrentAccount();
+export async function requireCurrentAccount(accessToken?: string) {
+  const account = await getCurrentAccount(accessToken);
 
   if (!account || account.status !== "active") {
     throw new Error("not_authorized");
@@ -401,8 +407,8 @@ export async function createAccount(input: {
   password?: string;
   displayName?: string;
   phone?: string | null;
-}) {
-  const actor = await requireCurrentAccount();
+}, accessToken?: string) {
+  const actor = await requireCurrentAccount(accessToken);
   assertCanCreateRole(actor, input.role);
 
   const usernameNormalized = validateUsernamePolicy(input.username);

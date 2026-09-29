@@ -8,6 +8,7 @@ import { createAccount, getCurrentAccount, requireCurrentAccount } from "@/lib/a
 import { getOwnMemberProfile, hasPermission } from "@/lib/members/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { createMobileAuthClient } from "@/lib/supabase/mobile-auth";
 
 type DbRow = Record<string, unknown>;
 
@@ -164,8 +165,8 @@ export async function submitReferralOnboarding(input: {
   if (error) throw new Error(error.message);
 }
 
-export async function listReferralOnboardingRequests() {
-  const account = await requireCurrentAccount();
+export async function listReferralOnboardingRequests(accessToken?: string) {
+  const account = await requireCurrentAccount(accessToken);
   assertCanManageReferrals(account);
 
   const admin = createAdminClient();
@@ -181,8 +182,16 @@ export async function listReferralOnboardingRequests() {
   return (data ?? []).map((row) => mapReferral(row as DbRow));
 }
 
-export async function approveReferral(referralId: string, operationId: string) {
-  const supabase = await createClient();
+export async function approveReferral(
+  referralId: string,
+  operationId: string,
+  accessToken?: string,
+) {
+  const account = await requireCurrentAccount(accessToken);
+  assertCanManageReferrals(account);
+  const supabase = accessToken
+    ? createMobileAuthClient(accessToken)
+    : await createClient();
   const { error } = await supabase.rpc("admin_approve_referral", {
     p_referral_id: referralId,
     p_operation_id: operationId,
@@ -195,8 +204,12 @@ export async function rejectReferral(input: {
   referralId: string;
   reason: string | null;
   operationId: string;
-}) {
-  const supabase = await createClient();
+}, accessToken?: string) {
+  const account = await requireCurrentAccount(accessToken);
+  assertCanManageReferrals(account);
+  const supabase = accessToken
+    ? createMobileAuthClient(accessToken)
+    : await createClient();
   const { error } = await supabase.rpc("admin_reject_referral", {
     p_referral_id: input.referralId,
     p_reason: input.reason,
@@ -211,8 +224,8 @@ export async function completeReferralProvisioning(input: {
   username: string;
   password?: string;
   operationId: string;
-}) {
-  const actor = await requireCurrentAccount();
+}, accessToken?: string) {
+  const actor = await requireCurrentAccount(accessToken);
   assertCanManageReferrals(actor);
 
   const admin = createAdminClient();
@@ -272,7 +285,7 @@ export async function completeReferralProvisioning(input: {
     password: input.password,
     displayName: asString(referral.applicant_display_name),
     phone: asString(referral.applicant_phone),
-  });
+  }, accessToken);
 
   const { data: memberProfile, error: memberError } = await admin
     .from("member_profiles")

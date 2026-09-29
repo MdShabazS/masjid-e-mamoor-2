@@ -1,5 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import { getMobileConfig } from "./config";
+import type { MobileReferral } from "../modules/types";
 
 export interface MobileLoginResponse {
   accessToken: string;
@@ -7,6 +8,16 @@ export interface MobileLoginResponse {
   expiresAt: number | null;
   expiresIn: number;
   mustChangePassword: boolean;
+}
+
+export function parseProvisionResponse(
+  value: unknown,
+): { temporaryPassword: string | null } | null {
+  if (!value || typeof value !== "object") return null;
+  const password = (value as { temporaryPassword?: unknown }).temporaryPassword;
+  return typeof password === "string" || password === null
+    ? { temporaryPassword: password }
+    : null;
 }
 
 export function parseLoginResponse(value: unknown): MobileLoginResponse | null {
@@ -64,4 +75,74 @@ export async function changePassword(
   });
 
   if (!response.ok) throw new Error("password_change_failed");
+}
+
+async function managementRequest<T>(
+  session: Session,
+  path: string,
+  method: "GET" | "POST",
+  body?: unknown,
+): Promise<T> {
+  const { apiUrl } = getMobileConfig();
+  const response = await fetch(`${apiUrl}/api/mobile/referrals/${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      ...(body ? { "Content-Type": "application/json" } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
+  if (!response.ok) throw new Error("request_failed");
+  return (await response.json()) as T;
+}
+
+export async function listManagedReferrals(session: Session) {
+  const result = await managementRequest<{ referrals: MobileReferral[] }>(
+    session,
+    "manage",
+    "GET",
+  );
+  return result.referrals;
+}
+
+export async function approveManagedReferral(
+  session: Session,
+  referralId: string,
+  operationId: string,
+) {
+  await managementRequest(session, "approve", "POST", { referralId, operationId });
+}
+
+export async function rejectManagedReferral(
+  session: Session,
+  referralId: string,
+  operationId: string,
+  reason: string | null,
+) {
+  await managementRequest(session, "reject", "POST", {
+    referralId,
+    operationId,
+    reason,
+  });
+}
+
+export async function provisionManagedReferral(
+  session: Session,
+  input: {
+    referralId: string;
+    username: string;
+    password?: string;
+    operationId: string;
+  },
+) {
+  const result = await managementRequest<unknown>(
+    session,
+    "provision",
+    "POST",
+    input,
+  );
+  const parsed = parseProvisionResponse(result);
+  if (!parsed) throw new Error("request_failed");
+  return parsed;
 }
