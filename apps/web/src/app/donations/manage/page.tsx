@@ -9,6 +9,8 @@ import {
   getDonationPaymentProofs,
   getDonationWaivers,
 } from "@/lib/donations/server";
+import { AppShell } from "@/components/AppShell";
+import { getCurrentAccount } from "@/lib/accounts/server";
 
 import {
   beginPaymentReview,
@@ -108,6 +110,7 @@ export default async function DonationManagementPage({
 }: {
   searchParams: SearchParams;
 }) {
+  if (!(await getCurrentAccount())) redirect("/login");
   const params = await searchParams;
 
   const capabilities =
@@ -160,11 +163,11 @@ export default async function DonationManagementPage({
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-7xl px-6 py-10">
+    <AppShell><main className="mx-auto min-h-screen max-w-7xl px-6 py-10">
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-zinc-500">
-            Masjid-e-Mamoor
+            Masjid E Mamoor 2
           </p>
           <h1 className="text-3xl font-semibold tracking-tight">
             Donation Management
@@ -649,6 +652,6 @@ export default async function DonationManagementPage({
           </section>
         </>
       ) : null}
-    </main>
+    </main></AppShell>
   );
 }

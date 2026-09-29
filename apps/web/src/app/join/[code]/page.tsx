@@ -16,16 +16,16 @@ export default async function JoinPage({
   const submitted = query.submitted === "1";
 
   return (
-    <main className="min-h-screen px-6 py-10">
+    <main className="auth-shell min-h-screen px-5 py-10 sm:px-8">
       <div className="mx-auto max-w-lg">
         <header>
-          <p className="text-sm font-medium text-zinc-500">
-            Masjid-e-Mamoor
+          <p className="eyebrow">
+            Masjid E Mamoor 2
           </p>
-          <h1 className="mt-1 text-3xl font-semibold">Member Referral</h1>
+          <h1 className="page-title">Member Referral</h1>
         </header>
 
-        <section className="mt-8 rounded-xl border border-black/10 bg-white p-6">
+        <section className="auth-card mt-8 p-6 sm:p-8">
           {submitted ? (
             <div>
               <h2 className="text-lg font-semibold">Request submitted</h2>
@@ -60,7 +60,7 @@ export default async function JoinPage({
                   name="displayName"
                   required
                   maxLength={120}
-                  className="rounded-lg border border-zinc-300 px-3 py-2"
+                  className="field-input"
                 />
               </label>
 
@@ -71,13 +71,13 @@ export default async function JoinPage({
                   required
                   inputMode="tel"
                   placeholder="+919876543210"
-                  className="rounded-lg border border-zinc-300 px-3 py-2"
+                  className="field-input"
                 />
               </label>
 
               <button
                 type="submit"
-                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white"
+                className="button-primary"
               >
                 Submit request
               </button>

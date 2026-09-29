@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import {
   getAdditionalDonations,
@@ -19,6 +20,8 @@ import {
   submitPayment,
   uploadPaymentProof,
 } from "./actions";
+import { AppShell } from "@/components/AppShell";
+import { getCurrentAccount } from "@/lib/accounts/server";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -113,6 +116,7 @@ export default async function DonationsPage({
 }: {
   searchParams: SearchParams;
 }) {
+  if (!(await getCurrentAccount())) redirect("/login");
   const params = await searchParams;
 
   const [
@@ -152,11 +156,11 @@ export default async function DonationsPage({
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-6 py-10">
+    <AppShell><main className="mx-auto min-h-screen max-w-6xl px-6 py-10">
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-zinc-500">
-            Masjid-e-Mamoor
+            Masjid E Mamoor 2
           </p>
           <h1 className="text-3xl font-semibold tracking-tight">
             Donations
@@ -528,6 +532,6 @@ export default async function DonationsPage({
           </div>
         )}
       </section>
-    </main>
+    </main></AppShell>
   );
 }

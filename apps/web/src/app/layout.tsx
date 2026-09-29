@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Masjid-e-Mamoor",
-  description: "Masjid-e-Mamoor management platform",
+  title: "Masjid E Mamoor 2",
+  description: "Masjid E Mamoor 2 management system",
 };
 
 export default function RootLayout({
@@ -24,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen bg-zinc-50 font-sans text-zinc-950">
+      <body className="min-h-screen font-sans text-zinc-950">
         {children}
       </body>
     </html>

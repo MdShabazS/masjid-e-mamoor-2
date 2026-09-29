@@ -5,6 +5,7 @@ import { ChangeOwnPasswordForm } from "./ProfileForms";
 import { OwnUsernameForm } from "../accounts/AccountAdminForms";
 import { getCurrentAccount } from "@/lib/accounts/server";
 import { getOwnMemberProfile } from "@/lib/members/server";
+import { AppShell } from "@/components/AppShell";
 
 type Props = { searchParams: Promise<{ error?: string; saved?: string }> };
 
@@ -17,7 +18,7 @@ export default async function ProfilePage({ searchParams }: Props) {
   if (!account) redirect("/login");
 
   return (
-    <main className="min-h-screen px-5 py-8 sm:px-8">
+    <AppShell><main className="min-h-screen px-5 py-8 sm:px-8">
       <div className="mx-auto max-w-5xl">
         <Link href="/dashboard" className="inline-flex text-sm font-medium text-emerald-800 hover:text-emerald-950">← Dashboard</Link>
         <div className="mt-6">
@@ -76,7 +77,7 @@ export default async function ProfilePage({ searchParams }: Props) {
           <OwnUsernameForm username={account.username} />
         </section>
       </div>
-    </main>
+    </main></AppShell>
   );
 }
 

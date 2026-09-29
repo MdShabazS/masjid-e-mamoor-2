@@ -16,9 +16,7 @@ export default async function ChangePasswordPage({
     <main className="auth-shell flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
       <section className="auth-card w-full max-w-md p-8 sm:p-10">
         <div className="mb-8">
-          <p className="eyebrow">
-            Masjid-e-Mamoor
-          </p>
+          <p className="eyebrow">Masjid E Mamoor 2</p>
           <h1 className="mt-2 text-3xl font-semibold text-emerald-950">
             Change password
           </h1>
