@@ -264,6 +264,7 @@ summary:focus-visible {
 .nav-group-label { padding: 0 0.55rem 0.45rem; color: #88aa98; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 .nav-link { display: block; border-left: 2px solid transparent; border-radius: 0.35rem; padding: 0.62rem 0.55rem; color: #d9e5dd; font-size: 0.86rem; }
 .nav-link:hover, .nav-link:focus-visible { border-left-color: #c5a15a; background: rgba(255,255,255,.07); color: #fffdf8; }
+.nav-link-active { border-left-color: #c5a15a; background: rgba(120,155,136,.2); color: #fffdf8; }
 .sidebar-account { border-top: 1px solid rgba(247,243,233,.14); padding: 1rem 0.55rem 0; }
 .sidebar-username { overflow: hidden; color: #fffdf8; font-size: 0.82rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-role { margin-top: 0.2rem; color: #a8c2b2; font-size: 0.75rem; }
@@ -271,6 +272,13 @@ summary:focus-visible {
 .sidebar-action:hover { color: #fffdf8; }
 .app-content { min-height: 100vh; margin-left: 250px; padding: 0.5rem 0; }
 .mobile-brand { display: none; }
+.module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 1rem; }
+.welcome-panel { position: relative; display: flex; min-height: 8.25rem; align-items: center; justify-content: space-between; overflow: hidden; border: 1px solid rgba(197,161,90,.34); border-radius: 0.9rem; background: var(--brand); padding: 1.5rem 1.7rem; color: #fffdf8; }
+.welcome-panel::after { position: absolute; right: 3rem; top: -4rem; width: 12rem; height: 12rem; border: 1px solid rgba(197,161,90,.22); transform: rotate(45deg); content: ""; }
+.welcome-kicker { color: #d8c38f; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.welcome-title { position: relative; z-index: 1; margin-top: 0.4rem; font-size: 1.55rem; font-weight: 650; }
+.welcome-copy { position: relative; z-index: 1; margin-top: 0.15rem; color: #c4d9cc; font-size: 0.9rem; }
+.welcome-role { position: relative; z-index: 1; border: 1px solid rgba(216,195,143,.45); border-radius: 999px; padding: 0.4rem 0.7rem; color: #f3e7bd; font-size: 0.75rem; font-weight: 650; }
 
 @media (max-width: 800px) {
   .auth-layout { display: block; }
@@ -288,6 +296,7 @@ summary:focus-visible {
   .nav-link:hover, .nav-link:focus-visible { border: 0; }
   .app-content { margin-left: 0; padding: 0; }
   .mobile-brand { display: none; }
+  .welcome-panel { min-height: 7.5rem; }
 }
 
 @media (max-width: 520px) {

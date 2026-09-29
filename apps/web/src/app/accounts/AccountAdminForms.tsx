@@ -120,8 +120,10 @@ export function ResetPasswordForm({ accountId }: { accountId: string }) {
 
 export function OwnUsernameForm({
   username,
+  embedded = false,
 }: {
   username: string | null;
+  embedded?: boolean;
 }) {
   const [state, action, pending] = useActionState(
     changeOwnUsernameAction,
@@ -129,16 +131,17 @@ export function OwnUsernameForm({
   );
 
   return (
-    <section className="surface p-6">
+    <section className={embedded ? "" : "surface p-6"}>
       <h2 className="section-title">Username security</h2>
-      <form action={action} className="mt-5 grid gap-4 md:grid-cols-3">
+      <p className="mt-2 text-sm text-zinc-600">Changing your username requires your current password.</p>
+      <form action={action} className="mt-5 grid min-w-0 gap-4 md:grid-cols-[minmax(15rem,1.2fr)_minmax(15rem,1fr)_auto] md:items-end">
         <label className="field-label">
           Username
           <input
             name="username"
             defaultValue={username ?? ""}
             required
-            className="field-input"
+            className="field-input min-w-0"
           />
         </label>
 
@@ -149,7 +152,7 @@ export function OwnUsernameForm({
             type="password"
             autoComplete="current-password"
             required
-            className="field-input"
+            className="field-input min-w-0"
           />
         </label>
 
@@ -157,7 +160,7 @@ export function OwnUsernameForm({
           <button
             type="submit"
             disabled={pending}
-            className="button-secondary disabled:opacity-60"
+            className="button-secondary whitespace-nowrap disabled:opacity-60"
           >
             Save username
           </button>

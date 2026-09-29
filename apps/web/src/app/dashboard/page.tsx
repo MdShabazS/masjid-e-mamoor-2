@@ -5,7 +5,6 @@ import { canManageAccounts, getCurrentAccount, listAccounts } from "@/lib/accoun
 import { getDonationManagementCapabilities } from "@/lib/donations/server";
 import { hasAdminMemberReadAccess } from "@/lib/members/server";
 import { canUseReferrals } from "@/lib/referrals/server";
-import { signOut } from "../login/actions";
 import { AppShell } from "@/components/AppShell";
 
 const criticalRoles = ["president", "vice_president", "secretary", "finance", "auditor"] as const;
@@ -39,11 +38,9 @@ export default async function DashboardPage() {
   return (
     <AppShell><main className="min-h-screen px-5 py-8 sm:px-8">
       <div className="mx-auto max-w-7xl">
-        <header className="flex flex-col gap-6 border-b border-emerald-950/10 pb-8 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="eyebrow">Masjid E Mamoor 2</p><h1 className="page-title">Management dashboard</h1><p className="page-intro">A clear view of the work available to your account.</p></div>
-          <div className="flex flex-wrap items-center gap-3"><div className="mr-2 text-right text-sm"><p className="font-semibold text-emerald-950">{account.username ?? "Username not set"}</p><p className="text-zinc-500">{roleLabel(account.role)}</p></div><Link href="/profile" className="button-secondary">Profile</Link><form action={signOut}><button type="submit" className="button-secondary">Sign out</button></form></div>
-        </header>
-        <section className="mt-8"><div><p className="eyebrow">Workspace</p><h2 className="section-title">Available modules</h2></div><div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{modules.map((module) => <Link key={module.href} href={module.href} className="module-card"><span className="module-card-title">{module.title}</span><span className="module-card-copy">{module.description}</span><span className="module-card-link">Open module →</span></Link>)}</div></section>
+        <header className="border-b border-emerald-950/10 pb-8"><p className="eyebrow">Masjid E Mamoor 2</p><h1 className="page-title">Management dashboard</h1><p className="page-intro">A clear view of the work available to your account.</p></header>
+        <section className="welcome-panel mt-6"><div><p className="welcome-kicker">Assalamu Alaikum</p><h2 className="welcome-title">Masjid E Mamoor 2</h2><p className="welcome-copy">Management Overview</p></div><span className="welcome-role">{roleLabel(account.role)}</span></section>
+        <section className="mt-8"><div><p className="eyebrow">Workspace</p><h2 className="section-title">Available modules</h2></div><div className="module-grid mt-4">{modules.map((module) => <Link key={module.href} href={module.href} className="module-card"><span className="module-card-title">{module.title}</span><span className="module-card-copy">{module.description}</span><span className="module-card-link">Open module →</span></Link>)}</div></section>
         {canOpenAccountManagement ? <AccountHealth accounts={accounts} health={health} /> : null}
       </div>
     </main></AppShell>
