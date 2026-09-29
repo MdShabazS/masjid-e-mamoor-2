@@ -1,6 +1,6 @@
 import type { ApplicationRole } from "@masjid-e-mamoor/types";
 
-export const APP_NAME = "Masjid-e-Mamoor";
+export const APP_NAME = "Masjid E Mamoor 2";
 
 export const APPLICATION_ROLES = [
   "president",

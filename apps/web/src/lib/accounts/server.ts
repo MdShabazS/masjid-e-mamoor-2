@@ -7,6 +7,7 @@ import type {
   ApplicationRole,
   ApplicationUserStatus,
 } from "@masjid-e-mamoor/types";
+import { createMobileAuthClient } from "@/lib/supabase/mobile-auth";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -725,5 +726,55 @@ export async function changeOwnPassword(password: string) {
     targetId: account.id,
     eventType: "password.changed",
     metadata: {},
+  });
+}
+
+export async function changePasswordWithAccessToken(
+  accessToken: string,
+  password: string,
+) {
+  validatePasswordPolicy(password);
+
+  const supabase = createMobileAuthClient(accessToken);
+  const { data: userData, error: userError } = await supabase.auth.getUser(
+    accessToken,
+  );
+
+  if (userError || !userData.user) throw new Error("not_authorized");
+
+  const admin = createAdminClient();
+  const { data: account, error: accountError } = await admin
+    .from("application_users")
+    .select("id, auth_user_id, status")
+    .eq("auth_user_id", userData.user.id)
+    .maybeSingle();
+
+  if (
+    accountError ||
+    !account ||
+    account.auth_user_id !== userData.user.id ||
+    account.status !== "active"
+  ) {
+    throw new Error("not_authorized");
+  }
+
+  const { error: authError } = await supabase.auth.updateUser({ password });
+  if (authError) throw new Error("password_change_failed");
+
+  const { error: updateError } = await admin
+    .from("application_users")
+    .update({
+      must_change_password: false,
+      credential_updated_at: new Date().toISOString(),
+    })
+    .eq("id", account.id);
+
+  if (updateError) throw new Error("password_change_failed");
+
+  await insertAudit({
+    actorId: String(account.id),
+    targetId: String(account.id),
+    eventType: "password.changed",
+    metadata: { client: "mobile" },
   });
 }
