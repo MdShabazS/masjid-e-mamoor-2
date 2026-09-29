@@ -1,221 +1,27 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  canManageAccounts,
-  getCurrentAccount,
-  listAccounts,
-} from "@/lib/accounts/server";
-import {
-  changeRoleAction,
-  changeStatusAction,
-  changeUsernameAction,
-} from "./actions";
-import {
-  CreateAccountForm,
-  OwnUsernameForm,
-  ResetPasswordForm,
-} from "./AccountAdminForms";
+import { canManageAccounts, getCurrentAccount, listAccounts } from "@/lib/accounts/server";
+import { changeRoleAction, changeStatusAction, changeUsernameAction } from "./actions";
+import { CreateAccountForm, OwnUsernameForm, ResetPasswordForm } from "./AccountAdminForms";
 
-type AccountsPageProps = {
-  searchParams: Promise<{
-    error?: string;
-  }>;
-};
+type AccountsPageProps = { searchParams: Promise<{ error?: string }> };
+const normalRoles = [["member", "Member"], ["committee_member", "Committee Member"], ["auditor", "Auditor"], ["finance", "Finance"], ["secretary", "Secretary"], ["vice_president", "Vice President"]] as const;
+const systemAdminRoles = [...normalRoles, ["president", "President"]] as const;
 
-const normalRoles = [
-  ["member", "Member"],
-  ["committee_member", "Committee Member"],
-  ["auditor", "Auditor"],
-  ["finance", "Finance"],
-  ["secretary", "Secretary"],
-  ["vice_president", "Vice President"],
-] as const;
+export default async function AccountsPage({ searchParams }: AccountsPageProps) {
+  if (!(await canManageAccounts())) redirect("/dashboard");
+  const [params, accounts, actor] = await Promise.all([searchParams, listAccounts(), getCurrentAccount()]);
+  const roleOptions = actor?.role === "system_admin" ? systemAdminRoles : normalRoles;
+  const summary = { total: accounts.length, active: accounts.filter((account) => account.status === "active").length, deactivated: accounts.filter((account) => account.status === "deactivated").length, pending: accounts.filter((account) => account.mustChangePassword).length, missing: accounts.filter((account) => !account.username).length };
 
-const systemAdminRoles = [
-  ...normalRoles,
-  ["president", "President"],
-] as const;
-
-export default async function AccountsPage({
-  searchParams,
-}: AccountsPageProps) {
-  if (!(await canManageAccounts())) {
-    redirect("/dashboard");
-  }
-
-  const [params, accounts, actor] = await Promise.all([
-    searchParams,
-    listAccounts(),
-    getCurrentAccount(),
-  ]);
-  const roleOptions =
-    actor?.role === "system_admin" ? systemAdminRoles : normalRoles;
-
-  return (
-    <main className="min-h-screen px-6 py-10">
-      <div className="mx-auto max-w-6xl">
-        <header className="flex items-start justify-between gap-6">
-          <div>
-            <p className="text-sm font-medium text-zinc-500">
-              Masjid-e-Mamoor
-            </p>
-            <h1 className="mt-1 text-3xl font-semibold">
-              Account administration
-            </h1>
-            <p className="mt-2 text-sm text-zinc-600">
-              Provision users, assign authorized roles, and reset
-              temporary passwords.
-            </p>
-          </div>
-          <Link
-            href="/dashboard"
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-          >
-            Dashboard
-          </Link>
-        </header>
-
-        {params.error ? (
-          <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            Account change could not be completed.
-          </div>
-        ) : null}
-
-        <div className="mt-8">
-          <OwnUsernameForm username={actor?.username ?? null} />
-        </div>
-
-        <div className="mt-8">
-          <CreateAccountForm allowPresident={actor?.role === "system_admin"} />
-        </div>
-
-        <section className="mt-8 rounded-2xl border border-black/10 bg-white p-6">
-          <h2 className="text-lg font-semibold">Accounts</h2>
-          <div className="mt-5 space-y-4">
-            {accounts.map((account) => (
-              <article
-                key={account.id}
-                className="rounded-lg border border-zinc-200 p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <h3 className="font-medium">
-                      {account.username ?? "No username"}
-                    </h3>
-                    <p className="mt-1 text-sm text-zinc-600">
-                      {account.displayName ?? account.id}
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {account.role} · {account.status}
-                      {account.mustChangePassword
-                        ? " · password change required"
-                        : ""}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                  <form
-                    action={changeUsernameAction}
-                    className="flex flex-wrap items-end gap-3"
-                  >
-                    <input
-                      name="accountId"
-                      type="hidden"
-                      value={account.id}
-                    />
-                    <label className="text-sm font-medium">
-                      Username
-                      <input
-                        name="username"
-                        defaultValue={account.username ?? ""}
-                        required
-                        className="mt-1 w-56 rounded-lg border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-900"
-                      />
-                    </label>
-                    <button
-                      type="submit"
-                      className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-50"
-                    >
-                      Save
-                    </button>
-                  </form>
-
-                  {account.role === "system_admin" ? (
-                    <div className="text-sm text-zinc-600">
-                      <span className="font-medium text-zinc-900">
-                        Role
-                      </span>
-                      <p className="mt-1">System Admin</p>
-                    </div>
-                  ) : (
-                    <form
-                      action={changeRoleAction}
-                      className="flex flex-wrap items-end gap-3"
-                    >
-                      <input
-                        name="accountId"
-                        type="hidden"
-                        value={account.id}
-                      />
-                      <label className="text-sm font-medium">
-                        Role
-                        <select
-                          name="role"
-                          defaultValue={account.role}
-                          className="mt-1 w-56 rounded-lg border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-900"
-                        >
-                          {roleOptions.map(([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <button
-                        type="submit"
-                        className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-50"
-                      >
-                        Save
-                      </button>
-                    </form>
-                  )}
-
-                  <form
-                    action={changeStatusAction}
-                    className="flex flex-wrap items-end gap-3"
-                  >
-                    <input
-                      name="accountId"
-                      type="hidden"
-                      value={account.id}
-                    />
-                    <label className="text-sm font-medium">
-                      Status
-                      <select
-                        name="status"
-                        defaultValue={account.status}
-                        className="mt-1 w-48 rounded-lg border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-900"
-                      >
-                        <option value="active">Active</option>
-                        <option value="deactivated">Deactivated</option>
-                      </select>
-                    </label>
-                    <button
-                      type="submit"
-                      className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-50"
-                    >
-                      Save
-                    </button>
-                  </form>
-                </div>
-
-                <ResetPasswordForm accountId={account.id} />
-              </article>
-            ))}
-          </div>
-        </section>
-      </div>
-    </main>
-  );
+  return <main className="min-h-screen px-5 py-8 sm:px-8"><div className="mx-auto max-w-7xl"><header className="flex flex-col gap-5 border-b border-emerald-950/10 pb-8 sm:flex-row sm:items-end sm:justify-between"><div><Link href="/dashboard" className="text-sm font-medium text-emerald-800 hover:text-emerald-950">← Dashboard</Link><p className="eyebrow mt-6">Administration</p><h1 className="page-title">Account administration</h1><p className="page-intro">Manage application access, roles, usernames, status, and password setup from one place.</p></div><div className="text-sm text-zinc-600">Signed in as <span className="font-semibold text-emerald-950">{actor?.username ?? "Username not set"}</span></div></header>
+    {params.error ? <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">That account change could not be completed. The existing authorization rules still apply.</div> : null}
+    <section className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><Summary label="Total accounts" value={summary.total} /><Summary label="Active" value={summary.active} tone="good" /><Summary label="Deactivated" value={summary.deactivated} tone={summary.deactivated ? "warn" : undefined} /><Summary label="Password pending" value={summary.pending} tone={summary.pending ? "warn" : undefined} /><Summary label="Usernames missing" value={summary.missing} tone={summary.missing ? "warn" : undefined} /></section>
+    <section className="mt-8 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]"><div className="surface p-6"><p className="eyebrow">Your access</p><h2 className="section-title">Username security</h2><p className="mt-2 text-sm text-zinc-600">Changing your username requires your current password.</p><div className="mt-5"><OwnUsernameForm username={actor?.username ?? null} /></div></div><CreateAccountForm allowPresident={actor?.role === "system_admin"} /></section>
+    <section className="mt-8"><div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Directory</p><h2 className="section-title">All accounts</h2><p className="mt-2 text-sm text-zinc-600">Review every visible account before opening its management controls.</p></div></div><div className="mt-4 grid gap-3">{accounts.map((account) => <article key={account.id} className="surface overflow-hidden"><div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"><div><div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-semibold text-emerald-950">{account.username ?? "No username"}</h3>{account.role === "system_admin" ? <span className="status-badge status-protected">Protected system account</span> : null}</div><p className="mt-1 text-sm text-zinc-600">{account.displayName ?? "No display name"}</p></div><div className="flex flex-wrap gap-2"><span className={`status-badge ${account.status === "active" ? "status-active" : "status-warning"}`}>{statusLabel(account.status)}</span><span className={`status-badge ${account.mustChangePassword ? "status-warning" : "status-active"}`}>{account.mustChangePassword ? "Password setup pending" : "Password ready"}</span><span className="status-badge">{roleLabel(account.role)}</span></div></div><details className="border-t border-zinc-100"><summary className="cursor-pointer px-5 py-4 text-sm font-semibold text-emerald-800 sm:px-6">Manage account</summary><div className="grid gap-5 bg-zinc-50/70 p-5 sm:p-6 lg:grid-cols-3"><form action={changeUsernameAction} className="grid gap-2"><input name="accountId" type="hidden" value={account.id} /><label className="field-label">Username<input name="username" defaultValue={account.username ?? ""} required className="field-input" /></label><button type="submit" className="button-secondary w-fit">Save username</button></form>{account.role === "system_admin" ? <div className="text-sm text-zinc-600"><p className="font-medium text-zinc-900">Role</p><p className="mt-2">System Admin</p><p className="mt-2 text-xs">The protected system account cannot be reassigned from this console.</p></div> : <form action={changeRoleAction} className="grid gap-2"><input name="accountId" type="hidden" value={account.id} /><label className="field-label">Role<select name="role" defaultValue={account.role} className="field-input">{roleOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><button type="submit" className="button-secondary w-fit">Save role</button></form>}<form action={changeStatusAction} className="grid gap-2"><input name="accountId" type="hidden" value={account.id} /><label className="field-label">Status<select name="status" defaultValue={account.status} className="field-input"><option value="active">Active</option><option value="deactivated">Deactivated</option></select></label><button type="submit" className="button-secondary w-fit">Save status</button></form><div className="lg:col-span-3"><ResetPasswordForm accountId={account.id} /></div></div></details></article>)}{accounts.length === 0 ? <div className="surface p-8 text-center text-sm text-zinc-500">No accounts are available to display.</div> : null}</div></section>
+  </div></main>;
 }
+
+function Summary({ label, value, tone }: { label: string; value: number; tone?: "good" | "warn" }) { return <div className="surface p-5"><p className="text-sm text-zinc-500">{label}</p><p className={`mt-2 text-3xl font-semibold ${tone === "warn" ? "text-amber-700" : tone === "good" ? "text-emerald-800" : "text-emerald-950"}`}>{value}</p></div>; }
+const roleLabel = (role: string) => ({ system_admin: "System Admin", president: "President", vice_president: "Vice President", secretary: "Secretary", finance: "Finance", auditor: "Auditor", committee_member: "Committee Member", member: "Member" }[role] ?? role);
+const statusLabel = (status: string) => status.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());

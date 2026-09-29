@@ -11,13 +11,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const hasError = params.error === "invalid_credentials";
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-12">
-      <section className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-8 shadow-sm">
+    <main className="auth-shell flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
+      <section className="auth-card w-full max-w-md p-8 sm:p-10">
         <div className="mb-8">
-          <p className="text-sm font-medium text-zinc-500">
+          <p className="eyebrow">
             Masjid-e-Mamoor
           </p>
-          <h1 className="mt-2 text-3xl font-semibold">Sign in</h1>
+          <h1 className="mt-2 text-3xl font-semibold text-emerald-950">Sign in to Masjid-e-Mamoor</h1>
           <p className="mt-2 text-sm text-zinc-600">
             Use the username and password issued by an administrator.
           </p>
@@ -30,31 +30,31 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         ) : null}
 
         <form action={signInWithUsernamePassword} className="space-y-5">
-          <label className="block text-sm font-medium">
+            <label className="field-label">
             Username
             <input
               name="username"
               type="text"
               autoComplete="username"
               required
-              className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-3 outline-none focus:border-zinc-900"
+              className="field-input mt-1"
             />
           </label>
 
-          <label className="block text-sm font-medium">
+            <label className="field-label">
             Password
             <input
               name="password"
               type="password"
               autoComplete="current-password"
               required
-              className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-3 outline-none focus:border-zinc-900"
+              className="field-input mt-1"
             />
           </label>
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-zinc-900 px-4 py-3 font-medium text-white hover:bg-zinc-800"
+            className="button-primary w-full"
           >
             Sign in
           </button>

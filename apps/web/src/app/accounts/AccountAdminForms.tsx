@@ -21,24 +21,26 @@ export function CreateAccountForm({
   );
 
   return (
-    <section className="rounded-2xl border border-black/10 bg-white p-6">
-      <h2 className="text-lg font-semibold">Create account</h2>
+    <section className="surface p-6 sm:p-8">
+      <p className="eyebrow">Provisioning</p>
+      <h2 className="section-title">Create account</h2>
+      <p className="mt-2 text-sm text-zinc-600">Create an account only when the person is ready to receive access.</p>
       <form action={action} className="mt-5 grid gap-4 md:grid-cols-2">
-        <label className="block text-sm font-medium">
+          <label className="field-label">
           Username
           <input
             name="username"
             required
-            className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-900"
+            className="field-input"
           />
         </label>
 
-        <label className="block text-sm font-medium">
+          <label className="field-label">
           Role
           <select
             name="role"
             required
-            className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-900"
+            className="field-input"
           >
             <option value="member">Member</option>
             <option value="committee_member">Committee Member</option>
@@ -52,21 +54,21 @@ export function CreateAccountForm({
           </select>
         </label>
 
-        <label className="block text-sm font-medium">
+        <label className="field-label">
           Display name
           <input
             name="displayName"
-            className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-900"
+            className="field-input"
           />
         </label>
 
-        <label className="block text-sm font-medium">
+        <label className="field-label">
           Temporary password
           <input
             name="password"
             type="password"
             autoComplete="new-password"
-            className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-900"
+            className="field-input"
           />
         </label>
 
@@ -74,7 +76,7 @@ export function CreateAccountForm({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60"
+            className="button-primary disabled:opacity-60"
           >
             Create account
           </button>
@@ -93,21 +95,21 @@ export function ResetPasswordForm({ accountId }: { accountId: string }) {
   );
 
   return (
-    <form action={action} className="mt-3 flex flex-wrap items-end gap-3">
+    <form action={action} className="flex flex-wrap items-end gap-3">
       <input name="accountId" type="hidden" value={accountId} />
-      <label className="text-sm font-medium">
+      <label className="field-label min-w-64">
         New temporary password
         <input
           name="password"
           type="password"
           autoComplete="new-password"
-          className="mt-1 w-64 rounded-lg border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-900"
+          className="field-input"
         />
       </label>
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-50 disabled:opacity-60"
+        className="button-secondary disabled:opacity-60"
       >
         Reset password
       </button>
@@ -127,27 +129,27 @@ export function OwnUsernameForm({
   );
 
   return (
-    <section className="rounded-2xl border border-black/10 bg-white p-6">
-      <h2 className="text-lg font-semibold">My username</h2>
+    <section className="surface p-6">
+      <h2 className="section-title">Username security</h2>
       <form action={action} className="mt-5 grid gap-4 md:grid-cols-3">
-        <label className="block text-sm font-medium">
+        <label className="field-label">
           Username
           <input
             name="username"
             defaultValue={username ?? ""}
             required
-            className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-900"
+            className="field-input"
           />
         </label>
 
-        <label className="block text-sm font-medium">
+        <label className="field-label">
           Current password
           <input
             name="currentPassword"
             type="password"
             autoComplete="current-password"
             required
-            className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-2 outline-none focus:border-zinc-900"
+            className="field-input"
           />
         </label>
 
@@ -155,7 +157,7 @@ export function OwnUsernameForm({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50 disabled:opacity-60"
+            className="button-secondary disabled:opacity-60"
           >
             Save username
           </button>

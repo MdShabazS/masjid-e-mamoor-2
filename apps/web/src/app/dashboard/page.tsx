@@ -1,81 +1,59 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { canManageAccounts } from "@/lib/accounts/server";
+import { canManageAccounts, getCurrentAccount, listAccounts } from "@/lib/accounts/server";
 import { getDonationManagementCapabilities } from "@/lib/donations/server";
 import { hasAdminMemberReadAccess } from "@/lib/members/server";
 import { canUseReferrals } from "@/lib/referrals/server";
 import { signOut } from "../login/actions";
 
+const criticalRoles = ["president", "vice_president", "secretary", "finance", "auditor"] as const;
+
 export default async function DashboardPage() {
   const supabase = await createClient();
-
   const { data, error } = await supabase.auth.getClaims();
+  if (error || !data?.claims) redirect("/login");
 
-  if (error || !data?.claims) {
-    redirect("/login");
-  }
-
-  const userId = data.claims.sub;
-  const [
-    canOpenMemberManagement,
-    donationCapabilities,
-    canOpenAccountManagement,
-    canOpenReferrals,
-  ] = await Promise.all([
+  const [account, canOpenMemberManagement, donationCapabilities, canOpenAccountManagement, canOpenReferrals] = await Promise.all([
+    getCurrentAccount(),
     hasAdminMemberReadAccess(),
     getDonationManagementCapabilities(),
     canManageAccounts(),
     canUseReferrals(),
   ]);
+  if (!account) redirect("/login");
 
-  const canOpenDonationManagement =
-    donationCapabilities.canVerify ||
-    donationCapabilities.canManageObligations ||
-    donationCapabilities.canCreateAnonymousDonation ||
-    donationCapabilities.canCreateJummahCashDonation;
+  const accounts = canOpenAccountManagement ? await listAccounts() : [];
+  const canOpenDonationManagement = donationCapabilities.canVerify || donationCapabilities.canManageObligations || donationCapabilities.canCreateAnonymousDonation || donationCapabilities.canCreateJummahCashDonation;
+  const health = getAccountHealth(accounts);
+  const modules = [
+    { href: "/profile", title: "My Profile", description: "Manage your identity, member details, and password.", visible: true },
+    { href: "/donations", title: "Donations", description: "View your obligations and submit payments.", visible: true },
+    { href: "/referrals", title: "Referrals", description: "Track member referrals and onboarding progress.", visible: canOpenReferrals },
+    { href: "/members", title: "Members", description: "Review member information within your authorized scope.", visible: canOpenMemberManagement },
+    { href: "/donations/manage", title: "Donation Management", description: "Review payments and manage donation operations.", visible: canOpenDonationManagement },
+    { href: "/accounts", title: "Account Administration", description: "Manage usernames, roles, status, and password setup.", visible: canOpenAccountManagement },
+  ].filter((module) => module.visible);
 
   return (
-    <main className="min-h-screen px-6 py-10">
-      <div className="mx-auto max-w-5xl">
-        <header className="flex items-start justify-between gap-6">
-          <div>
-            <p className="text-sm font-medium text-zinc-500">
-              Masjid-e-Mamoor
-            </p>
-            <h1 className="mt-1 text-3xl font-semibold">
-              Application Dashboard
-            </h1>
-            <p className="mt-2 text-sm text-zinc-600">
-              Authenticated successfully. Available modules and management
-              actions are resolved from your application permissions.
-            </p>
-          </div>
-
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-            >
-              Sign out
-            </button>
-          </form>
+    <main className="min-h-screen px-5 py-8 sm:px-8">
+      <div className="mx-auto max-w-7xl">
+        <header className="flex flex-col gap-6 border-b border-emerald-950/10 pb-8 sm:flex-row sm:items-end sm:justify-between">
+          <div><p className="eyebrow">Masjid-e-Mamoor</p><h1 className="page-title">Management dashboard</h1><p className="page-intro">A clear view of the work available to your account.</p></div>
+          <div className="flex flex-wrap items-center gap-3"><div className="mr-2 text-right text-sm"><p className="font-semibold text-emerald-950">{account.username ?? "Username not set"}</p><p className="text-zinc-500">{roleLabel(account.role)}</p></div><Link href="/profile" className="button-secondary">Profile</Link><form action={signOut}><button type="submit" className="button-secondary">Sign out</button></form></div>
         </header>
-
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/profile" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">My Profile</Link>
-          <Link href="/donations" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">Donations</Link>
-          {canOpenReferrals ? <Link href="/referrals" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">Referrals</Link> : null}
-          {canOpenMemberManagement ? <Link href="/members" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">Member Management</Link> : null}
-          {canOpenDonationManagement ? <Link href="/donations/manage" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">Donation Management</Link> : null}
-          {canOpenAccountManagement ? <Link href="/accounts" className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50">Account Administration</Link> : null}
-        </div>
-
-        <div className="mt-8 rounded-2xl border border-black/10 bg-white p-6">
-          <h2 className="font-semibold">Authenticated account</h2>
-          <p className="mt-2 text-sm text-zinc-600">{userId}</p>
-        </div>
+        <section className="mt-8"><div><p className="eyebrow">Workspace</p><h2 className="section-title">Available modules</h2></div><div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{modules.map((module) => <Link key={module.href} href={module.href} className="module-card"><span className="module-card-title">{module.title}</span><span className="module-card-copy">{module.description}</span><span className="module-card-link">Open module →</span></Link>)}</div></section>
+        {canOpenAccountManagement ? <AccountHealth accounts={accounts} health={health} /> : null}
       </div>
     </main>
   );
 }
+
+function AccountHealth({ accounts, health }: { accounts: Awaited<ReturnType<typeof listAccounts>>; health: ReturnType<typeof getAccountHealth> }) {
+  return <section className="mt-10 border-t border-emerald-950/10 pt-8"><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="eyebrow">Administration</p><h2 className="section-title">Account health</h2><p className="mt-2 text-sm text-zinc-600">A quick read on account coverage and password setup.</p></div><Link href="/accounts" className="button-secondary w-fit">Manage all accounts</Link></div><div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><Metric label="Total accounts" value={health.total} /><Metric label="Active" value={health.active} tone="good" /><Metric label="Deactivated" value={health.deactivated} tone={health.deactivated ? "warn" : undefined} /><Metric label="Password pending" value={health.passwordPending} tone={health.passwordPending ? "warn" : undefined} /><Metric label="Missing usernames" value={health.missingUsername} tone={health.missingUsername ? "warn" : undefined} /></div><div className="mt-5 grid gap-5 lg:grid-cols-[0.85fr_1.15fr]"><div className="surface p-6"><h3 className="font-semibold text-emerald-950">Core role coverage</h3><div className="mt-4 grid gap-3">{criticalRoles.map((role) => { const count = accounts.filter((account) => account.role === role).length; return <div key={role} className="flex items-center justify-between border-b border-zinc-100 pb-3 text-sm last:border-0 last:pb-0"><span>{roleLabel(role)}</span><span className={count ? "status-badge status-active" : "status-badge status-warning"}>{count ? `${count} assigned` : "Missing"}</span></div>; })}</div></div><div className="surface overflow-hidden"><div className="flex items-center justify-between border-b border-zinc-100 px-6 py-5"><h3 className="font-semibold text-emerald-950">Account directory</h3><Link href="/accounts" className="text-sm font-medium text-emerald-800">View all</Link></div><div className="divide-y divide-zinc-100">{accounts.slice(0, 6).map((account) => <div key={account.id} className="grid gap-1 px-6 py-4 sm:grid-cols-[1fr_1fr_auto] sm:items-center"><div><p className="font-medium text-zinc-950">{account.username ?? "No username"}</p><p className="text-sm text-zinc-500">{account.displayName ?? "No display name"}</p></div><p className="text-sm text-zinc-600">{roleLabel(account.role)}</p><div className="flex flex-wrap gap-1 sm:justify-end"><span className={`status-badge ${account.status === "active" ? "status-active" : "status-warning"}`}>{statusLabel(account.status)}</span><span className={`status-badge ${account.mustChangePassword ? "status-warning" : "status-active"}`}>{account.mustChangePassword ? "Password pending" : "Password ready"}</span></div></div>)}{accounts.length === 0 ? <p className="px-6 py-6 text-sm text-zinc-500">No accounts are available to display.</p> : null}</div></div></div></section>;
+}
+
+function Metric({ label, value, tone }: { label: string; value: number; tone?: "good" | "warn" }) { return <div className="surface p-5"><p className="text-sm text-zinc-500">{label}</p><p className={`mt-2 text-3xl font-semibold ${tone === "warn" ? "text-amber-700" : tone === "good" ? "text-emerald-800" : "text-emerald-950"}`}>{value}</p></div>; }
+function getAccountHealth(accounts: Awaited<ReturnType<typeof listAccounts>>) { return { total: accounts.length, active: accounts.filter((account) => account.status === "active").length, deactivated: accounts.filter((account) => account.status === "deactivated").length, passwordPending: accounts.filter((account) => account.mustChangePassword).length, missingUsername: accounts.filter((account) => !account.username).length }; }
+const roleLabel = (role: string) => ({ system_admin: "System Admin", president: "President", vice_president: "Vice President", secretary: "Secretary", finance: "Finance", auditor: "Auditor", committee_member: "Committee Member", member: "Member" }[role] ?? role);
+const statusLabel = (status: string) => status.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());

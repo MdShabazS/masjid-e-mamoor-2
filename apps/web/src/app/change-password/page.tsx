@@ -13,17 +13,17 @@ export default async function ChangePasswordPage({
   const hasError = params.error === "invalid_password";
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6 py-12">
-      <section className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-8 shadow-sm">
+    <main className="auth-shell flex min-h-screen items-center justify-center px-5 py-10 sm:px-8">
+      <section className="auth-card w-full max-w-md p-8 sm:p-10">
         <div className="mb-8">
-          <p className="text-sm font-medium text-zinc-500">
+          <p className="eyebrow">
             Masjid-e-Mamoor
           </p>
-          <h1 className="mt-2 text-3xl font-semibold">
+          <h1 className="mt-2 text-3xl font-semibold text-emerald-950">
             Change password
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
-            Set a new password before continuing.
+            Set a new password before continuing. Use at least 10 characters with upper and lower case letters and a number.
           </p>
         </div>
 
@@ -34,7 +34,7 @@ export default async function ChangePasswordPage({
         ) : null}
 
         <form action={changePassword} className="space-y-5">
-          <label className="block text-sm font-medium">
+          <label className="field-label">
             New password
             <input
               name="password"
@@ -42,11 +42,11 @@ export default async function ChangePasswordPage({
               autoComplete="new-password"
               minLength={10}
               required
-              className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-3 outline-none focus:border-zinc-900"
+            className="field-input mt-1"
             />
           </label>
 
-          <label className="block text-sm font-medium">
+          <label className="field-label">
             Confirm password
             <input
               name="confirmPassword"
@@ -54,13 +54,13 @@ export default async function ChangePasswordPage({
               autoComplete="new-password"
               minLength={10}
               required
-              className="mt-2 w-full rounded-lg border border-zinc-300 px-3 py-3 outline-none focus:border-zinc-900"
+            className="field-input mt-1"
             />
           </label>
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-zinc-900 px-4 py-3 font-medium text-white hover:bg-zinc-800"
+            className="button-primary w-full"
           >
             Continue
           </button>

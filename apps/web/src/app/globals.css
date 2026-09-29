@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #18181b;
+  --background: #f5f7f3;
+  --foreground: #15231f;
+  --brand: #173f35;
+  --brand-dark: #0f2f28;
+  --line: rgba(23, 63, 53, 0.14);
 }
 
 @theme inline {
@@ -25,4 +28,207 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
+  font-feature-settings: "cv11" 1, "ss01" 1;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: #b9d9c8;
+  color: var(--brand-dark);
+}
+
+button,
+a,
+input,
+select {
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 3px solid rgba(45, 125, 92, 0.35);
+  outline-offset: 2px;
+}
+
+.surface {
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(23, 63, 53, 0.05);
+}
+
+.auth-shell {
+  background: radial-gradient(circle at top right, #e3eee7 0, transparent 34%), var(--background);
+}
+
+.auth-card {
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 45px rgba(23, 63, 53, 0.1);
+}
+
+.eyebrow {
+  color: #39705d;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.page-title {
+  margin-top: 0.35rem;
+  color: var(--brand-dark);
+  font-size: clamp(1.9rem, 4vw, 2.55rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.page-intro {
+  margin-top: 0.5rem;
+  max-width: 42rem;
+  color: #5d6b65;
+  font-size: 0.95rem;
+}
+
+.section-title {
+  margin-top: 0.35rem;
+  color: var(--brand-dark);
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.button-primary,
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.65rem;
+  padding: 0.65rem 0.95rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.button-primary {
+  background: var(--brand);
+  color: #fff;
+}
+
+.button-primary:hover {
+  background: var(--brand-dark);
+}
+
+.button-secondary {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--brand-dark);
+}
+
+.button-secondary:hover {
+  border-color: rgba(23, 63, 53, 0.3);
+  background: #edf4ef;
+}
+
+.field-label {
+  display: grid;
+  gap: 0.4rem;
+  color: #263a33;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.field-input {
+  width: 100%;
+  border: 1px solid #cbd6d0;
+  border-radius: 0.6rem;
+  background: #fff;
+  padding: 0.65rem 0.75rem;
+  color: #15231f;
+  font-weight: 400;
+}
+
+.field-input:hover {
+  border-color: #8ca99a;
+}
+
+.field-input:focus {
+  border-color: #39705d;
+  box-shadow: 0 0 0 3px rgba(57, 112, 93, 0.12);
+  outline: none;
+}
+
+.helper-text {
+  color: #68766f;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.module-card {
+  display: flex;
+  min-height: 9.5rem;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: #fff;
+  padding: 1.35rem;
+  box-shadow: 0 8px 24px rgba(23, 63, 53, 0.04);
+}
+
+.module-card:hover {
+  border-color: #79a68f;
+  box-shadow: 0 12px 30px rgba(23, 63, 53, 0.1);
+  transform: translateY(-1px);
+}
+
+.module-card-title {
+  color: var(--brand-dark);
+  font-weight: 700;
+}
+
+.module-card-copy {
+  margin-top: 0.5rem;
+  color: #68766f;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.module-card-link {
+  margin-top: auto;
+  padding-top: 1rem;
+  color: #39705d;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #d8e2dc;
+  border-radius: 999px;
+  background: #f7faf8;
+  padding: 0.25rem 0.55rem;
+  color: #52635b;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.status-active {
+  border-color: #b8ddc4;
+  background: #effaf1;
+  color: #23613a;
+}
+
+.status-warning {
+  border-color: #f2d59b;
+  background: #fff8e8;
+  color: #8b5b13;
+}
+
+.status-protected {
+  border-color: #b9d6d0;
+  background: #eef7f5;
+  color: var(--brand);
 }
