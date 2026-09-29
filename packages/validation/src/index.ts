@@ -141,6 +141,35 @@ export const accountStatusChangeSchema = z.object({
   status: accountStatusSchema,
 });
 
+export const referralCodeSchema = z
+  .string()
+  .trim()
+  .min(16, "Referral code is invalid.")
+  .max(128, "Referral code is invalid.");
+
+export const referralOnboardingSubmitSchema = z.object({
+  referralCode: referralCodeSchema,
+  displayName: memberDisplayNameSchema,
+  phone: phoneSchema,
+  operationId: z.string().trim().min(1).max(200),
+});
+
+export const referralDecisionSchema = z.object({
+  referralId: z.string().uuid(),
+  operationId: z.string().trim().min(1).max(200),
+});
+
+export const referralRejectSchema = referralDecisionSchema.extend({
+  reason: z.string().trim().max(500).nullable().optional(),
+});
+
+export const referralProvisionSchema = z.object({
+  referralId: z.string().uuid(),
+  username: usernameSchema,
+  password: passwordSchema.optional(),
+  operationId: z.string().trim().min(1).max(200),
+});
+
 export const donationOperationIdSchema = z.string().trim().min(1).max(200);
 
 export const donationPositiveAmountPaiseSchema = z

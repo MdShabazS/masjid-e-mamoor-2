@@ -398,6 +398,7 @@ export async function createAccount(input: {
   role: AccountRole;
   password?: string;
   displayName?: string;
+  phone?: string | null;
 }) {
   const actor = await requireCurrentAccount();
   assertCanCreateRole(actor, input.role);
@@ -464,6 +465,7 @@ export async function createAccount(input: {
         .insert({
           application_user_id: applicationUserId,
           display_name: input.displayName?.trim() || input.username.trim(),
+          phone: input.phone?.trim() || null,
           status: "active",
         });
 
