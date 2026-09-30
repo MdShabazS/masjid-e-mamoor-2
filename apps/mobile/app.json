@@ -31,6 +31,13 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b5ccdb3c-6b66-4165-8152-6c92e7783a22"
+      }
+    },
+    "owner": "shabaz17"
   }
 }
