@@ -10,16 +10,17 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "../../../src/auth/AuthProvider";
-import { loadCapabilities } from "../../../src/modules/capabilities";
-import { changeMemberStatus, getMember, updateMember } from "../../../src/modules/data";
-import { colors } from "../../../src/theme/colors";
+import { useLocalSearchParams } from "expo-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "../../../../src/auth/AuthProvider";
+import { loadCapabilities } from "../../../../src/modules/capabilities";
+import { changeMemberStatus, getMember, updateMember } from "../../../../src/modules/data";
+import { colors } from "../../../../src/theme/colors";
 
 export default function MemberDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { account } = useAuth();
+  const queryClient = useQueryClient();
   const memberId = Array.isArray(id) ? id[0] : id;
   const capabilities = useQuery({
     queryKey: ["capabilities", account?.id],
@@ -32,7 +33,11 @@ export default function MemberDetailScreen() {
     enabled: Boolean(memberId) && capabilities.data?.canReadMembers === true,
   });
 
-  if (capabilities.isLoading || member.isLoading) {
+  if (capabilities.isLoading) {
+    return <View style={styles.state}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateText}>Loading member...</Text></View>;
+  }
+  if (!capabilities.data?.canReadMembers) return <AccessState />;
+  if (member.isLoading) {
     return <View style={styles.state}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateText}>Loading member...</Text></View>;
   }
   if (member.isError || !member.data) {
@@ -47,7 +52,6 @@ export default function MemberDetailScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={member.isRefetching} onRefresh={() => void member.refetch()} tintColor={colors.deepEmerald} />}
     >
-      <Stack.Screen options={{ title: "Member Detail", headerShown: true, headerTintColor: colors.deepEmerald, headerStyle: { backgroundColor: colors.ivory } }} />
       <Text style={styles.eyebrow}>MEMBER DETAIL</Text>
       <Text style={styles.title}>{currentMember.displayName}</Text>
       <View style={styles.card}>
@@ -61,10 +65,22 @@ export default function MemberDetailScreen() {
         <Text style={styles.value}>{new Date(currentMember.updatedAt).toLocaleDateString()}</Text>
       </View>
       {canEdit ? (
-        <MemberEditor member={currentMember} onRefresh={() => member.refetch()} />
+        <MemberEditor
+          member={currentMember}
+          onRefresh={async () => {
+            await Promise.all([
+              member.refetch(),
+              queryClient.invalidateQueries({ queryKey: ["members"] }),
+            ]);
+          }}
+        />
       ) : null}
     </ScrollView>
   );
+}
+
+function AccessState() {
+  return <View style={styles.state}><Text style={styles.stateTitle}>Members unavailable</Text><Text style={styles.stateText}>This member directory is not available for your account.</Text></View>;
 }
 
 function MemberEditor({

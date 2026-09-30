@@ -31,7 +31,7 @@ function mapReferral(row: Record<string, unknown>): MobileReferral {
   };
 }
 
-export async function listMembers(search: string, cursor?: MemberPageCursor) {
+export async function listMembers(search: string, cursor?: MemberPageCursor | null) {
   const { data, error } = await supabase.rpc("admin_list_member_profiles", {
     p_search: search.trim() || null,
     p_limit: 50,

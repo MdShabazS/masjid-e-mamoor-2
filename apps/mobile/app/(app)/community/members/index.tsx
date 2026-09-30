@@ -11,12 +11,13 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "../../../src/auth/AuthProvider";
-import { loadCapabilities } from "../../../src/modules/capabilities";
-import { listMembers } from "../../../src/modules/data";
-import type { MobileMember } from "../../../src/modules/types";
-import { colors } from "../../../src/theme/colors";
+import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import { useAuth } from "../../../../src/auth/AuthProvider";
+import { loadCapabilities } from "../../../../src/modules/capabilities";
+import { listMembers } from "../../../../src/modules/data";
+import type { MemberPageCursor, MobileMember } from "../../../../src/modules/types";
+import { mergeMemberPages } from "../../../../src/modules/presentation";
+import { colors } from "../../../../src/theme/colors";
 
 function statusLabel(status: MobileMember["status"]) {
   return status === "active" ? "Active" : "Inactive";
@@ -24,35 +25,37 @@ function statusLabel(status: MobileMember["status"]) {
 
 export default function MembersScreen() {
   const { account } = useAuth();
+  const queryClient = useQueryClient();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [extraPage, setExtraPage] = useState<{ search: string; members: MobileMember[] } | null>(null);
 
   const capabilities = useQuery({
     queryKey: ["capabilities", account?.id],
     queryFn: () => loadCapabilities(account!),
     enabled: Boolean(account),
   });
-  const members = useQuery({
+  const members = useInfiniteQuery<
+    Awaited<ReturnType<typeof listMembers>>,
+    Error,
+    InfiniteData<Awaited<ReturnType<typeof listMembers>>>,
+    readonly ["members", string],
+    MemberPageCursor | null
+  >({
     queryKey: ["members", search],
-    queryFn: () => listMembers(search),
+    queryFn: ({ pageParam }) => listMembers(search, pageParam),
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled: capabilities.data?.canReadMembers === true,
   });
 
   if (!account || capabilities.isLoading) return <LoadingState />;
   if (!capabilities.data?.canReadMembers) return <AccessState />;
 
-  const baseMembers = members.data?.members ?? [];
-  const extraMembers = extraPage?.search === search ? extraPage.members : [];
-  const visibleMembers = [...baseMembers, ...extraMembers];
-  const nextCursor = extraMembers.length
-    ? null
-    : members.data?.nextCursor ?? null;
+  const visibleMembers = mergeMemberPages(members.data?.pages ?? []);
 
   async function loadMore() {
-    if (!nextCursor || extraMembers.length > 0) return;
-    const result = await listMembers(search, nextCursor);
-    setExtraPage({ search, members: result.members });
+    if (!members.hasNextPage || members.isFetchingNextPage) return;
+    await members.fetchNextPage();
   }
 
   return (
@@ -62,7 +65,7 @@ export default function MembersScreen() {
         data={visibleMembers}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={members.isRefetching} onRefresh={() => void members.refetch()} tintColor={colors.deepEmerald} />
+          <RefreshControl refreshing={members.isRefetching} onRefresh={() => void queryClient.resetQueries({ queryKey: ["members", search] })} tintColor={colors.deepEmerald} />
         }
         ListEmptyComponent={
           members.isLoading ? (
@@ -94,14 +97,14 @@ export default function MembersScreen() {
           </View>
         }
         ListFooterComponent={
-          nextCursor ? (
-            <Pressable onPress={() => void loadMore()} style={styles.loadMore}>
-              <Text style={styles.loadMoreText}>Load more</Text>
+          members.hasNextPage ? (
+            <Pressable disabled={members.isFetchingNextPage} onPress={() => void loadMore()} style={styles.loadMore}>
+              <Text style={styles.loadMoreText}>{members.isFetchingNextPage ? "Loading..." : "Load more"}</Text>
             </Pressable>
           ) : null
         }
         renderItem={({ item }) => (
-          <Pressable onPress={() => router.push(`/members/${item.id}`)} style={styles.memberRow}>
+          <Pressable onPress={() => router.push(`/community/members/${item.id}`)} style={styles.memberRow}>
             <View style={styles.memberCopy}>
               <Text style={styles.memberName}>{item.displayName}</Text>
               <Text style={styles.memberPhone}>{item.phone ?? "No phone provided"}</Text>

@@ -42,7 +42,7 @@ export default function HomeScreen() {
           <Text style={styles.arrow}>›</Text>
         </Pressable>
         {visibleModules.includes("members") ? (
-          <Pressable onPress={() => router.push("/members")} style={styles.module}>
+          <Pressable onPress={() => router.push("/community/members")} style={styles.module}>
             <View>
               <Text style={styles.moduleTitle}>Members</Text>
               <Text style={styles.moduleCopy}>Authorized member directory</Text>
@@ -51,7 +51,7 @@ export default function HomeScreen() {
           </Pressable>
         ) : null}
         {visibleModules.includes("referrals") ? (
-          <Pressable onPress={() => router.push("/referrals")} style={styles.module}>
+          <Pressable onPress={() => router.push("/community/referrals")} style={styles.module}>
             <View>
               <Text style={styles.moduleTitle}>Referrals</Text>
               <Text style={styles.moduleCopy}>

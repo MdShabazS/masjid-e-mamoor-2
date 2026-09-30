@@ -15,30 +15,20 @@ import {
 import * as Clipboard from "expo-clipboard";
 import { randomUUID } from "expo-crypto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../../../src/auth/AuthProvider";
+import { referralRejectSchema } from "@masjid-e-mamoor/validation";
+import { useAuth } from "../../../../src/auth/AuthProvider";
 import {
   approveManagedReferral,
   listManagedReferrals,
   provisionManagedReferral,
   rejectManagedReferral,
-} from "../../../src/lib/mobile-api";
-import { getMobileConfig } from "../../../src/lib/config";
-import { createReferral, listOwnReferrals } from "../../../src/modules/data";
-import { loadCapabilities } from "../../../src/modules/capabilities";
-import type { MobileReferral } from "../../../src/modules/types";
-import { colors } from "../../../src/theme/colors";
-
-const readableStatuses: Record<string, string> = {
-  created: "Created",
-  submitted: "Submitted",
-  approved: "Approved",
-  rejected: "Rejected",
-  completed: "Completed",
-};
-
-function referralStatus(status: string) {
-  return readableStatuses[status] ?? status;
-}
+} from "../../../../src/lib/mobile-api";
+import { getMobileConfig } from "../../../../src/lib/config";
+import { createReferral, listOwnReferrals } from "../../../../src/modules/data";
+import { loadCapabilities } from "../../../../src/modules/capabilities";
+import type { MobileReferral } from "../../../../src/modules/types";
+import { referralStatusLabel } from "../../../../src/modules/presentation";
+import { colors } from "../../../../src/theme/colors";
 
 function referralUrl(code: string) {
   const { apiUrl } = getMobileConfig();
@@ -52,6 +42,8 @@ export default function ReferralsScreen() {
   const [provisioningReferral, setProvisioningReferral] = useState<MobileReferral | null>(null);
   const [provisionUsername, setProvisionUsername] = useState("");
   const [provisionPassword, setProvisionPassword] = useState("");
+  const [rejectingReferral, setRejectingReferral] = useState<MobileReferral | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
   const capabilities = useQuery({
     queryKey: ["capabilities", account?.id],
     queryFn: () => loadCapabilities(account!),
@@ -76,7 +68,7 @@ export default function ReferralsScreen() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["referrals", "managed"] }),
   });
   const reject = useMutation({
-    mutationFn: (referralId: string) => rejectManagedReferral(session!, referralId, randomUUID(), "Rejected by reviewer"),
+    mutationFn: ({ referralId, reason }: { referralId: string; reason: string | null }) => rejectManagedReferral(session!, referralId, randomUUID(), reason),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["referrals", "managed"] }),
   });
 
@@ -119,6 +111,40 @@ export default function ReferralsScreen() {
     }
   }
 
+  function confirmApprove(referral: MobileReferral) {
+    Alert.alert("Approve membership request?", `Approve ${referral.applicantDisplayName ?? "this applicant"} for account provisioning?`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Approve", onPress: () => approve.mutate(referral.id) },
+    ]);
+  }
+
+  function beginReject(referral: MobileReferral) {
+    setRejectingReferral(referral);
+    setRejectionReason("");
+  }
+
+  function submitReject() {
+    if (!rejectingReferral) return;
+    const parsed = referralRejectSchema.safeParse({
+      referralId: rejectingReferral.id,
+      operationId: randomUUID(),
+      reason: rejectionReason.trim() || null,
+    });
+    if (!parsed.success) {
+      Alert.alert("Reason is too long", "Use 500 characters or fewer.");
+      return;
+    }
+    reject.mutate(
+      { referralId: parsed.data.referralId, reason: parsed.data.reason ?? null },
+      {
+        onSuccess: () => {
+          setRejectingReferral(null);
+          setRejectionReason("");
+        },
+      },
+    );
+  }
+
   return (
     <SafeAreaView style={styles.page}>
       <ScrollView
@@ -129,6 +155,17 @@ export default function ReferralsScreen() {
         <Text style={styles.title}>{capabilities.data.canManageReferrals ? "Referral management" : "Referrals"}</Text>
         {capabilities.data.canManageReferrals ? (
           <Text style={styles.intro}>Review submitted onboarding requests and provision approved members.</Text>
+        ) : null}
+        {rejectingReferral ? (
+          <View style={styles.provisionForm}>
+            <Text style={styles.cardTitle}>Reject membership request</Text>
+            <Text style={styles.meta}>Add an optional reason for the applicant.</Text>
+            <TextInput maxLength={500} multiline onChangeText={setRejectionReason} placeholder="Optional reason" placeholderTextColor="#9EA9A3" style={[styles.provisionInput, styles.reasonInput]} value={rejectionReason} />
+            <View style={styles.actionRow}>
+              <Pressable disabled={reject.isPending} onPress={submitReject} style={styles.rejectSmall}><Text style={styles.rejectText}>{reject.isPending ? "Rejecting..." : "Reject"}</Text></Pressable>
+              <Pressable disabled={reject.isPending} onPress={() => { setRejectingReferral(null); setRejectionReason(""); }} style={styles.secondarySmall}><Text style={styles.secondaryText}>Cancel</Text></Pressable>
+            </View>
+          </View>
         ) : null}
         {capabilities.data.canCreateReferral ? (
           <Pressable disabled={create.isPending} onPress={() => create.mutate()} style={styles.primaryButton}>
@@ -157,7 +194,7 @@ export default function ReferralsScreen() {
         {isLoading ? <LoadingState /> : null}
         {isError ? <ErrorState onRetry={() => void refetch()} /> : null}
         {!isLoading && !isError && referrals.length === 0 ? <EmptyState managed={capabilities.data.canManageReferrals} /> : null}
-        {referrals.map((referral) => <ReferralCard key={referral.id} managed={capabilities.data.canManageReferrals} referral={referral} busy={approve.isPending || reject.isPending} onShare={() => void shareReferral(referral)} onApprove={() => approve.mutate(referral.id)} onReject={() => reject.mutate(referral.id)} onProvision={() => void provision(referral)} />)}
+        {referrals.map((referral) => <ReferralCard key={referral.id} managed={capabilities.data.canManageReferrals} referral={referral} busy={approve.isPending || reject.isPending} onShare={() => void shareReferral(referral)} onApprove={() => confirmApprove(referral)} onReject={() => beginReject(referral)} onProvision={() => void provision(referral)} />)}
       </ScrollView>
     </SafeAreaView>
   );
@@ -184,7 +221,7 @@ function ReferralCard({
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>{referral.applicantDisplayName ?? "Referral link"}</Text>
-        <Text style={[styles.badge, referral.status === "rejected" && styles.rejected, referral.status === "completed" && styles.completed]}>{referralStatus(referral.status)}</Text>
+        <Text style={[styles.badge, referral.status === "rejected" && styles.rejected, referral.status === "completed" && styles.completed]}>{referralStatusLabel(referral.status)}</Text>
       </View>
       <Text style={styles.meta}>Created {new Date(referral.createdAt).toLocaleDateString()}</Text>
       {referral.applicantPhone ? <Text style={styles.meta}>{referral.applicantPhone}</Text> : null}
@@ -237,6 +274,7 @@ const styles = StyleSheet.create({
   credential: { backgroundColor: colors.darkEmerald, borderRadius: 14, marginTop: 18, padding: 16 },
   provisionForm: { backgroundColor: colors.surface, borderRadius: 14, marginTop: 18, padding: 16 },
   provisionInput: { borderColor: "#D8DED8", borderRadius: 9, borderWidth: 1, color: colors.text, height: 46, marginTop: 14, paddingHorizontal: 12 },
+  reasonInput: { height: 90, paddingTop: 12, textAlignVertical: "top" },
   credentialLabel: { color: colors.gold, fontSize: 11, fontWeight: "800", letterSpacing: 1.1 },
   credentialCopy: { color: "#C8D7D0", fontSize: 13, lineHeight: 19, marginTop: 8 },
   password: { color: colors.surface, fontSize: 20, fontWeight: "700", letterSpacing: 1, marginTop: 14 },

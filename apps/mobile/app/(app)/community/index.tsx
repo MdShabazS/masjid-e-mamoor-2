@@ -22,8 +22,8 @@ export default function CommunityScreen() {
         <Text style={styles.title}>Community</Text>
         <Text style={styles.intro}>Open the workflows available within your authorized scope.</Text>
         {capabilities.isLoading ? <Text style={styles.state}>Loading available workflows...</Text> : null}
-        {capabilities.data?.canReadMembers ? <ModuleCard title="Members" detail="Review member information within your authorized scope." onPress={() => router.push("/members")} /> : null}
-        {capabilities.data?.canUseReferrals ? <ModuleCard title="Referrals" detail={capabilities.data.canManageReferrals ? "Review and manage onboarding requests." : "Create and track member referral onboarding."} onPress={() => router.push("/referrals")} /> : null}
+        {capabilities.data?.canReadMembers ? <ModuleCard title="Members" detail="Review member information within your authorized scope." onPress={() => router.push("/community/members")} /> : null}
+        {capabilities.data?.canUseReferrals ? <ModuleCard title="Referrals" detail={capabilities.data.canManageReferrals ? "Review and manage onboarding requests." : "Create and track member referral onboarding."} onPress={() => router.push("/community/referrals")} /> : null}
         {!capabilities.isLoading && !capabilities.data?.canReadMembers && !capabilities.data?.canUseReferrals ? <Text style={styles.state}>No community workflows are available for this account.</Text> : null}
       </View>
     </SafeAreaView>
