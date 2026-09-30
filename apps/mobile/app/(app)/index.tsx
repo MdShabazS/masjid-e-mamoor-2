@@ -63,6 +63,19 @@ export default function HomeScreen() {
             <Text style={styles.arrow}>›</Text>
           </Pressable>
         ) : null}
+        {visibleModules.includes("donations") ? (
+          <Pressable onPress={() => router.push("/donations")} style={styles.module}>
+            <View style={styles.moduleText}>
+              <Text style={styles.moduleTitle}>Donations</Text>
+              <Text style={styles.moduleCopy}>
+                {capabilities.data?.canManageDonations
+                  ? "Donation records and authorized management workflows"
+                  : "View obligations, submit payments, and review donation history"}
+              </Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </Pressable>
+        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -83,6 +96,7 @@ const styles = StyleSheet.create({
   role: { color: "#C8D7D0", fontSize: 14, marginTop: 4 },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: "700", marginTop: 30 },
   module: { alignItems: "center", backgroundColor: colors.surface, borderRadius: 14, flexDirection: "row", justifyContent: "space-between", marginTop: 12, padding: 18 },
+  moduleText: { flex: 1, paddingRight: 12 },
   moduleTitle: { color: colors.text, fontSize: 16, fontWeight: "700" },
   moduleCopy: { color: colors.secondary, fontSize: 13, marginTop: 5 },
   arrow: { color: colors.gold, fontSize: 30, fontWeight: "300" },

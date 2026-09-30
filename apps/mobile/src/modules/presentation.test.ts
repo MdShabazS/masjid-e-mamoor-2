@@ -9,8 +9,19 @@ describe("mobile workspace presentation", () => {
         canCreateReferral: false,
         canUseReferrals: true,
         canManageReferrals: false,
+        canReadDonations: true,
+        canSubmitPayment: true,
+        canUploadProof: true,
+        canCreateAdditionalDonation: true,
+        canReviewPayments: false,
+        canAllocatePayments: false,
+        canVerifyAndAllocatePayments: false,
+        canManageObligations: false,
+        canCreateAnonymousDonation: false,
+        canCreateJummahCashDonation: false,
+        canManageDonations: false,
       }),
-    ).toEqual(["profile", "referrals"]);
+    ).toEqual(["profile", "referrals", "donations"]);
   });
 
   it("maps referral lifecycle states for display", () => {

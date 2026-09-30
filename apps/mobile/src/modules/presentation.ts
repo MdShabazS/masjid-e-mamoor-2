@@ -5,6 +5,7 @@ export function visibleWorkspaceModules(capabilities: MobileCapabilities) {
   const modules = ["profile"];
   if (capabilities.canReadMembers) modules.push("members");
   if (capabilities.canUseReferrals) modules.push("referrals");
+  if (capabilities.canReadDonations) modules.push("donations");
   return modules;
 }
 
