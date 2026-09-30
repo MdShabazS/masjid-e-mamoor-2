@@ -28,6 +28,7 @@ export default function AppLayout() {
     >
       <Tabs.Screen name="index" options={{ title: "Home" }} />
       <Tabs.Screen name="community" options={{ title: "Community" }} />
+      <Tabs.Screen name="accounts" options={{ href: null }} />
       <Tabs.Screen
         name="donations"
         options={{

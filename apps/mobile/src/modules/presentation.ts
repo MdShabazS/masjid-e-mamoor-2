@@ -3,6 +3,7 @@ import type { MobileMember } from "./types";
 
 export function visibleWorkspaceModules(capabilities: MobileCapabilities) {
   const modules = ["profile"];
+  if (capabilities.canManageAccounts) modules.push("accounts");
   if (capabilities.canReadMembers) modules.push("members");
   if (capabilities.canUseReferrals) modules.push("referrals");
   if (capabilities.canReadDonations) modules.push("donations");

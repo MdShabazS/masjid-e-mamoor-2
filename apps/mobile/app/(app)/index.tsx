@@ -41,6 +41,17 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.arrow}>›</Text>
         </Pressable>
+        {visibleModules.includes("accounts") ? (
+          <Pressable onPress={() => router.push("/accounts")} style={styles.module}>
+            <View style={styles.moduleText}>
+              <Text style={styles.moduleTitle}>Account Administration</Text>
+              <Text style={styles.moduleCopy}>
+                Manage authorized accounts, roles, and access
+              </Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </Pressable>
+        ) : null}
         {visibleModules.includes("members") ? (
           <Pressable onPress={() => router.push("/community/members")} style={styles.module}>
             <View>

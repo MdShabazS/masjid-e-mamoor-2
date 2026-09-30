@@ -135,4 +135,31 @@ describe("Auth V2 account administration security boundaries", () => {
     expect(loginPage).toContain("Username");
     expect(loginPage).not.toContain("Send OTP");
   });
+
+  it("keeps mobile bearer authorization inside the trusted account server", () => {
+    const server = readFileSync(
+      repoFile("apps/web/src/lib/accounts/server.ts"),
+      "utf8",
+    );
+
+    expect(server).toContain("export async function listAccounts(accessToken?: string)");
+    expect(server).toContain("const actor = await requireCurrentAccount(accessToken)");
+    expect(server).toContain("accessToken?: string,\n) {\n  const actor = await requireCurrentAccount(accessToken)");
+    expect(server).toContain("assertCanManageAccount(actor, target)");
+    expect(server).toContain("assertCanCreateRole(actor, role)");
+  });
+
+  it("preserves President and System Admin account boundaries", () => {
+    const server = readFileSync(
+      repoFile("apps/web/src/lib/accounts/server.ts"),
+      "utf8",
+    );
+
+    expect(server).toContain('if (role === "system_admin")');
+    expect(server).toContain('if (actor.role === "president")');
+    expect(server).toContain("assertPresidentCanManageRole(target.role)");
+    expect(server).toContain("target.id === actor.id || (await countActiveSystemAdmins()) <= 1");
+    expect(server).toContain("target.id === actor.id &&\n    status === \"deactivated\"");
+    expect(server).toContain("(await countActiveSystemAdmins()) <= 1");
+  });
 });

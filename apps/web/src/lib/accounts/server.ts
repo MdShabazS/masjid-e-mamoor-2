@@ -344,8 +344,8 @@ async function countActiveSystemAdmins() {
   return data?.length ?? 0;
 }
 
-export async function listAccounts() {
-  const actor = await requireCurrentAccount();
+export async function listAccounts(accessToken?: string) {
+  const actor = await requireCurrentAccount(accessToken);
 
   if (actor.role !== "system_admin" && actor.role !== "president") {
     throw new Error("not_authorized");
@@ -500,8 +500,9 @@ export async function createAccount(input: {
 export async function changeAccountUsername(
   accountId: string,
   username: string,
+  accessToken?: string,
 ) {
-  const actor = await requireCurrentAccount();
+  const actor = await requireCurrentAccount(accessToken);
   const target = await getAccountById(accountId);
   assertCanManageAccount(actor, target);
 
@@ -583,8 +584,9 @@ export async function changeOwnUsername(
 export async function resetAccountPassword(
   accountId: string,
   password?: string,
+  accessToken?: string,
 ) {
-  const actor = await requireCurrentAccount();
+  const actor = await requireCurrentAccount(accessToken);
   const target = await getAccountById(accountId);
   assertCanManageAccount(actor, target);
 
@@ -622,8 +624,9 @@ export async function resetAccountPassword(
 export async function changeAccountRole(
   accountId: string,
   role: AccountRole,
+  accessToken?: string,
 ) {
-  const actor = await requireCurrentAccount();
+  const actor = await requireCurrentAccount(accessToken);
   const target = await getAccountById(accountId);
   assertCanManageAccount(actor, target);
   assertCanCreateRole(actor, role);
@@ -666,8 +669,9 @@ export async function changeAccountRole(
 export async function changeAccountStatus(
   accountId: string,
   status: "active" | "deactivated",
+  accessToken?: string,
 ) {
-  const actor = await requireCurrentAccount();
+  const actor = await requireCurrentAccount(accessToken);
   const target = await getAccountById(accountId);
   assertCanManageAccount(actor, target);
 

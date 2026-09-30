@@ -9,6 +9,7 @@ import {
 } from "./donation-presentation";
 
 export interface MobileCapabilities {
+  canManageAccounts: boolean;
   canReadMembers: boolean;
   canUpdateMembers: boolean;
   canCreateReferral: boolean;
@@ -85,6 +86,8 @@ export async function loadCapabilities(
   );
 
   return {
+    canManageAccounts:
+      account.role === "system_admin" || account.role === "president",
     canReadMembers: !memberRead.error && memberRead.data === true,
     canUpdateMembers: memberUpdate,
     canCreateReferral,

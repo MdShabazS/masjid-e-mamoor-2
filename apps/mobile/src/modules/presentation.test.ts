@@ -1,9 +1,11 @@
+import type { MobileCapabilities } from "./capabilities";
 import { mergeMemberPages, referralStatusLabel, visibleWorkspaceModules } from "./presentation";
 
 describe("mobile workspace presentation", () => {
   it("only exposes modules granted by resolved capabilities", () => {
     expect(
       visibleWorkspaceModules({
+        canManageAccounts: false,
         canReadMembers: false,
         canUpdateMembers: false,
         canCreateReferral: false,
@@ -22,6 +24,33 @@ describe("mobile workspace presentation", () => {
         canManageDonations: false,
       }),
     ).toEqual(["profile", "referrals", "donations"]);
+  });
+
+  it("shows account administration only for resolved account managers", () => {
+    const capabilities: MobileCapabilities = {
+      canManageAccounts: true,
+      canReadMembers: false,
+      canUpdateMembers: false,
+      canCreateReferral: false,
+      canUseReferrals: false,
+      canManageReferrals: false,
+      canReadDonations: false,
+      canSubmitPayment: false,
+      canUploadProof: false,
+      canCreateAdditionalDonation: false,
+      canReviewPayments: false,
+      canAllocatePayments: false,
+      canVerifyAndAllocatePayments: false,
+      canManageObligations: false,
+      canCreateAnonymousDonation: false,
+      canCreateJummahCashDonation: false,
+      canManageDonations: false,
+    };
+
+    expect(visibleWorkspaceModules(capabilities)).toEqual([
+      "profile",
+      "accounts",
+    ]);
   });
 
   it("maps referral lifecycle states for display", () => {
