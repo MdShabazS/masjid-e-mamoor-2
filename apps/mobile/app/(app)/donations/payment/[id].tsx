@@ -22,6 +22,7 @@ import {
   uploadDonationPaymentProof,
 } from "../../../../src/modules/donations";
 import {
+  canAttachDonationPaymentProof,
   formatDonationDate,
   formatPaise,
   paymentMethodLabel,
@@ -95,10 +96,13 @@ export default function DonationPaymentScreen() {
   }
 
   const allocatedAmount = allocations.data?.reduce((total, allocation) => total + allocation.allocatedAmountPaise, 0) ?? 0;
-  const canAttach =
-    capabilities.data.canUploadProof &&
-    (payment.data.status === "submitted" || payment.data.status === "under_review") &&
-    proofs.data?.length === 0;
+  const canAttach = canAttachDonationPaymentProof({
+    canUploadProof: capabilities.data.canUploadProof,
+    memberProfile: account?.memberProfile ?? null,
+    paymentMemberProfileId: payment.data.memberProfileId,
+    paymentStatus: payment.data.status,
+    proofCount: proofs.data?.length ?? 0,
+  });
 
   return (
     <ScrollView

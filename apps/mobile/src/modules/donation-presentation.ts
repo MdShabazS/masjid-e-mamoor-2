@@ -21,14 +21,18 @@ export interface ResolvedDonationPermissions {
 
 export function deriveDonationCapabilities(
   permissions: ResolvedDonationPermissions,
+  hasActiveMemberProfile: boolean,
 ) {
   const canVerifyAndAllocatePayments =
     permissions.paymentsVerify && permissions.paymentsAllocate;
   return {
     canReadDonations: permissions.obligationsRead,
-    canSubmitPayment: permissions.paymentsCreate,
-    canUploadProof: permissions.proofUpload,
-    canCreateAdditionalDonation: permissions.additionalCreate,
+    canSubmitPayment:
+      permissions.paymentsCreate && hasActiveMemberProfile,
+    canUploadProof:
+      permissions.proofUpload && hasActiveMemberProfile,
+    canCreateAdditionalDonation:
+      permissions.additionalCreate && hasActiveMemberProfile,
     canReviewPayments: permissions.paymentsVerify,
     canAllocatePayments: permissions.paymentsAllocate,
     canVerifyAndAllocatePayments,
@@ -42,6 +46,26 @@ export function deriveDonationCapabilities(
       permissions.anonymousCreate ||
       permissions.jummahCreate,
   };
+}
+
+export function canAttachDonationPaymentProof(input: {
+  canUploadProof: boolean;
+  memberProfile: {
+    id: string;
+    status: "active" | "inactive";
+  } | null;
+  paymentMemberProfileId: string;
+  paymentStatus: DonationPaymentStatus;
+  proofCount: number;
+}) {
+  return (
+    input.canUploadProof &&
+    input.memberProfile?.status === "active" &&
+    input.paymentMemberProfileId === input.memberProfile.id &&
+    (input.paymentStatus === "submitted" ||
+      input.paymentStatus === "under_review") &&
+    input.proofCount === 0
+  );
 }
 
 export const DONATION_PROOF_BUCKET = "donation-payment-proofs";

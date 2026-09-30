@@ -58,7 +58,7 @@ function MemberProfileEditor({ profile, onSaved }: { profile: MobileMemberProfil
     }
   }
 
-  return <View style={styles.card}><Text style={styles.cardTitle}>Membership details</Text><Text style={styles.label}>Display name</Text><TextInput onChangeText={setDisplayName} style={styles.input} value={displayName} /><Text style={styles.label}>Phone</Text><TextInput autoCapitalize="none" keyboardType="phone-pad" onChangeText={setPhone} style={styles.input} value={phone} /><Pressable disabled={saving} onPress={() => void save()} style={styles.primaryButton}><Text style={styles.primaryButtonText}>{saving ? "Saving..." : "Save membership details"}</Text></Pressable></View>;
+  return <View style={styles.card}><Text style={styles.cardTitle}>Membership details</Text><Text style={styles.label}>Membership status</Text><Text style={[styles.value, profile.status === "active" ? styles.success : styles.inactive]}>{profile.status === "active" ? "Active" : "Inactive"}</Text><Text style={styles.label}>Display name</Text><TextInput onChangeText={setDisplayName} style={styles.input} value={displayName} /><Text style={styles.label}>Phone</Text><TextInput autoCapitalize="none" keyboardType="phone-pad" onChangeText={setPhone} style={styles.input} value={phone} /><Pressable disabled={saving} onPress={() => void save()} style={styles.primaryButton}><Text style={styles.primaryButtonText}>{saving ? "Saving..." : "Save membership details"}</Text></Pressable></View>;
 }
 
 const styles = StyleSheet.create({
@@ -72,6 +72,7 @@ const styles = StyleSheet.create({
   value: { color: colors.text, fontSize: 16, marginTop: 4 },
   input: { borderColor: "#D8DED8", borderRadius: 9, borderWidth: 1, color: colors.text, height: 48, marginTop: 7, paddingHorizontal: 12 },
   success: { color: colors.success, fontWeight: "700" },
+  inactive: { color: colors.danger, fontWeight: "700" },
   primaryButton: { alignItems: "center", backgroundColor: colors.deepEmerald, borderRadius: 10, height: 50, justifyContent: "center", marginTop: 22 },
   primaryButtonText: { color: colors.surface, fontSize: 15, fontWeight: "700" },
   secondaryButton: { alignItems: "center", height: 48, justifyContent: "center", marginTop: 8 },

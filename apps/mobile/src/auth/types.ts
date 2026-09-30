@@ -1,9 +1,14 @@
-import type { ApplicationRole, ApplicationUserStatus } from "@masjid-e-mamoor/types";
+import type {
+  ApplicationRole,
+  ApplicationUserStatus,
+  MemberProfile,
+} from "@masjid-e-mamoor/types";
 
 export interface MobileMemberProfile {
   id: string;
   displayName: string;
   phone: string | null;
+  status: MemberProfile["status"];
 }
 
 export interface MobileAccount {
@@ -14,6 +19,14 @@ export interface MobileAccount {
   role: ApplicationRole;
   mustChangePassword: boolean;
   memberProfile: MobileMemberProfile | null;
+}
+
+export function hasActiveMemberProfile(
+  account: {
+    memberProfile: Pick<MobileMemberProfile, "status"> | null;
+  },
+) {
+  return account.memberProfile?.status === "active";
 }
 
 export type AuthRoute = "sign-in" | "change-password" | "app";

@@ -1,4 +1,7 @@
-import type { MobileAccount } from "../auth/types";
+import {
+  hasActiveMemberProfile,
+  type MobileAccount,
+} from "../auth/types";
 import { supabase } from "../lib/supabase";
 import {
   deriveDonationCapabilities,
@@ -78,6 +81,7 @@ export async function loadCapabilities(
   };
   const donationCapabilities = deriveDonationCapabilities(
     resolvedDonationPermissions,
+    hasActiveMemberProfile(account),
   );
 
   return {

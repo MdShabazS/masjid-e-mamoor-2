@@ -10,6 +10,7 @@ import {
   jummahCashDonationCreateSchema,
 } from "@masjid-e-mamoor/validation";
 import {
+  canAttachDonationPaymentProof,
   deriveDonationCapabilities,
   deterministicDonationProofPath,
   DONATION_PROOF_MAX_BYTES,
@@ -21,6 +22,7 @@ import {
   validateDonationProofBytes,
   validateDonationProofMetadata,
 } from "./donation-presentation";
+import { hasActiveMemberProfile } from "../auth/types";
 
 const paymentId = "00000000-0000-4000-8000-000000000001";
 const obligationId = "00000000-0000-4000-8000-000000000002";
@@ -45,21 +47,64 @@ describe("mobile donation money", () => {
 });
 
 describe("mobile donation capabilities", () => {
-  it("derives contributor presentation only from resolved permissions", () => {
-    const capabilities = deriveDonationCapabilities({
-      obligationsRead: true,
-      paymentsCreate: true,
-      proofUpload: true,
-      additionalCreate: true,
-      paymentsVerify: false,
-      paymentsAllocate: false,
-      obligationsManage: false,
-      anonymousCreate: false,
-      jummahCreate: false,
+  const contributorPermissions = {
+    obligationsRead: true,
+    paymentsCreate: true,
+    proofUpload: true,
+    additionalCreate: true,
+    paymentsVerify: false,
+    paymentsAllocate: false,
+    obligationsManage: false,
+    anonymousCreate: false,
+    jummahCreate: false,
+  };
+
+  it("enables contributor actions for an active member with permission", () => {
+    const hasActiveProfile = hasActiveMemberProfile({
+      memberProfile: { status: "active" },
     });
+    const capabilities = deriveDonationCapabilities({
+      ...contributorPermissions,
+    }, hasActiveProfile);
     expect(capabilities.canReadDonations).toBe(true);
     expect(capabilities.canSubmitPayment).toBe(true);
+    expect(capabilities.canUploadProof).toBe(true);
+    expect(capabilities.canCreateAdditionalDonation).toBe(true);
     expect(capabilities.canManageDonations).toBe(false);
+  });
+
+  it.each([
+    ["no member profile", null],
+    ["inactive member profile", { id: "member-1", status: "inactive" as const }],
+  ])("disables contributor actions with %s", (_label, memberProfile) => {
+    const hasActiveProfile = hasActiveMemberProfile({ memberProfile });
+    const capabilities = deriveDonationCapabilities(
+      contributorPermissions,
+      hasActiveProfile,
+    );
+    expect(capabilities.canSubmitPayment).toBe(false);
+    expect(capabilities.canUploadProof).toBe(false);
+    expect(capabilities.canCreateAdditionalDonation).toBe(false);
+  });
+
+  it("preserves staff read and management without a member profile", () => {
+    const capabilities = deriveDonationCapabilities({
+      ...contributorPermissions,
+      paymentsVerify: true,
+      paymentsAllocate: true,
+      obligationsManage: true,
+      anonymousCreate: true,
+      jummahCreate: true,
+    }, false);
+    expect(capabilities.canReadDonations).toBe(true);
+    expect(capabilities.canManageDonations).toBe(true);
+    expect(capabilities.canVerifyAndAllocatePayments).toBe(true);
+    expect(capabilities.canManageObligations).toBe(true);
+    expect(capabilities.canCreateAnonymousDonation).toBe(true);
+    expect(capabilities.canCreateJummahCashDonation).toBe(true);
+    expect(capabilities.canSubmitPayment).toBe(false);
+    expect(capabilities.canUploadProof).toBe(false);
+    expect(capabilities.canCreateAdditionalDonation).toBe(false);
   });
 
   it("requires both resolved permissions for verify and allocate", () => {
@@ -73,7 +118,7 @@ describe("mobile donation capabilities", () => {
       obligationsManage: false,
       anonymousCreate: false,
       jummahCreate: false,
-    });
+    }, false);
     expect(capabilities.canReviewPayments).toBe(true);
     expect(capabilities.canVerifyAndAllocatePayments).toBe(false);
     expect(capabilities.canManageDonations).toBe(true);
@@ -136,6 +181,20 @@ describe("donation proof validation", () => {
     expect(validateDonationProofBytes("application/pdf", new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]))).toBeNull();
     expect(validateDonationProofBytes("image/png", new Uint8Array([1, 2, 3]))).not.toBeNull();
     expect(deterministicDonationProofPath(paymentId, "a".repeat(64), "image/png")).toBe(`${paymentId}/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.png`);
+  });
+
+  it.each([
+    ["own active payment", { memberProfile: { id: "member-1", status: "active" as const }, paymentMemberProfileId: "member-1", paymentStatus: "submitted" as const, proofCount: 0 }, true],
+    ["own inactive membership", { memberProfile: { id: "member-1", status: "inactive" as const }, paymentMemberProfileId: "member-1", paymentStatus: "submitted" as const, proofCount: 0 }, false],
+    ["another member's payment", { memberProfile: { id: "member-1", status: "active" as const }, paymentMemberProfileId: "member-2", paymentStatus: "submitted" as const, proofCount: 0 }, false],
+    ["verified payment", { memberProfile: { id: "member-1", status: "active" as const }, paymentMemberProfileId: "member-1", paymentStatus: "verified" as const, proofCount: 0 }, false],
+    ["rejected payment", { memberProfile: { id: "member-1", status: "active" as const }, paymentMemberProfileId: "member-1", paymentStatus: "rejected" as const, proofCount: 0 }, false],
+    ["existing proof", { memberProfile: { id: "member-1", status: "active" as const }, paymentMemberProfileId: "member-1", paymentStatus: "under_review" as const, proofCount: 1 }, false],
+  ])("gates proof attachment for %s", (_label, input, expected) => {
+    expect(canAttachDonationPaymentProof({
+      canUploadProof: true,
+      ...input,
+    })).toBe(expected);
   });
 });
 

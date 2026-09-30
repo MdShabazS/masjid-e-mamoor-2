@@ -48,7 +48,7 @@ export async function loadOwnAccount(): Promise<MobileAccount | null> {
   let memberProfile: MobileAccount["memberProfile"] = null;
   const { data: profile } = await supabase
     .from("member_profiles")
-    .select("id, display_name, phone")
+    .select("id, display_name, phone, status")
     .eq("application_user_id", account.id)
     .maybeSingle();
 
@@ -57,6 +57,7 @@ export async function loadOwnAccount(): Promise<MobileAccount | null> {
       id: String(profile.id),
       displayName: String(profile.display_name),
       phone: profile.phone == null ? null : String(profile.phone),
+      status: profile.status === "active" ? "active" : "inactive",
     };
   }
 
