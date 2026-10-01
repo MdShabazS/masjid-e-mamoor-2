@@ -35,7 +35,7 @@ export default function ChangePasswordScreen() {
     setSaving(true);
     try {
       await changePassword(password, confirmPassword);
-      router.replace("/(app)");
+      router.replace("/(auth)/sign-in");
     } catch {
       setError("The password could not be updated.");
     } finally {

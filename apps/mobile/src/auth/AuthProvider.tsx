@@ -102,10 +102,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       changePassword: async (password, confirmPassword) => {
         if (!session) throw new Error("not_authenticated");
         await changePasswordRequest(session, password, confirmPassword);
-        await supabase.auth.refreshSession();
-        const nextAccount = await loadOwnAccount();
-        if (!nextAccount) throw new Error("account_unavailable");
-        setAccount(nextAccount);
+        await supabase.auth.signOut({ scope: "local" });
+        setSession(null);
+        setAccount(null);
+        queryClient.clear();
       },
       refreshAccount: async () => {
         const nextAccount = await loadOwnAccount();
