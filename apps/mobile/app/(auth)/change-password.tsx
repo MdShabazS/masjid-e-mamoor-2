@@ -23,8 +23,8 @@ export default function ChangePasswordScreen() {
 
   async function submit() {
     if (saving) return;
-    if (password.length < 10 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
-      setError("Use at least 10 characters with upper and lowercase letters and a number.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
     if (password !== confirmPassword) {
@@ -46,7 +46,7 @@ export default function ChangePasswordScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.page}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -55,9 +55,27 @@ export default function ChangePasswordScreen() {
         <Text style={styles.copy}>Choose a password you will remember. This step is required for your account.</Text>
         <View style={styles.form}>
           <Text style={styles.label}>New password</Text>
-          <TextInput autoCapitalize="none" onChangeText={setPassword} secureTextEntry style={styles.input} value={password} />
+          <TextInput
+            autoCapitalize="none"
+            autoComplete="new-password"
+            importantForAutofill="yes"
+            onChangeText={setPassword}
+            secureTextEntry
+            style={styles.input}
+            textContentType="newPassword"
+            value={password}
+          />
           <Text style={styles.label}>Confirm password</Text>
-          <TextInput autoCapitalize="none" onChangeText={setConfirmPassword} secureTextEntry style={styles.input} value={confirmPassword} />
+          <TextInput
+            autoCapitalize="none"
+            autoComplete="new-password"
+            importantForAutofill="yes"
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            style={styles.input}
+            textContentType="newPassword"
+            value={confirmPassword}
+          />
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Pressable disabled={saving} onPress={submit} style={styles.button}>
             <Text style={styles.buttonText}>{saving ? "Updating..." : "Continue"}</Text>

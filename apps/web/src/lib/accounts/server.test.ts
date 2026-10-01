@@ -26,25 +26,32 @@ describe("account validation", () => {
     });
   });
 
-  it("requires strong own-password changes", () => {
+  it("requires at least 8 characters for own-password changes", () => {
     expect(
       ownPasswordChangeSchema.parse({
-        password: "StrongPass1",
-        confirmPassword: "StrongPass1",
+        password: "12345678",
+        confirmPassword: "12345678",
       }).password,
-    ).toBe("StrongPass1");
+    ).toBe("12345678");
+
+    expect(
+      ownPasswordChangeSchema.parse({
+        password: "abcdefgh",
+        confirmPassword: "abcdefgh",
+      }).password,
+    ).toBe("abcdefgh");
 
     expect(() =>
       ownPasswordChangeSchema.parse({
-        password: "weak",
-        confirmPassword: "weak",
+        password: "1234567",
+        confirmPassword: "1234567",
       }),
     ).toThrow();
 
     expect(() =>
       ownPasswordChangeSchema.parse({
-        password: "StrongPass1",
-        confirmPassword: "StrongPass2",
+        password: "12345678",
+        confirmPassword: "87654321",
       }),
     ).toThrow();
   });
@@ -147,6 +154,33 @@ describe("Auth V2 account administration security boundaries", () => {
     expect(server).toContain("accessToken?: string,\n) {\n  const actor = await requireCurrentAccount(accessToken)");
     expect(server).toContain("assertCanManageAccount(actor, target)");
     expect(server).toContain("assertCanCreateRole(actor, role)");
+  });
+
+  it("uses the trusted admin client for mobile password changes", () => {
+    const server = readFileSync(
+      repoFile("apps/web/src/lib/accounts/server.ts"),
+      "utf8",
+    );
+
+    const start = server.indexOf(
+      "export async function changePasswordWithAccessToken",
+    );
+    const nextExport = server.indexOf("\nexport ", start + 1);
+    const mobilePasswordChange = server.slice(
+      start,
+      nextExport === -1 ? server.length : nextExport,
+    );
+
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(mobilePasswordChange).toMatch(
+      /await\s+supabase\.auth\.getUser\(\s*accessToken,?\s*\)/,
+    );
+    expect(mobilePasswordChange).toContain(
+      "admin.auth.admin.updateUserById(",
+    );
+    expect(mobilePasswordChange).not.toContain(
+      "await supabase.auth.updateUser({ password })",
+    );
   });
 
   it("preserves President and System Admin account boundaries", () => {

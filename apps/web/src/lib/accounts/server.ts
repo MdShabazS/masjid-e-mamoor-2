@@ -93,14 +93,7 @@ export function validateUsernamePolicy(
 }
 
 export function validatePasswordPolicy(password: string) {
-  if (
-    password.length < 10 ||
-    !/[a-z]/.test(password) ||
-    !/[A-Z]/.test(password) ||
-    !/\d/.test(password) ||
-    /^(password|admin|123456)$/i.test(password) ||
-    /password|admin|123456/i.test(password)
-  ) {
+  if (password.length < 8) {
     throw new Error("weak_password");
   }
 }
@@ -768,7 +761,10 @@ export async function changePasswordWithAccessToken(
     throw new Error("not_authorized");
   }
 
-  const { error: authError } = await supabase.auth.updateUser({ password });
+  const { error: authError } = await admin.auth.admin.updateUserById(
+    userData.user.id,
+    { password },
+  );
   if (authError) throw new Error("password_change_failed");
 
   const { error: updateError } = await admin

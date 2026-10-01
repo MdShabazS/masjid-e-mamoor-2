@@ -38,7 +38,7 @@ export default function SignInScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.page}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -55,8 +55,10 @@ export default function SignInScreen() {
           <Text style={styles.label}>Username</Text>
           <TextInput
             autoCapitalize="none"
+            autoComplete="username"
             autoCorrect={false}
             editable={!submitting}
+            importantForAutofill="yes"
             onChangeText={setUsername}
             placeholder="Enter your username"
             placeholderTextColor="#9EA9A3"
@@ -67,8 +69,10 @@ export default function SignInScreen() {
           <Text style={styles.label}>Password</Text>
           <TextInput
             autoCapitalize="none"
+            autoComplete="current-password"
             autoCorrect={false}
             editable={!submitting}
+            importantForAutofill="yes"
             onChangeText={setPassword}
             placeholder="Enter your password"
             placeholderTextColor="#9EA9A3"
