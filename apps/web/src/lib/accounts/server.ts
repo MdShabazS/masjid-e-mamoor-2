@@ -197,7 +197,7 @@ export const getCurrentAccount = cache(async function getCurrentAccount(
   const { data: account, error: accountError } = await admin
     .from("application_users")
     .select(
-      "id, auth_user_id, username, username_normalized, status, must_change_password, credential_updated_at, created_at",
+      "id, auth_user_id, username, username_normalized, status, must_change_password, credential_updated_at, created_at, display_name",
     )
     .eq("auth_user_id", data.user.id)
     .maybeSingle();
@@ -348,7 +348,7 @@ export async function listAccounts(accessToken?: string) {
   const { data, error } = await admin
     .from("application_users")
     .select(
-      "id, auth_user_id, username, username_normalized, status, must_change_password, credential_updated_at, created_at",
+      "id, auth_user_id, username, username_normalized, status, must_change_password, credential_updated_at, created_at, display_name",
     )
     .order("created_at", { ascending: true });
 
@@ -363,7 +363,13 @@ export async function listAccounts(accessToken?: string) {
 
   const accounts = (data ?? []).map((row) => {
     return mapAccount(
-      { ...row, display_name: displayNames.get(String(row.id)) ?? null },
+      {
+        ...row,
+        display_name:
+          asNullableString(row.display_name) ??
+          displayNames.get(String(row.id)) ??
+          null,
+      },
       roles.get(String(row.id)) ?? "member",
     );
   });
@@ -382,7 +388,7 @@ export async function getAccountById(accountId: string) {
   const { data, error } = await admin
     .from("application_users")
     .select(
-      "id, auth_user_id, username, username_normalized, status, must_change_password, credential_updated_at, created_at",
+      "id, auth_user_id, username, username_normalized, status, must_change_password, credential_updated_at, created_at, display_name",
     )
     .eq("id", accountId)
     .maybeSingle();
@@ -398,15 +404,20 @@ export async function createAccount(input: {
   username: string;
   role: AccountRole;
   password?: string;
-  displayName?: string;
+  displayName: string;
   phone?: string | null;
 }, accessToken?: string) {
   const actor = await requireCurrentAccount(accessToken);
   assertCanCreateRole(actor, input.role);
 
   const usernameNormalized = validateUsernamePolicy(input.username);
+  const displayName = input.displayName.trim();
   const password = input.password ?? generateTemporaryPassword();
   validatePasswordPolicy(password);
+
+  if (!displayName || displayName.length > 120) {
+    throw new Error("invalid_display_name");
+  }
 
   const admin = createAdminClient();
   const authEmail = internalAuthEmail();
@@ -432,6 +443,7 @@ export async function createAccount(input: {
         auth_login_email: authEmail,
         username: input.username.trim(),
         username_normalized: usernameNormalized,
+        display_name: displayName,
         status: "active",
         must_change_password: true,
         credential_updated_at: new Date().toISOString(),
@@ -465,7 +477,7 @@ export async function createAccount(input: {
         .from("member_profiles")
         .insert({
           application_user_id: applicationUserId,
-          display_name: input.displayName?.trim() || input.username.trim(),
+          display_name: displayName,
           phone: input.phone?.trim() || null,
           status: "active",
         });

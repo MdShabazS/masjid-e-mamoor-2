@@ -109,7 +109,7 @@ export const ownPasswordChangeSchema = z
 export const accountCreateSchema = z.object({
   username: usernameSchema,
   role: accountRoleSchema,
-  displayName: memberDisplayNameSchema.optional(),
+  displayName: memberDisplayNameSchema,
   password: passwordSchema.optional(),
 });
 

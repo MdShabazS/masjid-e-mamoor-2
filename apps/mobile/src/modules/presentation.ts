@@ -6,6 +6,7 @@ export function visibleWorkspaceModules(capabilities: MobileCapabilities) {
   if (capabilities.canManageAccounts) modules.push("accounts");
   if (capabilities.canReadMembers) modules.push("members");
   if (capabilities.canUseReferrals) modules.push("referrals");
+  if (capabilities.canReadCommitteeTasks) modules.push("work");
   if (capabilities.canReadDonations) modules.push("donations");
   return modules;
 }

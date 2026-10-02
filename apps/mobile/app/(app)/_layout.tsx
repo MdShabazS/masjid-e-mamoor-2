@@ -31,6 +31,15 @@ export default function AppLayout() {
       <Tabs.Screen name="community" options={{ tabBarAccessibilityLabel: "Community", tabBarIcon: ({ color }) => <TabIcon color={color} name="community" />, title: "Community" }} />
       <Tabs.Screen name="accounts" options={{ href: null }} />
       <Tabs.Screen
+        name="work"
+        options={{
+          title: "Work",
+          tabBarAccessibilityLabel: "Work",
+          tabBarIcon: ({ color }) => <TabIcon color={color} name="work" />,
+          href: capabilities.data?.canReadCommitteeTasks ? undefined : null,
+        }}
+      />
+      <Tabs.Screen
         name="donations"
         options={{
           title: "Donations",

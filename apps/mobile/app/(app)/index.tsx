@@ -88,6 +88,19 @@ export default function HomeScreen() {
             <Text style={styles.arrow}>›</Text>
           </Pressable>
         ) : null}
+        {visibleModules.includes("work") ? (
+          <Pressable onPress={() => router.push("/work")} style={styles.module}>
+            <View style={styles.moduleText}>
+              <Text style={styles.moduleTitle}>Work</Text>
+              <Text style={styles.moduleCopy}>
+                {capabilities.data?.canAssignCommitteeTasks
+                  ? "Create, assign, and manage committee tasks"
+                  : "Review and update your assigned committee tasks"}
+              </Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </Pressable>
+        ) : null}
       </View>
     </SafeAreaView>
   );

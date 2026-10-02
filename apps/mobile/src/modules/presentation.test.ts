@@ -22,6 +22,9 @@ describe("mobile workspace presentation", () => {
         canCreateAnonymousDonation: false,
         canCreateJummahCashDonation: false,
         canManageDonations: false,
+        canReadCommitteeTasks: false,
+        canManageCommitteeTasks: false,
+        canAssignCommitteeTasks: false,
       }),
     ).toEqual(["profile", "referrals", "donations"]);
   });
@@ -45,11 +48,15 @@ describe("mobile workspace presentation", () => {
       canCreateAnonymousDonation: false,
       canCreateJummahCashDonation: false,
       canManageDonations: false,
+      canReadCommitteeTasks: true,
+      canManageCommitteeTasks: true,
+      canAssignCommitteeTasks: true,
     };
 
     expect(visibleWorkspaceModules(capabilities)).toEqual([
       "profile",
       "accounts",
+      "work",
     ]);
   });
 

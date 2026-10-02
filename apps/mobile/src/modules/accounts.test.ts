@@ -10,6 +10,7 @@ import {
   parseTemporaryPassword,
   type ManagedAccount,
 } from "./accounts";
+import { accountCreateSchema } from "@masjid-e-mamoor/validation";
 
 const account = (
   overrides: Partial<ManagedAccount> = {},
@@ -33,6 +34,22 @@ describe("mobile account administration policy presentation", () => {
       displayName: "",
     });
     expect(initialAccountCreationDraft()).not.toBe(initialAccountCreationDraft());
+  });
+
+  it("requires a human display name for every provisioned role", () => {
+    expect(
+      accountCreateSchema.parse({
+        username: "qa.secretary",
+        role: "secretary",
+        displayName: "QA Secretary",
+      }).displayName,
+    ).toBe("QA Secretary");
+    expect(() =>
+      accountCreateSchema.parse({
+        username: "qa.secretary",
+        role: "secretary",
+      }),
+    ).toThrow();
   });
 
   it("limits entry presentation to System Admin and President", () => {

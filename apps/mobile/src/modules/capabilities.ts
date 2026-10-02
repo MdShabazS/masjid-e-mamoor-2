@@ -26,6 +26,9 @@ export interface MobileCapabilities {
   canCreateAnonymousDonation: boolean;
   canCreateJummahCashDonation: boolean;
   canManageDonations: boolean;
+  canReadCommitteeTasks: boolean;
+  canManageCommitteeTasks: boolean;
+  canAssignCommitteeTasks: boolean;
 }
 
 async function hasPermission(permission: string) {
@@ -51,6 +54,9 @@ export async function loadCapabilities(
     obligationsManage,
     anonymousCreate,
     jummahCreate,
+    committeeTasksRead,
+    committeeTasksManage,
+    committeeTasksAssign,
   ] = await Promise.all([
     supabase.rpc("can_use_member_admin_read_operations"),
     hasPermission("membership.members.update"),
@@ -64,6 +70,9 @@ export async function loadCapabilities(
     hasPermission("donations.obligations.manage"),
     hasPermission("donations.anonymous.create"),
     hasPermission("donations.jummah.create"),
+    hasPermission("committee.tasks.read"),
+    hasPermission("committee.tasks.manage"),
+    hasPermission("committee.tasks.assign"),
   ]);
 
   const canManageReferrals =
@@ -93,6 +102,9 @@ export async function loadCapabilities(
     canCreateReferral,
     canUseReferrals: canCreateReferral || canManageReferrals,
     canManageReferrals,
+    canReadCommitteeTasks: committeeTasksRead,
+    canManageCommitteeTasks: committeeTasksManage,
+    canAssignCommitteeTasks: committeeTasksAssign,
     ...donationCapabilities,
   };
 }

@@ -64,8 +64,16 @@ describe("account validation", () => {
       accountCreateSchema.parse({
         username: "finance.user",
         role: "finance",
+        displayName: "Finance User",
       }).role,
     ).toBe("finance");
+
+    expect(() =>
+      accountCreateSchema.parse({
+        username: "finance.user",
+        role: "finance",
+      }),
+    ).toThrow();
   });
 });
 
@@ -195,5 +203,27 @@ describe("Auth V2 account administration security boundaries", () => {
     expect(server).toContain("target.id === actor.id || (await countActiveSystemAdmins()) <= 1");
     expect(server).toContain("target.id === actor.id &&\n    status === \"deactivated\"");
     expect(server).toContain("(await countActiveSystemAdmins()) <= 1");
+  });
+
+  it("persists an account display name without using the username as a fallback", () => {
+    const server = readFileSync(
+      repoFile("apps/web/src/lib/accounts/server.ts"),
+      "utf8",
+    );
+    const migration = readFileSync(
+      repoFile(
+        "supabase/migrations/20261002202358_application_user_display_names.sql",
+      ),
+      "utf8",
+    );
+
+    expect(server).toContain("display_name: displayName");
+    expect(server).toContain('if (input.role === "member")');
+    expect(server).not.toContain(
+      "input.displayName?.trim() || input.username.trim()",
+    );
+    expect(migration).toMatch(
+      /update public\.application_users au\s+set display_name = btrim\(mp\.display_name\)/,
+    );
   });
 });

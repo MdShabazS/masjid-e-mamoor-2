@@ -39,6 +39,11 @@ import {
 } from "../../../../src/modules/donation-presentation";
 import { colors } from "../../../../src/theme/colors";
 import { FormTextInput, Screen } from "../../../../src/components/Screen";
+import {
+  formatIsoMonthInput,
+  isValidIsoMonth,
+  isoMonthInputError,
+} from "../../../../src/lib/date-input";
 
 export default function DonationManagementScreen() {
   const { account } = useAuth();
@@ -50,6 +55,9 @@ export default function DonationManagementScreen() {
   const [generationMonth, setGenerationMonth] = useState("");
   const [anonymousAmount, setAnonymousAmount] = useState("");
   const [jummahAmount, setJummahAmount] = useState("");
+
+  const ruleMonthError = isoMonthInputError(rule.month);
+  const generationMonthError = isoMonthInputError(generationMonth);
 
   const capabilities = useQuery({
     queryKey: ["capabilities", account?.id],
@@ -299,14 +307,63 @@ export default function DonationManagementScreen() {
                 <Text style={styles.outstanding}>{formatPaise(item.monthlyAmountPaise)}</Text>
               </View>
             ))}
-            <Field label="Effective month" value={rule.month} onChangeText={(month) => setRule((current) => ({ ...current, month }))} placeholder="2026-10" />
+            <Field
+              label="Effective month"
+              value={rule.month}
+              onChangeText={(month) =>
+                setRule((current) => ({
+                  ...current,
+                  month: formatIsoMonthInput(month, current.month),
+                }))
+              }
+              placeholder="YYYY-MM"
+              keyboardType="number-pad"
+              maxLength={7}
+              error={ruleMonthError}
+            />
             <Field label="Monthly amount in rupees" value={rule.amount} onChangeText={(amount) => setRule((current) => ({ ...current, amount }))} placeholder="1000.00" keyboardType="decimal-pad" />
-            <ActionButton disabled={createRule.isPending} label={createRule.isPending ? "Creating..." : "Create rule"} onPress={() => Alert.alert("Create obligation rule?", "The database will enforce effective-month and uniqueness rules.", [{ text: "Cancel", style: "cancel" }, { text: "Create", onPress: () => createRule.mutate() }])} />
+            <ActionButton
+              disabled={createRule.isPending || !isValidIsoMonth(rule.month)}
+              label={createRule.isPending ? "Creating..." : "Create rule"}
+              onPress={() =>
+                Alert.alert(
+                  "Create obligation rule?",
+                  "The database will enforce effective-month and uniqueness rules.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Create", onPress: () => createRule.mutate() },
+                  ],
+                )
+              }
+            />
           </Section>
 
           <Section title="Generate monthly obligations" copy="The trusted database function generates all eligible obligations once.">
-            <Field label="Generation month" value={generationMonth} onChangeText={setGenerationMonth} placeholder="2026-10" />
-            <ActionButton disabled={generate.isPending} label={generate.isPending ? "Generating..." : "Generate obligations"} onPress={() => Alert.alert("Generate obligations?", `Generate eligible obligations for ${generationMonth || "the entered month"}?`, [{ text: "Cancel", style: "cancel" }, { text: "Generate", onPress: () => generate.mutate() }])} />
+            <Field
+              label="Generation month"
+              value={generationMonth}
+              onChangeText={(month) =>
+                setGenerationMonth(formatIsoMonthInput(month, generationMonth))
+              }
+              placeholder="YYYY-MM"
+              keyboardType="number-pad"
+              maxLength={7}
+              error={generationMonthError}
+            />
+            <ActionButton
+              disabled={generate.isPending || !isValidIsoMonth(generationMonth)}
+              label={generate.isPending ? "Generating..." : "Generate obligations"}
+              onPress={() =>
+                Alert.alert(
+                  "Generate obligations?",
+                  `Generate eligible obligations for ${generationMonth}?`,
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Generate", onPress: () => generate.mutate() },
+                  ],
+                )
+              }
+            />
           </Section>
         </>
       ) : null}
@@ -329,7 +386,40 @@ export default function DonationManagementScreen() {
 }
 
 function Section({ title, copy, children }: { title: string; copy: string; children: ReactNode }) { return <View style={styles.section}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionCopy}>{copy}</Text>{children}</View>; }
-function Field({ label, multiline = false, maxLength, ...props }: { label: string; value: string; onChangeText: (value: string) => void; placeholder: string; keyboardType?: "default" | "decimal-pad"; multiline?: boolean; maxLength?: number }) { return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><FormTextInput {...props} maxLength={maxLength} multiline={multiline} placeholderTextColor="#93A099" style={[styles.input, multiline && styles.multiline]} /></View>; }
+function Field({
+  label,
+  multiline = false,
+  maxLength,
+  error,
+  ...props
+}: {
+  label: string;
+  value: string;
+  onChangeText: (value: string) => void;
+  placeholder: string;
+  keyboardType?: "default" | "decimal-pad" | "number-pad";
+  multiline?: boolean;
+  maxLength?: number;
+  error?: string | null;
+}) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <FormTextInput
+        {...props}
+        maxLength={maxLength}
+        multiline={multiline}
+        placeholderTextColor="#93A099"
+        style={[styles.input, multiline && styles.multiline]}
+      />
+      {error ? (
+        <Text accessibilityRole="alert" style={styles.fieldError}>
+          {error}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
 function ActionButton({ label, onPress, disabled = false, secondary = false, danger = false }: { label: string; onPress: () => void; disabled?: boolean; secondary?: boolean; danger?: boolean }) { return <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.actionButton, secondary && styles.secondaryButton, danger && styles.dangerButton, (pressed || disabled) && styles.disabled]}><Text style={[styles.actionText, secondary && styles.secondaryButtonText, danger && styles.dangerText]}>{label}</Text></Pressable>; }
 function LoadingLine() { return <View style={styles.loadingLine}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.meta}>Loading...</Text></View>; }
 function EmptyLine({ copy }: { copy: string }) { return <Text style={styles.empty}>{copy}</Text>; }
@@ -363,6 +453,7 @@ const styles = StyleSheet.create({
   inlineForm: { borderTopColor: colors.sand, borderTopWidth: 1, marginTop: 14, paddingTop: 6 },
   field: { marginTop: 10 },
   fieldLabel: { color: colors.text, fontSize: 13, fontWeight: "700", marginBottom: 7 },
+  fieldError: { color: colors.danger, fontSize: 12, marginTop: 6 },
   input: { backgroundColor: colors.surface, borderColor: "#D9D3C6", borderRadius: 10, borderWidth: 1, color: colors.text, fontSize: 16, minHeight: 48, paddingHorizontal: 14 },
   multiline: { minHeight: 88, paddingTop: 12, textAlignVertical: "top" },
   obligationChoice: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.sand, borderRadius: 12, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginBottom: 8, padding: 14 },

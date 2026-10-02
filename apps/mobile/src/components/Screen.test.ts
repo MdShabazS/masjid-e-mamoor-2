@@ -34,7 +34,7 @@ describe("Screen", () => {
         {
           keyboardAware: true,
           scroll: true,
-        },
+        } as Parameters<typeof Screen>[0],
         createElement(Text, null, "Keyboard aware content"),
       ),
     );

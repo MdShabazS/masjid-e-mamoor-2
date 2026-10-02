@@ -56,9 +56,7 @@ export default function CreateAccountScreen() {
       const parsed = accountCreateSchema.safeParse({
         username,
         role,
-        ...(role === "member" && displayName.trim()
-          ? { displayName: displayName.trim() }
-          : {}),
+        displayName: displayName.trim(),
       });
       if (!parsed.success) throw new Error("invalid_input");
 
@@ -164,14 +162,13 @@ export default function CreateAccountScreen() {
           ))}
         </View>
 
-        {role === "member" ? (
-          <Field
-            label="Display name"
-            onChangeText={setDisplayName}
-            placeholder="Member display name"
-            value={displayName}
-          />
-        ) : null}
+        <Field
+          label="Display name"
+          maxLength={120}
+          onChangeText={setDisplayName}
+          placeholder="Person's full name"
+          value={displayName}
+        />
 
         <View style={styles.notice}>
           <Text style={styles.noticeTitle}>Password setup</Text>
@@ -204,6 +201,7 @@ function Field({
   | "autoCapitalize"
   | "autoComplete"
   | "importantForAutofill"
+  | "maxLength"
   | "onChangeText"
   | "placeholder"
   | "value"

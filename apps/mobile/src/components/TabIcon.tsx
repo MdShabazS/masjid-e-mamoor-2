@@ -1,6 +1,6 @@
 import { StyleSheet, View, type ColorValue } from "react-native";
 
-type TabIconName = "home" | "community" | "donations" | "profile";
+type TabIconName = "home" | "community" | "work" | "donations" | "profile";
 
 export function TabIcon({ color, name }: { color: ColorValue; name: TabIconName }) {
   if (name === "home") {
@@ -27,6 +27,15 @@ export function TabIcon({ color, name }: { color: ColorValue; name: TabIconName 
       <View style={styles.frame}>
         <View style={[styles.donationBody, { borderColor: color }]} />
         <View style={[styles.donationLine, { backgroundColor: color }]} />
+      </View>
+    );
+  }
+
+  if (name === "work") {
+    return (
+      <View style={styles.frame}>
+        <View style={[styles.workBoard, { borderColor: color }]} />
+        <View style={[styles.workCheck, { borderColor: color }]} />
       </View>
     );
   }
@@ -67,6 +76,8 @@ const styles = StyleSheet.create({
   communityBody: { borderRadius: 9, borderWidth: 2, bottom: 3, height: 10, left: 2, position: "absolute", width: 20 },
   donationBody: { borderRadius: 3, borderWidth: 2, height: 17, left: 3, position: "absolute", top: 4, width: 18 },
   donationLine: { height: 2, left: 7, position: "absolute", top: 9, width: 10 },
+  workBoard: { borderRadius: 3, borderWidth: 2, height: 18, left: 4, position: "absolute", top: 3, width: 16 },
+  workCheck: { borderBottomWidth: 2, borderRightWidth: 2, height: 8, left: 9, position: "absolute", top: 7, transform: [{ rotate: "45deg" }], width: 5 },
   profileHead: { borderRadius: 6, borderWidth: 2, height: 10, left: 7, position: "absolute", top: 2, width: 10 },
   profileBody: { borderRadius: 10, borderWidth: 2, bottom: 2, height: 10, left: 3, position: "absolute", width: 18 },
 });

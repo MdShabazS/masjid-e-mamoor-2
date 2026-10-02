@@ -1,6 +1,16 @@
 import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
+import Constants from "expo-constants";
+import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import { useAuth } from "../../src/auth/AuthProvider";
 import type { MobileMemberProfile } from "../../src/auth/types";
@@ -8,10 +18,45 @@ import { updateOwnMemberProfile } from "../../src/modules/data";
 import { FormTextInput, Screen } from "../../src/components/Screen";
 import { colors, roleLabels } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/tokens";
+import {
+  buildSupportEmailUrl,
+  SUPPORT_EMAIL,
+} from "../../src/lib/support";
 
 export default function ProfileScreen() {
   const { account, refreshAccount, signOut } = useAuth();
   if (!account) return null;
+
+  const accountRoleLabel = roleLabels[account.role];
+
+  async function contactSupport() {
+    const url = buildSupportEmailUrl({
+      appVersion:
+        Constants.nativeAppVersion ??
+        Constants.expoConfig?.version ??
+        "Unavailable",
+      buildVersion: Constants.nativeBuildVersion ?? "Unavailable",
+      platform: Platform.OS,
+      osVersion: String(Platform.Version),
+      role: accountRoleLabel,
+    });
+
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(
+        "Email app unavailable",
+        `Contact support at ${SUPPORT_EMAIL}.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Copy email",
+            onPress: () => void Clipboard.setStringAsync(SUPPORT_EMAIL),
+          },
+        ],
+      );
+    }
+  }
 
   return (
     <Screen contentContainerStyle={styles.content} keyboardAware scroll>
@@ -29,6 +74,52 @@ export default function ProfileScreen() {
         <Text style={styles.value}>{account.mustChangePassword ? "Change required" : "Up to date"}</Text>
       </View>
       {account.memberProfile ? <MemberProfileEditor profile={account.memberProfile} onSaved={() => void refreshAccount()} /> : <View style={styles.card}><Text style={styles.cardTitle}>Membership details</Text><Text style={styles.value}>Administrative account — no member membership record is attached.</Text></View>}
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Help & Support</Text>
+        <Text style={styles.supportCopy}>
+          If something is not working correctly, report the problem directly to the app developer.
+        </Text>
+
+        <Text style={styles.label}>Support email</Text>
+        <Text selectable style={styles.value}>
+          {SUPPORT_EMAIL}
+        </Text>
+
+        <Text style={styles.supportNote}>
+          The email draft includes only app version, build, platform, OS version,
+          and your role. Do not send passwords, OTPs, payment credentials, or
+          other sensitive information.
+        </Text>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void contactSupport()}
+          style={({ pressed }) => [
+            styles.primaryButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.primaryButtonText}>Report a problem</Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            void Clipboard.setStringAsync(SUPPORT_EMAIL);
+            Alert.alert("Copied", "Support email copied.");
+          }}
+          style={({ pressed }) => [
+            styles.secondaryOutlineButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.secondaryOutlineButtonText}>
+            Copy support email
+          </Text>
+        </Pressable>
+      </View>
+
       <Pressable onPress={() => router.push("/(auth)/change-password")} style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
         <Text style={styles.primaryButtonText}>Change password</Text>
       </Pressable>
@@ -76,5 +167,21 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: colors.surface, fontSize: 15, fontWeight: "700" },
   secondaryButton: { alignItems: "center", height: 48, justifyContent: "center", marginTop: 8 },
   secondaryButtonText: { color: colors.secondary, fontSize: 15, fontWeight: "700" },
+  supportCopy: { color: colors.secondary, fontSize: 14, lineHeight: 21, marginTop: 4 },
+  supportNote: { color: colors.secondary, fontSize: 12, lineHeight: 18, marginTop: 12 },
+  secondaryOutlineButton: {
+    alignItems: "center",
+    borderColor: colors.deepEmerald,
+    borderRadius: 10,
+    borderWidth: 1,
+    height: 48,
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  secondaryOutlineButtonText: {
+    color: colors.deepEmerald,
+    fontSize: 14,
+    fontWeight: "700",
+  },
   pressed: { opacity: 0.7 },
 });

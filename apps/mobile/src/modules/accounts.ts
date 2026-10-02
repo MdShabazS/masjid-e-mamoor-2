@@ -184,7 +184,7 @@ export async function createManagedAccount(
   input: {
     username: string;
     role: AccountProvisionRole;
-    displayName?: string;
+    displayName: string;
   },
 ) {
   const result = await accountRequest(session, "/create", "POST", input);

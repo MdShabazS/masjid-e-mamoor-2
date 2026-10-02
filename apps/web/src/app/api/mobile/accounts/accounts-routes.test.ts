@@ -132,9 +132,16 @@ describe("mobile account API security boundary", () => {
         role: "system_admin",
       }),
     );
+    const missingDisplayName = await createPOST(
+      request("/api/mobile/accounts/create", {
+        username: "finance.user",
+        role: "finance",
+      }),
+    );
 
     expect(invalid.status).toBe(400);
     expect(systemAdmin.status).toBe(400);
+    expect(missingDisplayName.status).toBe(400);
     expect(createAccount).not.toHaveBeenCalled();
   });
 
@@ -148,13 +155,18 @@ describe("mobile account API security boundary", () => {
       request("/api/mobile/accounts/create", {
         username: "finance.user",
         role: "finance",
+        displayName: "Finance User",
       }),
     );
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(createAccount).toHaveBeenCalledWith(
-      { username: "finance.user", role: "finance" },
+      {
+        username: "finance.user",
+        role: "finance",
+        displayName: "Finance User",
+      },
       token,
     );
     await expect(response.json()).resolves.toEqual({

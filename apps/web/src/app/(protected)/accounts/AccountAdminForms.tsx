@@ -58,6 +58,8 @@ export function CreateAccountForm({
           Display name
           <input
             name="displayName"
+            required
+            maxLength={120}
             className="field-input"
           />
         </label>
