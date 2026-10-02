@@ -5,6 +5,7 @@ import {
   canAccessAccountAdministration,
   canChangeAccountStatus,
   isProtectedSystemAdminTarget,
+  initialAccountCreationDraft,
   parseManagedAccount,
   parseTemporaryPassword,
   type ManagedAccount,
@@ -25,6 +26,15 @@ const account = (
 });
 
 describe("mobile account administration policy presentation", () => {
+  it("starts each account-creation visit with a clean member draft", () => {
+    expect(initialAccountCreationDraft()).toEqual({
+      username: "",
+      role: "member",
+      displayName: "",
+    });
+    expect(initialAccountCreationDraft()).not.toBe(initialAccountCreationDraft());
+  });
+
   it("limits entry presentation to System Admin and President", () => {
     expect(canAccessAccountAdministration("system_admin")).toBe(true);
     expect(canAccessAccountAdministration("president")).toBe(true);

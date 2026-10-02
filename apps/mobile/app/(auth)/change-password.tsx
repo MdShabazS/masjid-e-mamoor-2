@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 import { useAuth } from "../../src/auth/AuthProvider";
@@ -44,12 +45,13 @@ export default function ChangePasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.page}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <SafeAreaView style={styles.page}>
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <StatusBar style="dark" />
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.eyebrow}>ACCOUNT SECURITY</Text>
         <Text style={styles.title}>Set a new password before continuing.</Text>
         <Text style={styles.copy}>Choose a password you will remember. This step is required for your account.</Text>
@@ -84,13 +86,15 @@ export default function ChangePasswordScreen() {
             <Text style={styles.signOutText}>Sign out</Text>
           </Pressable>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.ivory, flex: 1 },
+  fill: { flex: 1 },
   content: { flexGrow: 1, justifyContent: "center", padding: 28 },
   eyebrow: { color: colors.deepEmerald, fontSize: 12, fontWeight: "700", letterSpacing: 1.3 },
   title: { color: colors.text, fontSize: 30, fontWeight: "700", lineHeight: 37, marginTop: 10 },

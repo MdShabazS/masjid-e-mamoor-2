@@ -5,7 +5,6 @@ import {
   Linking,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -40,6 +39,7 @@ import {
   paymentStatusLabel,
 } from "../../../../src/modules/donation-presentation";
 import { colors } from "../../../../src/theme/colors";
+import { Screen } from "../../../../src/components/Screen";
 
 export default function DonationManagementScreen() {
   const { account } = useAuth();
@@ -206,9 +206,14 @@ export default function DonationManagementScreen() {
   const refreshing = payments.isRefetching || proofs.isRefetching || snapshot.isRefetching || rules.isRefetching;
 
   return (
-    <ScrollView
+    <Screen
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.deepEmerald} />}
+      edges={["left", "right", "bottom"]}
+      keyboardAware
+      scroll
+      scrollViewProps={{
+        refreshControl: <RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.deepEmerald} />,
+      }}
     >
       <Text style={styles.eyebrow}>AUTHORIZED WORKFLOWS</Text>
       <Text style={styles.title}>Donation management</Text>
@@ -320,13 +325,13 @@ export default function DonationManagementScreen() {
           <ActionButton disabled={jummah.isPending} label={jummah.isPending ? "Recording..." : "Record Jummah cash"} onPress={() => Alert.alert("Record Jummah cash?", "This creates a distinct Jummah cash donation record.", [{ text: "Cancel", style: "cancel" }, { text: "Record", onPress: () => jummah.mutate() }])} />
         </Section>
       ) : null}
-    </ScrollView>
+    </Screen>
   );
 }
 
 function Section({ title, copy, children }: { title: string; copy: string; children: ReactNode }) { return <View style={styles.section}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionCopy}>{copy}</Text>{children}</View>; }
 function Field({ label, multiline = false, maxLength, ...props }: { label: string; value: string; onChangeText: (value: string) => void; placeholder: string; keyboardType?: "default" | "decimal-pad"; multiline?: boolean; maxLength?: number }) { return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><TextInput {...props} maxLength={maxLength} multiline={multiline} placeholderTextColor="#93A099" style={[styles.input, multiline && styles.multiline]} /></View>; }
-function ActionButton({ label, onPress, disabled = false, secondary = false, danger = false }: { label: string; onPress: () => void; disabled?: boolean; secondary?: boolean; danger?: boolean }) { return <Pressable disabled={disabled} onPress={onPress} style={[styles.actionButton, secondary && styles.secondaryButton, danger && styles.dangerButton, disabled && styles.disabled]}><Text style={[styles.actionText, secondary && styles.secondaryButtonText, danger && styles.dangerText]}>{label}</Text></Pressable>; }
+function ActionButton({ label, onPress, disabled = false, secondary = false, danger = false }: { label: string; onPress: () => void; disabled?: boolean; secondary?: boolean; danger?: boolean }) { return <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.actionButton, secondary && styles.secondaryButton, danger && styles.dangerButton, (pressed || disabled) && styles.disabled]}><Text style={[styles.actionText, secondary && styles.secondaryButtonText, danger && styles.dangerText]}>{label}</Text></Pressable>; }
 function LoadingLine() { return <View style={styles.loadingLine}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.meta}>Loading...</Text></View>; }
 function EmptyLine({ copy }: { copy: string }) { return <Text style={styles.empty}>{copy}</Text>; }
 function InlineError({ onRetry }: { onRetry: () => void }) { return <View style={styles.inlineError}><Text style={styles.meta}>This section could not load.</Text><Pressable onPress={onRetry}><Text style={styles.secondaryButtonText}>Retry</Text></Pressable></View>; }

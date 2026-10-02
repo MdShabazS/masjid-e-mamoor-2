@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -171,7 +171,7 @@ export default function AccountDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.page}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.eyebrow}>ACCOUNT</Text>
         <Text style={styles.title}>{target.username ?? "Username not set"}</Text>
@@ -364,7 +364,7 @@ function formatDate(value: string) {
 
 function LoadingState() {
   return (
-    <SafeAreaView style={styles.page}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
       <View style={styles.centerState}>
         <ActivityIndicator color={colors.deepEmerald} />
         <Text style={styles.help}>Loading account...</Text>
@@ -375,7 +375,7 @@ function LoadingState() {
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
-    <SafeAreaView style={styles.page}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
       <View style={styles.centerState}>
         <Text style={styles.stateTitle}>Account is not available</Text>
         <Text style={styles.help}>
@@ -391,7 +391,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 
 function AccessState() {
   return (
-    <SafeAreaView style={styles.page}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
       <View style={styles.centerState}>
         <Text style={styles.stateTitle}>Account Administration</Text>
         <Text style={styles.help}>

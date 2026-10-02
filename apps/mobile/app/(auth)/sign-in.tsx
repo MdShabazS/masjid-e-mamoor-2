@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../../src/auth/AuthProvider";
@@ -36,12 +37,13 @@ export default function SignInScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.page}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <StatusBar style="light" />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <SafeAreaView style={styles.page}>
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <StatusBar style="light" />
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.brandMark}>
           <View style={styles.brandMarkInner} />
         </View>
@@ -91,13 +93,15 @@ export default function SignInScreen() {
             <Text style={styles.buttonText}>{submitting ? "Signing in..." : "Sign In"}</Text>
           </Pressable>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.darkEmerald },
+  fill: { flex: 1 },
   content: { flexGrow: 1, justifyContent: "center", padding: 28 },
   brandMark: {
     alignItems: "center",

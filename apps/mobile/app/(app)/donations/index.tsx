@@ -4,8 +4,6 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -34,6 +32,7 @@ import {
   paymentStatusLabel,
 } from "../../../src/modules/donation-presentation";
 import { colors } from "../../../src/theme/colors";
+import { Screen } from "../../../src/components/Screen";
 
 const methods: DonationPaymentMethod[] = ["upi", "cash", "bank_transfer", "other"];
 
@@ -132,11 +131,14 @@ export default function DonationsScreen() {
   const refreshing = snapshot.isRefetching || payments.isRefetching || allocations.isRefetching || proofs.isRefetching || additional.isRefetching;
 
   return (
-    <SafeAreaView style={styles.page}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.deepEmerald} />}
-      >
+    <Screen
+      contentContainerStyle={styles.content}
+      keyboardAware
+      scroll
+      scrollViewProps={{
+        refreshControl: <RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.deepEmerald} />,
+      }}
+    >
         <Text style={styles.eyebrow}>DONATION V1</Text>
         <Text style={styles.title}>Donations</Text>
         <Text style={styles.intro}>Your obligations, payment submissions, and donation history.</Text>
@@ -239,8 +241,7 @@ export default function DonationsScreen() {
             <Text style={styles.rowAmount}>{formatPaise(donation.amountPaise)}</Text>
           </View>
         ))}
-      </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -248,15 +249,14 @@ function SectionTitle({ title }: { title: string }) { return <Text style={styles
 function MoneyRow({ label, value, emphasized = false }: { label: string; value: number; emphasized?: boolean }) { return <View style={styles.moneyRow}><Text style={[styles.meta, emphasized && styles.emphasized]}>{label}</Text><Text style={[styles.moneyValue, emphasized && styles.emphasized]}>{formatPaise(value)}</Text></View>; }
 function StatusBadge({ label, success = false, danger = false }: { label: string; success?: boolean; danger?: boolean }) { return <Text style={[styles.badge, success && styles.badgeSuccess, danger && styles.badgeDanger]}>{label}</Text>; }
 function Field({ label, ...props }: { label: string; value: string; onChangeText: (value: string) => void; placeholder: string; keyboardType?: "default" | "decimal-pad" }) { return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><TextInput {...props} placeholderTextColor="#93A099" style={styles.input} /></View>; }
-function PrimaryButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) { return <Pressable disabled={disabled} onPress={onPress} style={[styles.primaryButton, disabled && styles.disabled]}><Text style={styles.primaryText}>{label}</Text></Pressable>; }
-function LoadingState() { return <SafeAreaView style={styles.page}><View style={styles.centerState}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateCopy}>Loading donations...</Text></View></SafeAreaView>; }
-function AccessState() { return <SafeAreaView style={styles.page}><View style={styles.content}><Text style={styles.eyebrow}>DONATION V1</Text><Text style={styles.title}>Donations</Text><Text style={styles.stateCopy}>Donation tools are not available for this account.</Text></View></SafeAreaView>; }
+function PrimaryButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) { return <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.primaryButton, (pressed || disabled) && styles.disabled]}><Text style={styles.primaryText}>{label}</Text></Pressable>; }
+function LoadingState() { return <Screen contentContainerStyle={styles.centerState}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateCopy}>Loading donations...</Text></Screen>; }
+function AccessState() { return <Screen contentContainerStyle={styles.content}><Text style={styles.eyebrow}>DONATION V1</Text><Text style={styles.title}>Donations</Text><Text style={styles.stateCopy}>Donation tools are not available for this account.</Text></Screen>; }
 function LoadingPanel() { return <View style={styles.statePanel}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateCopy}>Loading donation records...</Text></View>; }
 function ErrorPanel({ onRetry }: { onRetry: () => void }) { return <View style={styles.statePanel}><Text style={styles.stateTitle}>Donation records could not load</Text><Text style={styles.stateCopy}>Check your connection and try again.</Text><Pressable onPress={onRetry} style={styles.retry}><Text style={styles.retryText}>Retry</Text></Pressable></View>; }
 function EmptyPanel({ title, copy }: { title: string; copy: string }) { return <View style={styles.statePanel}><Text style={styles.stateTitle}>{title}</Text><Text style={styles.stateCopy}>{copy}</Text></View>; }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: colors.ivory, flex: 1 },
   content: { padding: 20, paddingBottom: 44 },
   eyebrow: { color: colors.gold, fontSize: 11, fontWeight: "800", letterSpacing: 1.2 },
   title: { color: colors.text, fontSize: 30, fontWeight: "700", marginTop: 8 },

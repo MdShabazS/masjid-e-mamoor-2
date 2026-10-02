@@ -7,6 +7,16 @@ import { getMobileConfig } from "../lib/config";
 
 export type AccountProvisionRole = Exclude<ApplicationRole, "system_admin">;
 
+export interface AccountCreationDraft {
+  username: string;
+  role: AccountProvisionRole;
+  displayName: string;
+}
+
+export function initialAccountCreationDraft(): AccountCreationDraft {
+  return { username: "", role: "member", displayName: "" };
+}
+
 export interface ManagedAccount {
   id: string;
   username: string | null;

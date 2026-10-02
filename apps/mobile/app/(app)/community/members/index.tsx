@@ -4,12 +4,12 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useAuth } from "../../../../src/auth/AuthProvider";
@@ -59,7 +59,7 @@ export default function MembersScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.page}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
       <FlatList
         contentContainerStyle={styles.content}
         data={visibleMembers}
@@ -124,7 +124,7 @@ function LoadingState() {
 }
 
 function AccessState() {
-  return <SafeAreaView style={styles.page}><View style={styles.content}><Text style={styles.eyebrow}>MEMBERSHIP</Text><Text style={styles.title}>Members</Text><Text style={styles.stateText}>This member directory is not available for your account.</Text></View></SafeAreaView>;
+  return <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}><View style={styles.content}><Text style={styles.eyebrow}>MEMBERSHIP</Text><Text style={styles.title}>Members</Text><Text style={styles.stateText}>This member directory is not available for your account.</Text></View></SafeAreaView>;
 }
 
 function EmptyState() {

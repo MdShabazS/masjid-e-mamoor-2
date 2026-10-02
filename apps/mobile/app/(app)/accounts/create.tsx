@@ -1,16 +1,15 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Alert,
   Pressable,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  type TextInputProps,
   View,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { accountCreateSchema } from "@masjid-e-mamoor/validation";
 import { useAuth } from "../../../src/auth/AuthProvider";
@@ -19,18 +18,38 @@ import {
   availableAccountRoles,
   canAccessAccountAdministration,
   createManagedAccount,
+  initialAccountCreationDraft,
   type AccountProvisionRole,
 } from "../../../src/modules/accounts";
 import { colors, roleLabels } from "../../../src/theme/colors";
+import { Screen } from "../../../src/components/Screen";
 
 export default function CreateAccountScreen() {
   const { account, session } = useAuth();
   const queryClient = useQueryClient();
-  const [username, setUsername] = useState("");
-  const [role, setRole] = useState<AccountProvisionRole>("member");
-  const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState(
+    () => initialAccountCreationDraft().username,
+  );
+  const [role, setRole] = useState<AccountProvisionRole>(
+    () => initialAccountCreationDraft().role,
+  );
+  const [displayName, setDisplayName] = useState(
+    () => initialAccountCreationDraft().displayName,
+  );
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(
     null,
+  );
+  const [formRevision, setFormRevision] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      const draft = initialAccountCreationDraft();
+      setUsername(draft.username);
+      setRole(draft.role);
+      setDisplayName(draft.displayName);
+      setTemporaryPassword(null);
+      setFormRevision((current) => current + 1);
+    }, []),
   );
 
   const create = useMutation({
@@ -70,8 +89,7 @@ export default function CreateAccountScreen() {
 
   if (temporaryPassword) {
     return (
-      <SafeAreaView style={styles.page}>
-        <View style={styles.resultWrap}>
+      <Screen edges={["left", "right", "bottom"]} contentContainerStyle={styles.resultWrap}>
           <Text style={styles.eyebrow}>ACCOUNT CREATED</Text>
           <Text style={styles.title}>Temporary password</Text>
           <Text style={styles.help}>
@@ -101,14 +119,12 @@ export default function CreateAccountScreen() {
           >
             <Text style={styles.primaryButtonText}>Done</Text>
           </Pressable>
-        </View>
-      </SafeAreaView>
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.page}>
-      <ScrollView contentContainerStyle={styles.content}>
+    <Screen contentContainerStyle={styles.content} edges={["left", "right", "bottom"]} keyboardAware scroll>
         <Text style={styles.eyebrow}>PROVISIONING</Text>
         <Text style={styles.title}>Create account</Text>
         <Text style={styles.help}>
@@ -117,6 +133,9 @@ export default function CreateAccountScreen() {
 
         <Field
           autoCapitalize="none"
+          autoComplete="off"
+          importantForAutofill="no"
+          key={`username-${formRevision}`}
           label="Username"
           onChangeText={setUsername}
           placeholder="username"
@@ -166,14 +185,13 @@ export default function CreateAccountScreen() {
         <Pressable
           disabled={create.isPending}
           onPress={() => create.mutate()}
-          style={[styles.primaryButton, create.isPending && styles.disabled]}
+          style={({ pressed }) => [styles.primaryButton, (pressed || create.isPending) && styles.disabled]}
         >
           <Text style={styles.primaryButtonText}>
             {create.isPending ? "Creating..." : "Create account"}
           </Text>
         </Pressable>
-      </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
@@ -182,11 +200,15 @@ function Field({
   ...props
 }: {
   label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
-}) {
+} & Pick<
+  TextInputProps,
+  | "autoCapitalize"
+  | "autoComplete"
+  | "importantForAutofill"
+  | "onChangeText"
+  | "placeholder"
+  | "value"
+>) {
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -201,19 +223,16 @@ function Field({
 
 function AccessState() {
   return (
-    <SafeAreaView style={styles.page}>
-      <View style={styles.resultWrap}>
+    <Screen edges={["left", "right", "bottom"]} contentContainerStyle={styles.resultWrap}>
         <Text style={styles.title}>Account Administration</Text>
         <Text style={styles.help}>
           Account creation is not available for your account.
         </Text>
-      </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: colors.ivory, flex: 1 },
   content: { padding: 20, paddingBottom: 44 },
   resultWrap: { padding: 24 },
   eyebrow: {

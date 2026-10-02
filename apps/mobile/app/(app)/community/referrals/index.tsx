@@ -4,7 +4,6 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   Share,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import { randomUUID } from "expo-crypto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -146,7 +146,7 @@ export default function ReferralsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.page}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={Boolean((capabilities.data.canManageReferrals ? managedReferrals : ownReferrals).isRefetching)} onRefresh={() => void refetch()} tintColor={colors.deepEmerald} />}
@@ -243,7 +243,7 @@ function CredentialPanel({ credential, onCopy, onDismiss }: { credential: { refe
 }
 
 function LoadingState() { return <View style={styles.state}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateText}>Loading referrals...</Text></View>; }
-function AccessState() { return <SafeAreaView style={styles.page}><View style={styles.content}><Text style={styles.eyebrow}>MEMBERSHIP</Text><Text style={styles.title}>Referrals</Text><Text style={styles.stateText}>Referral tools are not available for your account.</Text></View></SafeAreaView>; }
+function AccessState() { return <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}><View style={styles.content}><Text style={styles.eyebrow}>MEMBERSHIP</Text><Text style={styles.title}>Referrals</Text><Text style={styles.stateText}>Referral tools are not available for your account.</Text></View></SafeAreaView>; }
 function EmptyState({ managed }: { managed: boolean }) { return <View style={styles.state}><Text style={styles.stateTitle}>{managed ? "No onboarding requests" : "No referrals yet"}</Text><Text style={styles.stateText}>{managed ? "Submitted requests will appear here." : "Create a referral link when you are ready."}</Text></View>; }
 function ErrorState({ onRetry }: { onRetry: () => void }) { return <View style={styles.state}><Text style={styles.stateTitle}>Referrals could not load</Text><Text style={styles.stateText}>Check your connection and try again.</Text><Pressable onPress={onRetry} style={styles.retry}><Text style={styles.retryText}>Retry</Text></Pressable></View>; }
 
