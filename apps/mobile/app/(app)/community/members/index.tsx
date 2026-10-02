@@ -17,7 +17,7 @@ import { listMembers } from "../../../../src/modules/data";
 import type { MemberPageCursor, MobileMember } from "../../../../src/modules/types";
 import { mergeMemberPages } from "../../../../src/modules/presentation";
 import { colors } from "../../../../src/theme/colors";
-import { FocusedInputProvider, FormTextInput, useFocusedInputVisibility } from "../../../../src/components/Screen";
+import { FormTextInput } from "../../../../src/components/Screen";
 
 function statusLabel(status: MobileMember["status"]) {
   return status === "active" ? "Active" : "Inactive";
@@ -28,8 +28,6 @@ export default function MembersScreen() {
   const queryClient = useQueryClient();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const { onInputFocus, setScrollRef } =
-    useFocusedInputVisibility<FlatList<MobileMember>>();
 
   const capabilities = useQuery({
     queryKey: ["capabilities", account?.id],
@@ -62,14 +60,12 @@ export default function MembersScreen() {
 
   return (
     <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
-      <FocusedInputProvider onInputFocus={onInputFocus}>
-        <FlatList
+      <FlatList
           contentContainerStyle={styles.content}
           data={visibleMembers}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           keyExtractor={(item) => item.id}
-          ref={setScrollRef}
           refreshControl={
             <RefreshControl refreshing={members.isRefetching} onRefresh={() => void queryClient.resetQueries({ queryKey: ["members", search] })} tintColor={colors.deepEmerald} />
           }
@@ -121,7 +117,6 @@ export default function MembersScreen() {
             </Pressable>
           )}
         />
-      </FocusedInputProvider>
     </SafeAreaView>
   );
 }
