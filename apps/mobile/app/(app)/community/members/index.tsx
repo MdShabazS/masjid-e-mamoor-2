@@ -6,7 +6,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +17,7 @@ import { listMembers } from "../../../../src/modules/data";
 import type { MemberPageCursor, MobileMember } from "../../../../src/modules/types";
 import { mergeMemberPages } from "../../../../src/modules/presentation";
 import { colors } from "../../../../src/theme/colors";
+import { FocusedInputProvider, FormTextInput, useFocusedInputVisibility } from "../../../../src/components/Screen";
 
 function statusLabel(status: MobileMember["status"]) {
   return status === "active" ? "Active" : "Inactive";
@@ -28,6 +28,8 @@ export default function MembersScreen() {
   const queryClient = useQueryClient();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const { onInputFocus, setScrollRef } =
+    useFocusedInputVisibility<FlatList<MobileMember>>();
 
   const capabilities = useQuery({
     queryKey: ["capabilities", account?.id],
@@ -60,61 +62,66 @@ export default function MembersScreen() {
 
   return (
     <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
-      <FlatList
-        contentContainerStyle={styles.content}
-        data={visibleMembers}
-        keyExtractor={(item) => item.id}
-        refreshControl={
-          <RefreshControl refreshing={members.isRefetching} onRefresh={() => void queryClient.resetQueries({ queryKey: ["members", search] })} tintColor={colors.deepEmerald} />
-        }
-        ListEmptyComponent={
-          members.isLoading ? (
-            <LoadingState />
-          ) : members.isError ? (
-            <ErrorState onRetry={() => void members.refetch()} />
-          ) : (
-            <EmptyState />
-          )
-        }
-        ListHeaderComponent={
-          <View>
-            <Text style={styles.eyebrow}>MEMBERSHIP</Text>
-            <Text style={styles.title}>Members</Text>
-            <View style={styles.searchRow}>
-              <TextInput
-                autoCapitalize="none"
-                onChangeText={setSearchInput}
-                onSubmitEditing={() => setSearch(searchInput)}
-                placeholder="Search name or phone"
-                placeholderTextColor="#9EA9A3"
-                style={styles.searchInput}
-                value={searchInput}
-              />
-              <Pressable onPress={() => setSearch(searchInput)} style={styles.searchButton}>
-                <Text style={styles.searchButtonText}>Search</Text>
+      <FocusedInputProvider onInputFocus={onInputFocus}>
+        <FlatList
+          contentContainerStyle={styles.content}
+          data={visibleMembers}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          keyExtractor={(item) => item.id}
+          ref={setScrollRef}
+          refreshControl={
+            <RefreshControl refreshing={members.isRefetching} onRefresh={() => void queryClient.resetQueries({ queryKey: ["members", search] })} tintColor={colors.deepEmerald} />
+          }
+          ListEmptyComponent={
+            members.isLoading ? (
+              <LoadingState />
+            ) : members.isError ? (
+              <ErrorState onRetry={() => void members.refetch()} />
+            ) : (
+              <EmptyState />
+            )
+          }
+          ListHeaderComponent={
+            <View>
+              <Text style={styles.eyebrow}>MEMBERSHIP</Text>
+              <Text style={styles.title}>Members</Text>
+              <View style={styles.searchRow}>
+                <FormTextInput
+                  autoCapitalize="none"
+                  onChangeText={setSearchInput}
+                  onSubmitEditing={() => setSearch(searchInput)}
+                  placeholder="Search name or phone"
+                  placeholderTextColor="#9EA9A3"
+                  style={styles.searchInput}
+                  value={searchInput}
+                />
+                <Pressable onPress={() => setSearch(searchInput)} style={styles.searchButton}>
+                  <Text style={styles.searchButtonText}>Search</Text>
+                </Pressable>
+              </View>
+            </View>
+          }
+          ListFooterComponent={
+            members.hasNextPage ? (
+              <Pressable disabled={members.isFetchingNextPage} onPress={() => void loadMore()} style={styles.loadMore}>
+                <Text style={styles.loadMoreText}>{members.isFetchingNextPage ? "Loading..." : "Load more"}</Text>
               </Pressable>
-            </View>
-          </View>
-        }
-        ListFooterComponent={
-          members.hasNextPage ? (
-            <Pressable disabled={members.isFetchingNextPage} onPress={() => void loadMore()} style={styles.loadMore}>
-              <Text style={styles.loadMoreText}>{members.isFetchingNextPage ? "Loading..." : "Load more"}</Text>
+            ) : null
+          }
+          renderItem={({ item }) => (
+            <Pressable onPress={() => router.push(`/community/members/${item.id}`)} style={styles.memberRow}>
+              <View style={styles.memberCopy}>
+                <Text style={styles.memberName}>{item.displayName}</Text>
+                <Text style={styles.memberPhone}>{item.phone ?? "No phone provided"}</Text>
+              </View>
+              <Text style={[styles.badge, item.status === "inactive" && styles.inactiveBadge]}>
+                {statusLabel(item.status)}
+              </Text>
             </Pressable>
-          ) : null
-        }
-        renderItem={({ item }) => (
-          <Pressable onPress={() => router.push(`/community/members/${item.id}`)} style={styles.memberRow}>
-            <View style={styles.memberCopy}>
-              <Text style={styles.memberName}>{item.displayName}</Text>
-              <Text style={styles.memberPhone}>{item.phone ?? "No phone provided"}</Text>
-            </View>
-            <Text style={[styles.badge, item.status === "inactive" && styles.inactiveBadge]}>
-              {statusLabel(item.status)}
-            </Text>
-          </Pressable>
-        )}
-      />
+          )}
+        />
+      </FocusedInputProvider>
     </SafeAreaView>
   );
 }

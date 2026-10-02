@@ -4,7 +4,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   type TextInputProps,
   View,
 } from "react-native";
@@ -22,7 +21,7 @@ import {
   type AccountProvisionRole,
 } from "../../../src/modules/accounts";
 import { colors, roleLabels } from "../../../src/theme/colors";
-import { Screen } from "../../../src/components/Screen";
+import { FormTextInput, Screen } from "../../../src/components/Screen";
 
 export default function CreateAccountScreen() {
   const { account, session } = useAuth();
@@ -212,7 +211,7 @@ function Field({
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
+      <FormTextInput
         {...props}
         placeholderTextColor="#93A099"
         style={styles.input}

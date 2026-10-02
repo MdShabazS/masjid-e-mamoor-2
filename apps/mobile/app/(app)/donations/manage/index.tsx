@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -39,7 +38,7 @@ import {
   paymentStatusLabel,
 } from "../../../../src/modules/donation-presentation";
 import { colors } from "../../../../src/theme/colors";
-import { Screen } from "../../../../src/components/Screen";
+import { FormTextInput, Screen } from "../../../../src/components/Screen";
 
 export default function DonationManagementScreen() {
   const { account } = useAuth();
@@ -330,7 +329,7 @@ export default function DonationManagementScreen() {
 }
 
 function Section({ title, copy, children }: { title: string; copy: string; children: ReactNode }) { return <View style={styles.section}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionCopy}>{copy}</Text>{children}</View>; }
-function Field({ label, multiline = false, maxLength, ...props }: { label: string; value: string; onChangeText: (value: string) => void; placeholder: string; keyboardType?: "default" | "decimal-pad"; multiline?: boolean; maxLength?: number }) { return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><TextInput {...props} maxLength={maxLength} multiline={multiline} placeholderTextColor="#93A099" style={[styles.input, multiline && styles.multiline]} /></View>; }
+function Field({ label, multiline = false, maxLength, ...props }: { label: string; value: string; onChangeText: (value: string) => void; placeholder: string; keyboardType?: "default" | "decimal-pad"; multiline?: boolean; maxLength?: number }) { return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><FormTextInput {...props} maxLength={maxLength} multiline={multiline} placeholderTextColor="#93A099" style={[styles.input, multiline && styles.multiline]} /></View>; }
 function ActionButton({ label, onPress, disabled = false, secondary = false, danger = false }: { label: string; onPress: () => void; disabled?: boolean; secondary?: boolean; danger?: boolean }) { return <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.actionButton, secondary && styles.secondaryButton, danger && styles.dangerButton, (pressed || disabled) && styles.disabled]}><Text style={[styles.actionText, secondary && styles.secondaryButtonText, danger && styles.dangerText]}>{label}</Text></Pressable>; }
 function LoadingLine() { return <View style={styles.loadingLine}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.meta}>Loading...</Text></View>; }
 function EmptyLine({ copy }: { copy: string }) { return <Text style={styles.empty}>{copy}</Text>; }

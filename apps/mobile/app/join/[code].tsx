@@ -4,10 +4,8 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,6 +14,7 @@ import {
   validatePublicReferralCode,
 } from "../../src/modules/public-referral";
 import { colors } from "../../src/theme/colors";
+import { FormTextInput, Screen } from "../../src/components/Screen";
 
 export default function PublicJoinScreen() {
   const params = useLocalSearchParams<{ code?: string | string[] }>();
@@ -48,8 +47,7 @@ export default function PublicJoinScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.page}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <Screen contentContainerStyle={styles.content} keyboardAware scroll>
         <Text style={styles.eyebrow}>MASJID E MAMOOR 2</Text>
         <Text style={styles.title}>Request membership</Text>
         {referral.data.referrerDisplayName ? (
@@ -66,7 +64,7 @@ export default function PublicJoinScreen() {
           <View style={styles.card}>
             <Text style={styles.body}>Enter your name and phone number. No account is created at this step.</Text>
             <Text style={styles.label}>Name</Text>
-            <TextInput
+            <FormTextInput
               autoCapitalize="words"
               onChangeText={setDisplayName}
               placeholder="Full name"
@@ -75,7 +73,7 @@ export default function PublicJoinScreen() {
               value={displayName}
             />
             <Text style={styles.label}>Phone</Text>
-            <TextInput
+            <FormTextInput
               autoCapitalize="none"
               keyboardType="phone-pad"
               onChangeText={setPhone}
@@ -90,8 +88,7 @@ export default function PublicJoinScreen() {
             </Pressable>
           </View>
         )}
-      </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 

@@ -4,10 +4,8 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -16,6 +14,7 @@ import { useAuth } from "../../../../src/auth/AuthProvider";
 import { loadCapabilities } from "../../../../src/modules/capabilities";
 import { changeMemberStatus, getMember, updateMember } from "../../../../src/modules/data";
 import { colors } from "../../../../src/theme/colors";
+import { FormTextInput, Screen } from "../../../../src/components/Screen";
 
 export default function MemberDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,9 +47,14 @@ export default function MemberDetailScreen() {
   const currentMember = member.data;
 
   return (
-    <ScrollView
+    <Screen
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={member.isRefetching} onRefresh={() => void member.refetch()} tintColor={colors.deepEmerald} />}
+      edges={["left", "right", "bottom"]}
+      keyboardAware
+      scroll
+      scrollViewProps={{
+        refreshControl: <RefreshControl refreshing={member.isRefetching} onRefresh={() => void member.refetch()} tintColor={colors.deepEmerald} />,
+      }}
     >
       <Text style={styles.eyebrow}>MEMBER DETAIL</Text>
       <Text style={styles.title}>{currentMember.displayName}</Text>
@@ -75,7 +79,7 @@ export default function MemberDetailScreen() {
           }}
         />
       ) : null}
-    </ScrollView>
+    </Screen>
   );
 }
 
@@ -145,11 +149,11 @@ function MemberEditor({
     <View style={styles.card}>
       <Text style={styles.cardTitle}>Edit member</Text>
       <Text style={styles.label}>Display name</Text>
-      <TextInput onChangeText={setDisplayName} style={styles.input} value={displayName} />
+      <FormTextInput onChangeText={setDisplayName} style={styles.input} value={displayName} />
       <Text style={styles.label}>Phone</Text>
-      <TextInput autoCapitalize="none" keyboardType="phone-pad" onChangeText={setPhone} style={styles.input} value={phone} />
+      <FormTextInput autoCapitalize="none" keyboardType="phone-pad" onChangeText={setPhone} style={styles.input} value={phone} />
       <Text style={styles.label}>Reason (optional)</Text>
-      <TextInput onChangeText={setReason} multiline style={[styles.input, styles.reason]} value={reason} />
+      <FormTextInput onChangeText={setReason} multiline style={[styles.input, styles.reason]} value={reason} />
       <Pressable disabled={saving} onPress={() => void saveProfile()} style={styles.primaryButton}><Text style={styles.primaryText}>{saving ? "Saving..." : "Save changes"}</Text></Pressable>
       <Pressable disabled={saving} onPress={confirmStatusChange} style={styles.secondaryButton}><Text style={styles.secondaryText}>{member.status === "active" ? "Deactivate member" : "Activate member"}</Text></Pressable>
     </View>

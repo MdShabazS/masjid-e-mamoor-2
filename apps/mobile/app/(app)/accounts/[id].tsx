@@ -3,10 +3,8 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -30,6 +28,7 @@ import {
   type AccountProvisionRole,
 } from "../../../src/modules/accounts";
 import { colors, roleLabels } from "../../../src/theme/colors";
+import { FormTextInput, Screen } from "../../../src/components/Screen";
 
 export default function AccountDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -171,8 +170,7 @@ export default function AccountDetailScreen() {
   }
 
   return (
-    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
-      <ScrollView contentContainerStyle={styles.content}>
+    <Screen contentContainerStyle={styles.content} edges={["left", "right", "bottom"]} keyboardAware scroll>
         <Text style={styles.eyebrow}>ACCOUNT</Text>
         <Text style={styles.title}>{target.username ?? "Username not set"}</Text>
         {target.displayName ? (
@@ -224,7 +222,7 @@ export default function AccountDetailScreen() {
         ) : null}
 
         <Text style={styles.sectionTitle}>Username</Text>
-        <TextInput
+        <FormTextInput
           autoCapitalize="none"
           onChangeText={setUsernameDraft}
           placeholder="Username"
@@ -343,8 +341,7 @@ export default function AccountDetailScreen() {
             {resetPassword.isPending ? "Resetting..." : "Reset password"}
           </Text>
         </Pressable>
-      </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 

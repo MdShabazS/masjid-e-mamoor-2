@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { router } from "expo-router";
 import { useAuth } from "../../src/auth/AuthProvider";
 import type { MobileMemberProfile } from "../../src/auth/types";
 import { updateOwnMemberProfile } from "../../src/modules/data";
-import { Screen } from "../../src/components/Screen";
+import { FormTextInput, Screen } from "../../src/components/Screen";
 import { colors, roleLabels } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/tokens";
 
@@ -58,7 +58,7 @@ function MemberProfileEditor({ profile, onSaved }: { profile: MobileMemberProfil
     }
   }
 
-  return <View style={styles.card}><Text style={styles.cardTitle}>Membership details</Text><Text style={styles.label}>Membership status</Text><Text style={[styles.value, profile.status === "active" ? styles.success : styles.inactive]}>{profile.status === "active" ? "Active" : "Inactive"}</Text><Text style={styles.label}>Display name</Text><TextInput onChangeText={setDisplayName} returnKeyType="next" style={styles.input} value={displayName} /><Text style={styles.label}>Phone</Text><TextInput autoCapitalize="none" keyboardType="phone-pad" onChangeText={setPhone} returnKeyType="done" style={styles.input} value={phone} /><Pressable disabled={saving} onPress={() => void save()} style={({ pressed }) => [styles.primaryButton, (pressed || saving) && styles.pressed]}><Text style={styles.primaryButtonText}>{saving ? "Saving..." : "Save membership details"}</Text></Pressable></View>;
+  return <View style={styles.card}><Text style={styles.cardTitle}>Membership details</Text><Text style={styles.label}>Membership status</Text><Text style={[styles.value, profile.status === "active" ? styles.success : styles.inactive]}>{profile.status === "active" ? "Active" : "Inactive"}</Text><Text style={styles.label}>Display name</Text><FormTextInput onChangeText={setDisplayName} returnKeyType="next" style={styles.input} value={displayName} /><Text style={styles.label}>Phone</Text><FormTextInput autoCapitalize="none" keyboardType="phone-pad" onChangeText={setPhone} returnKeyType="done" style={styles.input} value={phone} /><Pressable disabled={saving} onPress={() => void save()} style={({ pressed }) => [styles.primaryButton, (pressed || saving) && styles.pressed]}><Text style={styles.primaryButtonText}>{saving ? "Saving..." : "Save membership details"}</Text></Pressable></View>;
 }
 
 const styles = StyleSheet.create({

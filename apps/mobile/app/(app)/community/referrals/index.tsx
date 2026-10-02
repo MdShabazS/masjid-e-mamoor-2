@@ -4,11 +4,9 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,6 +27,7 @@ import { loadCapabilities } from "../../../../src/modules/capabilities";
 import type { MobileReferral } from "../../../../src/modules/types";
 import { referralStatusLabel } from "../../../../src/modules/presentation";
 import { colors } from "../../../../src/theme/colors";
+import { FormTextInput, Screen } from "../../../../src/components/Screen";
 
 function referralUrl(code: string) {
   const { apiUrl } = getMobileConfig();
@@ -146,11 +145,15 @@ export default function ReferralsScreen() {
   }
 
   return (
-    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={Boolean((capabilities.data.canManageReferrals ? managedReferrals : ownReferrals).isRefetching)} onRefresh={() => void refetch()} tintColor={colors.deepEmerald} />}
-      >
+    <Screen
+      contentContainerStyle={styles.content}
+      edges={["left", "right", "bottom"]}
+      keyboardAware
+      scroll
+      scrollViewProps={{
+        refreshControl: <RefreshControl refreshing={Boolean((capabilities.data.canManageReferrals ? managedReferrals : ownReferrals).isRefetching)} onRefresh={() => void refetch()} tintColor={colors.deepEmerald} />,
+      }}
+    >
         <Text style={styles.eyebrow}>MEMBERSHIP</Text>
         <Text style={styles.title}>{capabilities.data.canManageReferrals ? "Referral management" : "Referrals"}</Text>
         {capabilities.data.canManageReferrals ? (
@@ -160,7 +163,7 @@ export default function ReferralsScreen() {
           <View style={styles.provisionForm}>
             <Text style={styles.cardTitle}>Reject membership request</Text>
             <Text style={styles.meta}>Add an optional reason for the applicant.</Text>
-            <TextInput maxLength={500} multiline onChangeText={setRejectionReason} placeholder="Optional reason" placeholderTextColor="#9EA9A3" style={[styles.provisionInput, styles.reasonInput]} value={rejectionReason} />
+            <FormTextInput maxLength={500} multiline onChangeText={setRejectionReason} placeholder="Optional reason" placeholderTextColor="#9EA9A3" style={[styles.provisionInput, styles.reasonInput]} value={rejectionReason} />
             <View style={styles.actionRow}>
               <Pressable disabled={reject.isPending} onPress={submitReject} style={styles.rejectSmall}><Text style={styles.rejectText}>{reject.isPending ? "Rejecting..." : "Reject"}</Text></Pressable>
               <Pressable disabled={reject.isPending} onPress={() => { setRejectingReferral(null); setRejectionReason(""); }} style={styles.secondarySmall}><Text style={styles.secondaryText}>Cancel</Text></Pressable>
@@ -177,8 +180,8 @@ export default function ReferralsScreen() {
           <View style={styles.provisionForm}>
             <Text style={styles.cardTitle}>Provision approved referral</Text>
             <Text style={styles.meta}>A temporary password will be generated and shown once.</Text>
-            <TextInput autoCapitalize="none" onChangeText={setProvisionUsername} placeholder="New member username" placeholderTextColor="#9EA9A3" style={styles.provisionInput} value={provisionUsername} />
-            <TextInput autoCapitalize="none" onChangeText={setProvisionPassword} placeholder="Optional temporary password" placeholderTextColor="#9EA9A3" secureTextEntry style={styles.provisionInput} value={provisionPassword} />
+            <FormTextInput autoCapitalize="none" onChangeText={setProvisionUsername} placeholder="New member username" placeholderTextColor="#9EA9A3" style={styles.provisionInput} value={provisionUsername} />
+            <FormTextInput autoCapitalize="none" onChangeText={setProvisionPassword} placeholder="Optional temporary password" placeholderTextColor="#9EA9A3" secureTextEntry style={styles.provisionInput} value={provisionPassword} />
             <View style={styles.actionRow}>
               <Pressable disabled={!provisionUsername.trim()} onPress={() => void submitProvision()} style={styles.primarySmall}><Text style={styles.primaryText}>Provision</Text></Pressable>
               <Pressable onPress={() => { setProvisioningReferral(null); setProvisionUsername(""); setProvisionPassword(""); }} style={styles.secondarySmall}><Text style={styles.secondaryText}>Cancel</Text></Pressable>
@@ -195,8 +198,7 @@ export default function ReferralsScreen() {
         {isError ? <ErrorState onRetry={() => void refetch()} /> : null}
         {!isLoading && !isError && referrals.length === 0 ? <EmptyState managed={capabilities.data.canManageReferrals} /> : null}
         {referrals.map((referral) => <ReferralCard key={referral.id} managed={capabilities.data.canManageReferrals} referral={referral} busy={approve.isPending || reject.isPending} onShare={() => void shareReferral(referral)} onApprove={() => confirmApprove(referral)} onReject={() => beginReject(referral)} onProvision={() => void provision(referral)} />)}
-      </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 

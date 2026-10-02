@@ -6,7 +6,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { router } from "expo-router";
@@ -32,7 +31,7 @@ import {
   paymentStatusLabel,
 } from "../../../src/modules/donation-presentation";
 import { colors } from "../../../src/theme/colors";
-import { Screen } from "../../../src/components/Screen";
+import { FormTextInput, Screen } from "../../../src/components/Screen";
 
 const methods: DonationPaymentMethod[] = ["upi", "cash", "bank_transfer", "other"];
 
@@ -248,7 +247,7 @@ export default function DonationsScreen() {
 function SectionTitle({ title }: { title: string }) { return <Text style={styles.sectionTitle}>{title}</Text>; }
 function MoneyRow({ label, value, emphasized = false }: { label: string; value: number; emphasized?: boolean }) { return <View style={styles.moneyRow}><Text style={[styles.meta, emphasized && styles.emphasized]}>{label}</Text><Text style={[styles.moneyValue, emphasized && styles.emphasized]}>{formatPaise(value)}</Text></View>; }
 function StatusBadge({ label, success = false, danger = false }: { label: string; success?: boolean; danger?: boolean }) { return <Text style={[styles.badge, success && styles.badgeSuccess, danger && styles.badgeDanger]}>{label}</Text>; }
-function Field({ label, ...props }: { label: string; value: string; onChangeText: (value: string) => void; placeholder: string; keyboardType?: "default" | "decimal-pad" }) { return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><TextInput {...props} placeholderTextColor="#93A099" style={styles.input} /></View>; }
+function Field({ label, ...props }: { label: string; value: string; onChangeText: (value: string) => void; placeholder: string; keyboardType?: "default" | "decimal-pad" }) { return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><FormTextInput {...props} placeholderTextColor="#93A099" style={styles.input} /></View>; }
 function PrimaryButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) { return <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.primaryButton, (pressed || disabled) && styles.disabled]}><Text style={styles.primaryText}>{label}</Text></Pressable>; }
 function LoadingState() { return <Screen contentContainerStyle={styles.centerState}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateCopy}>Loading donations...</Text></Screen>; }
 function AccessState() { return <Screen contentContainerStyle={styles.content}><Text style={styles.eyebrow}>DONATION V1</Text><Text style={styles.title}>Donations</Text><Text style={styles.stateCopy}>Donation tools are not available for this account.</Text></Screen>; }

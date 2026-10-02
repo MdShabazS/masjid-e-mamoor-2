@@ -1,19 +1,15 @@
 import { useState } from "react";
 import {
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../../src/auth/AuthProvider";
 import { colors } from "../../src/theme/colors";
+import { FormTextInput, Screen } from "../../src/components/Screen";
 
 export default function SignInScreen() {
   const { signIn } = useAuth();
@@ -37,13 +33,8 @@ export default function SignInScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.page}>
-      <KeyboardAvoidingView
-        style={styles.fill}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <StatusBar style="light" />
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <Screen backgroundColor={colors.darkEmerald} contentContainerStyle={styles.content} keyboardAware scroll>
+      <StatusBar style="light" />
         <View style={styles.brandMark}>
           <View style={styles.brandMarkInner} />
         </View>
@@ -55,7 +46,7 @@ export default function SignInScreen() {
 
         <View style={styles.form}>
           <Text style={styles.label}>Username</Text>
-          <TextInput
+          <FormTextInput
             autoCapitalize="none"
             autoComplete="username"
             autoCorrect={false}
@@ -69,7 +60,7 @@ export default function SignInScreen() {
             value={username}
           />
           <Text style={styles.label}>Password</Text>
-          <TextInput
+          <FormTextInput
             autoCapitalize="none"
             autoComplete="current-password"
             autoCorrect={false}
@@ -93,15 +84,11 @@ export default function SignInScreen() {
             <Text style={styles.buttonText}>{submitting ? "Signing in..." : "Sign In"}</Text>
           </Pressable>
         </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.darkEmerald },
-  fill: { flex: 1 },
   content: { flexGrow: 1, justifyContent: "center", padding: 28 },
   brandMark: {
     alignItems: "center",
