@@ -8,6 +8,7 @@ import type {
   ApplicationUserStatus,
 } from "@masjid-e-mamoor/types";
 import { createMobileAuthClient } from "@/lib/supabase/mobile-auth";
+import { mapTrustedAccountMutationError } from "@/lib/accounts/errors";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -324,19 +325,6 @@ async function getMemberDisplayNames(accountIds: string[]) {
   );
 }
 
-async function countActiveSystemAdmins() {
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("application_user_roles")
-    .select("application_user_id, roles!inner(key), application_users!inner(status)")
-    .eq("roles.key", "system_admin")
-    .eq("application_users.status", "active");
-
-  if (error) throw error;
-
-  return data?.length ?? 0;
-}
-
 export async function listAccounts(accessToken?: string) {
   const actor = await requireCurrentAccount(accessToken);
 
@@ -631,44 +619,15 @@ export async function changeAccountRole(
   role: AccountRole,
   accessToken?: string,
 ) {
-  const actor = await requireCurrentAccount(accessToken);
-  const target = await getAccountById(accountId);
-  assertCanManageAccount(actor, target);
-  assertCanCreateRole(actor, role);
-
-  if (target.role === "system_admin") {
-    if (target.id === actor.id || (await countActiveSystemAdmins()) <= 1) {
-      throw new Error("last_system_admin");
-    }
-  }
-
-  const admin = createAdminClient();
-  const { data: roleRow, error: roleError } = await admin
-    .from("roles")
-    .select("id")
-    .eq("key", role)
-    .single();
-
-  if (roleError || !roleRow) throw new Error("invalid_role");
-
-  const { error } = await admin
-    .from("application_user_roles")
-    .upsert(
-      {
-        application_user_id: accountId,
-        role_id: roleRow.id,
-      },
-      { onConflict: "application_user_id" },
-    );
-
-  if (error) throw error;
-
-  await insertAudit({
-    actorId: actor.id,
-    targetId: accountId,
-    eventType: "role.changed",
-    metadata: { role },
+  const supabase = accessToken
+    ? createMobileAuthClient(accessToken)
+    : await createClient();
+  const { error } = await supabase.rpc("change_account_role", {
+    p_target_application_user_id: accountId,
+    p_role_key: role,
   });
+
+  if (error) throw mapTrustedAccountMutationError(error.message);
 }
 
 export async function changeAccountStatus(
@@ -676,42 +635,15 @@ export async function changeAccountStatus(
   status: "active" | "deactivated",
   accessToken?: string,
 ) {
-  const actor = await requireCurrentAccount(accessToken);
-  const target = await getAccountById(accountId);
-  assertCanManageAccount(actor, target);
-
-  if (
-    target.role === "system_admin" &&
-    target.id === actor.id &&
-    status === "deactivated"
-  ) {
-    throw new Error("not_authorized");
-  }
-
-  if (
-    target.role === "system_admin" &&
-    status === "deactivated"
-  ) {
-    if ((await countActiveSystemAdmins()) <= 1) {
-      throw new Error("last_system_admin");
-    }
-  }
-
-  const admin = createAdminClient();
-  const { error } = await admin
-    .from("application_users")
-    .update({ status })
-    .eq("id", accountId);
-
-  if (error) throw error;
-
-  await insertAudit({
-    actorId: actor.id,
-    targetId: accountId,
-    eventType:
-      status === "active" ? "account.activated" : "account.deactivated",
-    metadata: {},
+  const supabase = accessToken
+    ? createMobileAuthClient(accessToken)
+    : await createClient();
+  const { error } = await supabase.rpc("change_account_status", {
+    p_target_application_user_id: accountId,
+    p_status: status,
   });
+
+  if (error) throw mapTrustedAccountMutationError(error.message);
 }
 
 export async function changeOwnPassword(password: string) {

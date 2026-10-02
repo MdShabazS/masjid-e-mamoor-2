@@ -10,6 +10,7 @@ import {
   usernamePasswordLoginSchema,
 } from "@masjid-e-mamoor/validation";
 import { APPLICATION_ROLES } from "@masjid-e-mamoor/types";
+import { mapTrustedAccountMutationError } from "@/lib/accounts/errors";
 
 const repoFile = (path: string) => resolve(process.cwd(), "../..", path);
 
@@ -78,6 +79,23 @@ describe("account validation", () => {
 });
 
 describe("Auth V2 account administration security boundaries", () => {
+  it("preserves trusted account mutation error semantics", () => {
+    for (const code of [
+      "not_authorized",
+      "last_system_admin",
+      "invalid_role",
+      "not_found",
+    ]) {
+      expect(mapTrustedAccountMutationError(`database error: ${code}`).message).toBe(
+        code,
+      );
+    }
+
+    expect(mapTrustedAccountMutationError("unexpected database error").message).toBe(
+      "account_update_failed",
+    );
+  });
+
   it("adds the System Admin role and account permissions in migration 025", () => {
     const migration = readFileSync(
       repoFile(
@@ -161,7 +179,8 @@ describe("Auth V2 account administration security boundaries", () => {
     expect(server).toContain("const actor = await requireCurrentAccount(accessToken)");
     expect(server).toContain("accessToken?: string,\n) {\n  const actor = await requireCurrentAccount(accessToken)");
     expect(server).toContain("assertCanManageAccount(actor, target)");
-    expect(server).toContain("assertCanCreateRole(actor, role)");
+    expect(server).toContain("assertCanCreateRole(actor, input.role)");
+    expect(server).toContain("createMobileAuthClient(accessToken)");
   });
 
   it("uses the trusted admin client for mobile password changes", () => {
@@ -200,9 +219,30 @@ describe("Auth V2 account administration security boundaries", () => {
     expect(server).toContain('if (role === "system_admin")');
     expect(server).toContain('if (actor.role === "president")');
     expect(server).toContain("assertPresidentCanManageRole(target.role)");
-    expect(server).toContain("target.id === actor.id || (await countActiveSystemAdmins()) <= 1");
-    expect(server).toContain("target.id === actor.id &&\n    status === \"deactivated\"");
-    expect(server).toContain("(await countActiveSystemAdmins()) <= 1");
+    expect(server).toContain('supabase.rpc("change_account_role"');
+    expect(server).toContain('supabase.rpc("change_account_status"');
+    expect(server).not.toContain("countActiveSystemAdmins");
+  });
+
+  it("uses transactional trusted operations for role and status changes", () => {
+    const migration = readFileSync(
+      repoFile(
+        "supabase/migrations/20261002215202_account_admin_system_admin_invariant.sql",
+      ),
+      "utf8",
+    );
+
+    expect(migration).toContain(
+      "create or replace function public.change_account_role",
+    );
+    expect(migration).toContain(
+      "create or replace function public.change_account_status",
+    );
+    expect(migration).toContain("pg_advisory_xact_lock(1296387405, 1)");
+    expect(migration).toContain("raise exception 'last_system_admin'");
+    expect(migration).toContain("insert into public.account_security_events");
+    expect(migration).toContain("set search_path = pg_catalog, public");
+    expect(migration).toContain("from public, anon");
   });
 
   it("persists an account display name without using the username as a fallback", () => {
