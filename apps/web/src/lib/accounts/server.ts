@@ -9,6 +9,11 @@ import type {
 } from "@masjid-e-mamoor/types";
 import { createMobileAuthClient } from "@/lib/supabase/mobile-auth";
 import { mapTrustedAccountMutationError } from "@/lib/accounts/errors";
+import {
+  AccountProvisioningError,
+  provisionAccountAcrossBoundaries,
+  type AccountProvisioningReconciliation,
+} from "@/lib/accounts/provisioning";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -388,6 +393,85 @@ export async function getAccountById(accountId: string) {
   return mapAccount(data, roles.get(String(data.id)) ?? "member");
 }
 
+async function reconcileProvisionedAccount(input: {
+  actorApplicationUserId: string;
+  authUserId: string;
+  authLoginEmail: string;
+  username: string;
+  usernameNormalized: string;
+  displayName: string;
+  role: AccountRole;
+  phone: string | null;
+}): Promise<AccountProvisioningReconciliation> {
+  const admin = createAdminClient();
+  const { data: account, error: accountError } = await admin
+    .from("application_users")
+    .select(
+      "id, auth_login_email, username, username_normalized, display_name, status, must_change_password",
+    )
+    .eq("auth_user_id", input.authUserId)
+    .maybeSingle();
+
+  if (accountError) throw new Error("account_reconciliation_failed");
+  if (!account) return { state: "absent" };
+
+  const accountId = String(account.id);
+  const { data: roles, error: rolesError } = await admin
+    .from("application_user_roles")
+    .select("roles!inner(key)")
+    .eq("application_user_id", accountId);
+  const { data: profiles, error: profilesError } = await admin
+    .from("member_profiles")
+    .select("display_name, phone, status")
+    .eq("application_user_id", accountId);
+  const { data: audits, error: auditsError } = await admin
+    .from("account_security_events")
+    .select("id, actor_application_user_id, metadata")
+    .eq("target_application_user_id", accountId)
+    .eq("event_type", "account.created");
+
+  if (rolesError || profilesError || auditsError) {
+    throw new Error("account_reconciliation_failed");
+  }
+
+  const roleKeys = (roles ?? []).map((row) => {
+    const role = row.roles;
+    return role && !Array.isArray(role)
+      ? String((role as { key?: unknown }).key)
+      : null;
+  });
+  const expectedProfile = input.role === "member";
+  const profile = profiles?.[0];
+  const matchingAudits = (audits ?? []).filter(
+    (audit) =>
+      audit.metadata &&
+      !Array.isArray(audit.metadata) &&
+      audit.actor_application_user_id === input.actorApplicationUserId &&
+      String((audit.metadata as { role?: unknown }).role) === input.role,
+  );
+  const matches =
+    account.auth_login_email === input.authLoginEmail &&
+    account.username === input.username &&
+    account.username_normalized === input.usernameNormalized &&
+    account.display_name === input.displayName &&
+    account.status === "active" &&
+    account.must_change_password === true &&
+    roleKeys.length === 1 &&
+    roleKeys[0] === input.role &&
+    audits?.length === 1 &&
+    matchingAudits.length === 1 &&
+    (expectedProfile
+      ? profiles?.length === 1 &&
+        profile?.display_name === input.displayName &&
+        (profile.phone ?? null) === input.phone &&
+        profile.status === "active"
+      : profiles?.length === 0);
+
+  return matches
+    ? { state: "committed", accountId }
+    : { state: "conflict" };
+}
+
 export async function createAccount(input: {
   username: string;
   role: AccountRole;
@@ -407,87 +491,89 @@ export async function createAccount(input: {
     throw new Error("invalid_display_name");
   }
 
-  const admin = createAdminClient();
   const authEmail = internalAuthEmail();
+  const username = input.username.trim();
+  const phone = input.phone?.trim() || null;
+  const admin = createAdminClient();
+  const actorClient = accessToken
+    ? createMobileAuthClient(accessToken)
+    : await createClient();
 
-  const { data: created, error: createError } =
-    await admin.auth.admin.createUser({
-      email: authEmail,
-      password,
-      email_confirm: true,
-    });
-
-  if (createError || !created.user) {
-    throw new Error("account_create_failed");
-  }
-
-  let applicationUserId: string | null = null;
-
-  try {
-    const { data: account, error: accountError } = await admin
-      .from("application_users")
-      .insert({
-        auth_user_id: created.user.id,
-        auth_login_email: authEmail,
-        username: input.username.trim(),
-        username_normalized: usernameNormalized,
-        display_name: displayName,
-        status: "active",
-        must_change_password: true,
-        credential_updated_at: new Date().toISOString(),
-      })
-      .select("id")
-      .single();
-
-    if (accountError || !account) throw accountError;
-
-    applicationUserId = String(account.id);
-
-    const { data: role, error: roleError } = await admin
-      .from("roles")
-      .select("id")
-      .eq("key", input.role)
-      .single();
-
-    if (roleError || !role) throw roleError;
-
-    const { error: roleInsertError } = await admin
-      .from("application_user_roles")
-      .insert({
-        application_user_id: applicationUserId,
-        role_id: role.id,
+  const result = await provisionAccountAcrossBoundaries({
+    async createAuthUser() {
+      const { data, error } = await admin.auth.admin.createUser({
+        email: authEmail,
+        password,
+        email_confirm: true,
       });
 
-    if (roleInsertError) throw roleInsertError;
+      if (error || !data.user) {
+        throw new AccountProvisioningError("account_create_failed");
+      }
 
-    if (input.role === "member") {
-      const { error: memberError } = await admin
-        .from("member_profiles")
-        .insert({
-          application_user_id: applicationUserId,
-          display_name: displayName,
-          phone: input.phone?.trim() || null,
-          status: "active",
-        });
+      return data.user.id;
+    },
+    async finalizeDatabase(authUserId) {
+      const { data, error } = await actorClient.rpc(
+        "finalize_account_provisioning",
+        {
+          p_auth_user_id: authUserId,
+          p_auth_login_email: authEmail,
+          p_username: username,
+          p_username_normalized: usernameNormalized,
+          p_display_name: displayName,
+          p_role_key: input.role,
+          p_phone: phone,
+        },
+      );
 
-      if (memberError) throw memberError;
-    }
+      if (error) {
+        const safeCode = [
+          "not_authorized",
+          "invalid_username",
+          "invalid_display_name",
+          "account_create_conflict",
+        ].find((code) => error.message.includes(code));
+        throw new AccountProvisioningError(
+          (safeCode ?? "account_create_failed") as
+            | "not_authorized"
+            | "invalid_username"
+            | "invalid_display_name"
+            | "account_create_conflict"
+            | "account_create_failed",
+        );
+      }
 
-    await insertAudit({
-      actorId: actor.id,
-      targetId: applicationUserId,
-      eventType: "account.created",
-      metadata: { role: input.role },
-    });
+      if (!data) throw new AccountProvisioningError("account_create_failed");
+      return String(data);
+    },
+    reconcileDatabase(authUserId) {
+      return reconcileProvisionedAccount({
+        actorApplicationUserId: actor.id,
+        authUserId,
+        authLoginEmail: authEmail,
+        username,
+        usernameNormalized,
+        displayName,
+        role: input.role,
+        phone,
+      });
+    },
+    async deleteAuthUser(authUserId) {
+      const { error } = await admin.auth.admin.deleteUser(authUserId);
+      if (error) throw new Error("auth_cleanup_failed");
+    },
+    observeReconciliationRequired(authUserId) {
+      console.error("Account provisioning requires manual reconciliation.", {
+        authUserId,
+      });
+    },
+  });
 
-    return {
-      accountId: applicationUserId,
-      temporaryPassword: password,
-    };
-  } catch (error) {
-    await admin.auth.admin.deleteUser(created.user.id);
-    throw error;
-  }
+  return {
+    accountId: result.accountId,
+    temporaryPassword: password,
+  };
 }
 
 export async function changeAccountUsername(

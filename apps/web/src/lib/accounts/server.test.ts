@@ -256,14 +256,34 @@ describe("Auth V2 account administration security boundaries", () => {
       ),
       "utf8",
     );
+    const finalizationMigration = readFileSync(
+      repoFile(
+        "supabase/migrations/20261003040051_atomic_account_database_finalization.sql",
+      ),
+      "utf8",
+    );
 
-    expect(server).toContain("display_name: displayName");
-    expect(server).toContain('if (input.role === "member")');
+    expect(server).toContain("p_display_name: displayName");
+    expect(finalizationMigration).toContain("if p_role_key = 'member' then");
+    expect(finalizationMigration).toContain("p_display_name");
     expect(server).not.toContain(
       "input.displayName?.trim() || input.username.trim()",
     );
     expect(migration).toMatch(
       /update public\.application_users au\s+set display_name = btrim\(mp\.display_name\)/,
+    );
+  });
+
+  it("finalizes provisioning with the actor-authenticated client", () => {
+    const server = readFileSync(
+      repoFile("apps/web/src/lib/accounts/server.ts"),
+      "utf8",
+    );
+
+    expect(server).toContain("const actorClient = accessToken");
+    expect(server).toContain('actorClient.rpc(\n        "finalize_account_provisioning"');
+    expect(server).not.toContain(
+      'admin.rpc("finalize_account_provisioning"',
     );
   });
 });
