@@ -468,6 +468,8 @@ export async function rejectDonationPayment(input: {
 
 export async function verifyAndAllocateDonationPayment(input: {
   paymentId: string;
+  financeAccountId: string;
+  businessDate: string;
   operationId: string;
 }): Promise<DonationPayment> {
   const supabase = await createClient();
@@ -476,6 +478,8 @@ export async function verifyAndAllocateDonationPayment(input: {
     "verify_and_allocate_donation_payment",
     {
       p_payment_id: input.paymentId,
+      p_finance_account_id: input.financeAccountId,
+      p_business_date: input.businessDate,
       p_operation_id: input.operationId,
     },
   );

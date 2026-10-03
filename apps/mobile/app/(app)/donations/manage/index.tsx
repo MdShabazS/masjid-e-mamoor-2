@@ -29,6 +29,7 @@ import {
   waiveDonationObligation,
   type DonationPaymentProof,
 } from "../../../../src/modules/donations";
+import { listActiveFinanceAccounts } from "../../../../src/modules/finance";
 import {
   formatDonationDate,
   formatDonationMonth,
@@ -40,8 +41,11 @@ import {
 import { colors } from "../../../../src/theme/colors";
 import { FormTextInput, Screen } from "../../../../src/components/Screen";
 import {
+  formatIsoDateInput,
   formatIsoMonthInput,
+  isValidIsoDate,
   isValidIsoMonth,
+  isoDateInputError,
   isoMonthInputError,
 } from "../../../../src/lib/date-input";
 
@@ -55,9 +59,16 @@ export default function DonationManagementScreen() {
   const [generationMonth, setGenerationMonth] = useState("");
   const [anonymousAmount, setAnonymousAmount] = useState("");
   const [jummahAmount, setJummahAmount] = useState("");
+  const [verification, setVerification] = useState({
+    paymentId: "",
+    financeAccountId: "",
+    businessDate: "",
+  });
 
   const ruleMonthError = isoMonthInputError(rule.month);
   const generationMonthError = isoMonthInputError(generationMonth);
+  const verificationDateError =
+    isoDateInputError(verification.businessDate);
 
   const capabilities = useQuery({
     queryKey: ["capabilities", account?.id],
@@ -86,7 +97,18 @@ export default function DonationManagementScreen() {
     enabled: canManage && capabilities.data?.canManageObligations === true,
   });
 
-  const refreshAll = () => queryClient.invalidateQueries({ queryKey: ["donations"] });
+  const financeAccounts = useQuery({
+    queryKey: ["finance", "accounts", "active", account?.id],
+    queryFn: listActiveFinanceAccounts,
+    enabled:
+      canManage &&
+      capabilities.data?.canVerifyAndAllocatePayments === true,
+  });
+
+  const refreshAll = () =>
+    queryClient.invalidateQueries({
+      queryKey: ["donations"],
+    });
   const actionError = (title: string, copy: string) => () => Alert.alert(title, copy);
   const review = useMutation({
     mutationFn: startDonationPaymentReview,
@@ -103,9 +125,27 @@ export default function DonationManagementScreen() {
     onError: actionError("Payment could not be rejected", "Check the reason and payment state, then try again."),
   });
   const verify = useMutation({
-    mutationFn: verifyAndAllocateDonationPayment,
-    onSuccess: refreshAll,
-    onError: actionError("Payment could not be verified", "This payment can no longer be verified."),
+    mutationFn: (input: {
+      paymentId: string;
+      financeAccountId: string;
+      businessDate: string;
+    }) => verifyAndAllocateDonationPayment(input),
+    onSuccess: async () => {
+      setVerification({
+        paymentId: "",
+        financeAccountId: "",
+        businessDate: "",
+      });
+      await refreshAll();
+      Alert.alert(
+        "Payment verified",
+        "The payment was allocated and posted to the selected Finance account.",
+      );
+    },
+    onError: actionError(
+      "Payment could not be verified",
+      "Check the payment state, Finance account, and business date, then try again.",
+    ),
   });
   const waive = useMutation({
     mutationFn: () => waiveDonationObligation(waiver.obligationId, waiver.amount, waiver.reason),
@@ -168,6 +208,9 @@ export default function DonationManagementScreen() {
     if (capabilities.data?.canManageObligations) {
       requests.push(snapshot.refetch(), rules.refetch());
     }
+    if (capabilities.data?.canVerifyAndAllocatePayments) {
+      requests.push(financeAccounts.refetch());
+    }
     await Promise.all(requests);
   }
 
@@ -180,12 +223,40 @@ export default function DonationManagementScreen() {
   }
 
   function confirmVerify(payment: DonationPayment) {
+    const selectedAccount = financeAccounts.data?.find(
+      (item) => item.id === verification.financeAccountId,
+    );
+
+    if (!selectedAccount) {
+      Alert.alert(
+        "Finance account required",
+        "Select the active Finance account that received this payment.",
+      );
+      return;
+    }
+
+    if (!isValidIsoDate(verification.businessDate)) {
+      Alert.alert(
+        "Business date required",
+        "Enter a valid business date in YYYY-MM-DD format.",
+      );
+      return;
+    }
+
     Alert.alert(
-      "Verify and allocate payment?",
-      `Verify ${formatPaise(payment.amountPaise)} and apply the backend allocation rules?`,
+      "Verify, allocate and post payment?",
+      `Verify ${formatPaise(payment.amountPaise)} and post it to ${selectedAccount.name} using business date ${verification.businessDate}?`,
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Verify and allocate", onPress: () => verify.mutate(payment.id) },
+        {
+          text: "Verify and post",
+          onPress: () =>
+            verify.mutate({
+              paymentId: payment.id,
+              financeAccountId: selectedAccount.id,
+              businessDate: verification.businessDate,
+            }),
+        },
       ],
     );
   }
@@ -210,7 +281,12 @@ export default function DonationManagementScreen() {
   if (!canManage || !resolvedCapabilities) return <PageState copy="Donation management is not available for this account." />;
 
   const reviewQueue = payments.data?.filter((payment) => payment.status === "submitted" || payment.status === "under_review") ?? [];
-  const refreshing = payments.isRefetching || proofs.isRefetching || snapshot.isRefetching || rules.isRefetching;
+  const refreshing =
+    payments.isRefetching ||
+    proofs.isRefetching ||
+    snapshot.isRefetching ||
+    rules.isRefetching ||
+    financeAccounts.isRefetching;
 
   return (
     <Screen
@@ -254,11 +330,147 @@ export default function DonationManagementScreen() {
                       <ActionButton secondary label="Cancel" onPress={() => { setRejectingPaymentId(null); setRejectionReason(""); }} />
                     </View>
                   </View>
+                ) : verification.paymentId === payment.id ? (
+                  <View style={styles.inlineForm}>
+                    <Text style={styles.fieldLabel}>
+                      Receiving Finance account
+                    </Text>
+
+                    {financeAccounts.isLoading ? <LoadingLine /> : null}
+
+                    {financeAccounts.isError ? (
+                      <InlineError
+                        onRetry={() =>
+                          void financeAccounts.refetch()
+                        }
+                      />
+                    ) : null}
+
+                    {!financeAccounts.isLoading &&
+                    !financeAccounts.isError &&
+                    (financeAccounts.data?.length ?? 0) === 0 ? (
+                      <EmptyLine copy="No active Finance account is available. Create or activate one before verifying this payment." />
+                    ) : null}
+
+                    {(financeAccounts.data ?? []).map((financeAccount) => (
+                      <Pressable
+                        key={financeAccount.id}
+                        onPress={() =>
+                          setVerification((current) => ({
+                            ...current,
+                            financeAccountId:
+                              financeAccount.id,
+                          }))
+                        }
+                        style={[
+                          styles.obligationChoice,
+                          verification.financeAccountId ===
+                            financeAccount.id &&
+                            styles.obligationChoiceActive,
+                        ]}
+                      >
+                        <View>
+                          <Text style={styles.cardTitle}>
+                            {financeAccount.name}
+                          </Text>
+                          <Text style={styles.meta}>
+                            {financeAccount.accountType.toUpperCase()} ·{" "}
+                            {financeAccount.currency}
+                          </Text>
+                        </View>
+
+                        {verification.financeAccountId ===
+                        financeAccount.id ? (
+                          <Text style={styles.outstanding}>
+                            Selected
+                          </Text>
+                        ) : null}
+                      </Pressable>
+                    ))}
+
+                    <Field
+                      label="Business date"
+                      value={verification.businessDate}
+                      onChangeText={(businessDate) =>
+                        setVerification((current) => ({
+                          ...current,
+                          businessDate: formatIsoDateInput(
+                            businessDate,
+                            current.businessDate,
+                          ),
+                        }))
+                      }
+                      placeholder="YYYY-MM-DD"
+                      keyboardType="number-pad"
+                      maxLength={10}
+                      error={verificationDateError}
+                    />
+
+                    <View style={styles.actionRow}>
+                      <ActionButton
+                        disabled={
+                          verify.isPending ||
+                          !verification.financeAccountId ||
+                          !isValidIsoDate(
+                            verification.businessDate,
+                          )
+                        }
+                        label={
+                          verify.isPending
+                            ? "Posting..."
+                            : "Verify, allocate + post"
+                        }
+                        onPress={() => confirmVerify(payment)}
+                      />
+
+                      <ActionButton
+                        secondary
+                        label="Cancel"
+                        onPress={() =>
+                          setVerification({
+                            paymentId: "",
+                            financeAccountId: "",
+                            businessDate: "",
+                          })
+                        }
+                      />
+                    </View>
+                  </View>
                 ) : (
                   <View style={styles.actionRow}>
-                    {payment.status === "submitted" ? <ActionButton disabled={review.isPending} label="Start review" onPress={() => review.mutate(payment.id)} /> : null}
-                    {payment.status === "under_review" && resolvedCapabilities.canVerifyAndAllocatePayments ? <ActionButton disabled={verify.isPending} label="Verify + allocate" onPress={() => confirmVerify(payment)} /> : null}
-                    <ActionButton danger label="Reject" onPress={() => { setRejectingPaymentId(payment.id); setRejectionReason(""); }} />
+                    {payment.status === "submitted" ? (
+                      <ActionButton
+                        disabled={review.isPending}
+                        label="Start review"
+                        onPress={() =>
+                          review.mutate(payment.id)
+                        }
+                      />
+                    ) : null}
+
+                    {payment.status === "under_review" &&
+                    resolvedCapabilities.canVerifyAndAllocatePayments ? (
+                      <ActionButton
+                        disabled={verify.isPending}
+                        label="Verify + allocate"
+                        onPress={() =>
+                          setVerification({
+                            paymentId: payment.id,
+                            financeAccountId: "",
+                            businessDate: "",
+                          })
+                        }
+                      />
+                    ) : null}
+
+                    <ActionButton
+                      danger
+                      label="Reject"
+                      onPress={() => {
+                        setRejectingPaymentId(payment.id);
+                        setRejectionReason("");
+                      }}
+                    />
                   </View>
                 )}
               </View>

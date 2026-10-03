@@ -53,6 +53,27 @@ export interface MemberPageCursor {
   id: string;
 }
 
+export type FinanceAccountType =
+  | "bank"
+  | "upi"
+  | "cash"
+  | "other";
+
+export type FinanceAccountStatus =
+  | "active"
+  | "inactive"
+  | "closed";
+
+export interface FinanceAccount {
+  id: string;
+  name: string;
+  accountType: FinanceAccountType;
+  status: FinanceAccountStatus;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type DonationPaymentStatus =
   | "submitted"
   | "under_review"

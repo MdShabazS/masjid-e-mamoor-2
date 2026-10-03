@@ -166,7 +166,33 @@ describe("donation payment presentation and payload validation", () => {
     expect(donationPaymentReviewSchema.safeParse({ paymentId, operationId: "op-2" }).success).toBe(true);
     expect(donationPaymentRejectSchema.safeParse({ paymentId, reason: "Duplicate payment", operationId: "op-3" }).success).toBe(true);
     expect(donationPaymentRejectSchema.safeParse({ paymentId, reason: "", operationId: "op-4" }).success).toBe(false);
-    expect(donationPaymentVerifySchema.safeParse({ paymentId, operationId: "op-5" }).success).toBe(true);
+    expect(
+      donationPaymentVerifySchema.safeParse({
+        paymentId,
+        financeAccountId:
+          "00000000-0000-4000-8000-000000000003",
+        businessDate: "2026-10-04",
+        operationId: "op-5",
+      }).success,
+    ).toBe(true);
+
+    expect(
+      donationPaymentVerifySchema.safeParse({
+        paymentId,
+        businessDate: "2026-10-04",
+        operationId: "op-6",
+      }).success,
+    ).toBe(false);
+
+    expect(
+      donationPaymentVerifySchema.safeParse({
+        paymentId,
+        financeAccountId:
+          "00000000-0000-4000-8000-000000000003",
+        businessDate: "2026-02-31",
+        operationId: "op-7",
+      }).success,
+    ).toBe(false);
   });
 });
 

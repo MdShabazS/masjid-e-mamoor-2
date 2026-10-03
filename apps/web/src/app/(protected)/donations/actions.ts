@@ -192,11 +192,19 @@ export async function rejectPayment(formData: FormData) {
 export async function verifyPayment(formData: FormData) {
   const parsed = donationPaymentVerifySchema.safeParse({
     paymentId: String(formData.get("paymentId") ?? ""),
+    financeAccountId: String(
+      formData.get("financeAccountId") ?? "",
+    ),
+    businessDate: String(
+      formData.get("businessDate") ?? "",
+    ),
     operationId: randomUUID(),
   });
 
   if (!parsed.success) {
-    redirect("/donations/manage?error=invalid_payment");
+    redirect(
+      "/donations/manage?error=invalid_finance_posting",
+    );
   }
 
   try {

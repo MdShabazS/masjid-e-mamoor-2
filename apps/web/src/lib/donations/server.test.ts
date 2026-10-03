@@ -12,6 +12,7 @@ import {
   donationObligationWaiverSchema,
   donationPaymentRejectSchema,
   donationPaymentSubmitSchema,
+  donationPaymentVerifySchema,
   jummahCashDonationCreateSchema,
 } from "@masjid-e-mamoor/validation";
 
@@ -60,6 +61,42 @@ describe("donation validation", () => {
         amountPaise: 99,
         paymentMethod: "upi",
         operationId: "payment-op-2",
+      }),
+    ).toThrow();
+  });
+
+  it("requires an account and valid business date for payment verification", () => {
+    expect(
+      donationPaymentVerifySchema.parse({
+        paymentId:
+          "77000000-0000-4000-8000-000000000001",
+        financeAccountId:
+          "76000000-0000-4000-8000-000000000001",
+        businessDate: "2026-10-04",
+        operationId: "verify-op-1",
+      }),
+    ).toMatchObject({
+      businessDate: "2026-10-04",
+    });
+
+    expect(() =>
+      donationPaymentVerifySchema.parse({
+        paymentId:
+          "77000000-0000-4000-8000-000000000001",
+        financeAccountId:
+          "76000000-0000-4000-8000-000000000001",
+        businessDate: "2026-02-31",
+        operationId: "verify-op-2",
+      }),
+    ).toThrow();
+
+    expect(() =>
+      donationPaymentVerifySchema.parse({
+        paymentId:
+          "77000000-0000-4000-8000-000000000001",
+        financeAccountId: "",
+        businessDate: "2026-10-04",
+        operationId: "verify-op-3",
       }),
     ).toThrow();
   });

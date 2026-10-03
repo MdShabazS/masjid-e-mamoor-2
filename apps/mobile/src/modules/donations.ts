@@ -236,12 +236,26 @@ export async function rejectDonationPayment(paymentId: string, reason: string) {
   if (error) throw new Error("rejection_failed");
 }
 
-export async function verifyAndAllocateDonationPayment(paymentId: string) {
-  const input = donationPaymentVerifySchema.parse({ paymentId, operationId: randomUUID() });
-  const { error } = await supabase.rpc("verify_and_allocate_donation_payment", {
-    p_payment_id: input.paymentId,
-    p_operation_id: input.operationId,
+export async function verifyAndAllocateDonationPayment(input: {
+  paymentId: string;
+  financeAccountId: string;
+  businessDate: string;
+}) {
+  const parsed = donationPaymentVerifySchema.parse({
+    ...input,
+    operationId: randomUUID(),
   });
+
+  const { error } = await supabase.rpc(
+    "verify_and_allocate_donation_payment",
+    {
+      p_payment_id: parsed.paymentId,
+      p_finance_account_id: parsed.financeAccountId,
+      p_business_date: parsed.businessDate,
+      p_operation_id: parsed.operationId,
+    },
+  );
+
   if (error) throw new Error("verification_failed");
 }
 
