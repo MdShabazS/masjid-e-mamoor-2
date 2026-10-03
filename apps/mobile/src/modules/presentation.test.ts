@@ -6,6 +6,8 @@ describe("mobile workspace presentation", () => {
     expect(
       visibleWorkspaceModules({
         canManageAccounts: false,
+        canReadFinanceAccounts: false,
+        canManageFinanceAccounts: false,
         canReadMembers: false,
         canUpdateMembers: false,
         canCreateReferral: false,
@@ -32,6 +34,8 @@ describe("mobile workspace presentation", () => {
   it("shows account administration only for resolved account managers", () => {
     const capabilities: MobileCapabilities = {
       canManageAccounts: true,
+      canReadFinanceAccounts: false,
+      canManageFinanceAccounts: false,
       canReadMembers: false,
       canUpdateMembers: false,
       canCreateReferral: false,
@@ -57,6 +61,38 @@ describe("mobile workspace presentation", () => {
       "profile",
       "accounts",
       "work",
+    ]);
+  });
+
+  it("shows Finance workspace from resolved Finance read permission", () => {
+    const capabilities: MobileCapabilities = {
+      canManageAccounts: false,
+      canReadFinanceAccounts: true,
+      canManageFinanceAccounts: false,
+      canReadMembers: false,
+      canUpdateMembers: false,
+      canCreateReferral: false,
+      canUseReferrals: false,
+      canManageReferrals: false,
+      canReadDonations: false,
+      canSubmitPayment: false,
+      canUploadProof: false,
+      canCreateAdditionalDonation: false,
+      canReviewPayments: false,
+      canAllocatePayments: false,
+      canVerifyAndAllocatePayments: false,
+      canManageObligations: false,
+      canCreateAnonymousDonation: false,
+      canCreateJummahCashDonation: false,
+      canManageDonations: false,
+      canReadCommitteeTasks: false,
+      canManageCommitteeTasks: false,
+      canAssignCommitteeTasks: false,
+    };
+
+    expect(visibleWorkspaceModules(capabilities)).toEqual([
+      "profile",
+      "finance",
     ]);
   });
 

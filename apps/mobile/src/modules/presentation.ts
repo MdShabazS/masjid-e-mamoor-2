@@ -8,6 +8,7 @@ export function visibleWorkspaceModules(capabilities: MobileCapabilities) {
   if (capabilities.canUseReferrals) modules.push("referrals");
   if (capabilities.canReadCommitteeTasks) modules.push("work");
   if (capabilities.canReadDonations) modules.push("donations");
+  if (capabilities.canReadFinanceAccounts) modules.push("finance");
   return modules;
 }
 

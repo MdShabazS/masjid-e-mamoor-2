@@ -30,6 +30,7 @@ export default function AppLayout() {
       <Tabs.Screen name="index" options={{ tabBarAccessibilityLabel: "Home", tabBarIcon: ({ color }) => <TabIcon color={color} name="home" />, title: "Home" }} />
       <Tabs.Screen name="community" options={{ tabBarAccessibilityLabel: "Community", tabBarIcon: ({ color }) => <TabIcon color={color} name="community" />, title: "Community" }} />
       <Tabs.Screen name="accounts" options={{ href: null }} />
+      <Tabs.Screen name="finance" options={{ href: null }} />
       <Tabs.Screen
         name="work"
         options={{

@@ -88,6 +88,24 @@ export default function HomeScreen() {
             <Text style={styles.arrow}>›</Text>
           </Pressable>
         ) : null}
+        {visibleModules.includes("finance") ? (
+          <Pressable
+            onPress={() => router.push("/finance/accounts")}
+            style={styles.module}
+          >
+            <View style={styles.moduleText}>
+              <Text style={styles.moduleTitle}>
+                Finance
+              </Text>
+              <Text style={styles.moduleCopy}>
+                {capabilities.data?.canManageFinanceAccounts
+                  ? "Finance accounts, balances, and account administration"
+                  : "Review Finance accounts and balances"}
+              </Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </Pressable>
+        ) : null}
         {visibleModules.includes("work") ? (
           <Pressable onPress={() => router.push("/work")} style={styles.module}>
             <View style={styles.moduleText}>

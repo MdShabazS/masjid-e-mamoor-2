@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { canManageAccounts, getCurrentAccount, listAccounts } from "@/lib/accounts/server";
 import { getDonationManagementCapabilities } from "@/lib/donations/server";
+import { getFinanceAccountCapabilities } from "@/lib/finance/server";
 import { hasAdminMemberReadAccess } from "@/lib/members/server";
 import { canUseReferrals } from "@/lib/referrals/server";
 
@@ -13,10 +14,18 @@ export default async function DashboardPage() {
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims) redirect("/login");
 
-  const [account, canOpenMemberManagement, donationCapabilities, canOpenAccountManagement, canOpenReferrals] = await Promise.all([
+  const [
+    account,
+    canOpenMemberManagement,
+    donationCapabilities,
+    financeCapabilities,
+    canOpenAccountManagement,
+    canOpenReferrals,
+  ] = await Promise.all([
     getCurrentAccount(),
     hasAdminMemberReadAccess(),
     getDonationManagementCapabilities(),
+    getFinanceAccountCapabilities(),
     canManageAccounts(),
     canUseReferrals(),
   ]);
@@ -31,6 +40,7 @@ export default async function DashboardPage() {
     { href: "/referrals", title: "Referrals", description: "Track member referrals and onboarding progress.", visible: canOpenReferrals },
     { href: "/members", title: "Members", description: "Review member information within your authorized scope.", visible: canOpenMemberManagement },
     { href: "/donations/manage", title: "Donation Management", description: "Review payments and manage donation operations.", visible: canOpenDonationManagement },
+    { href: "/finance/accounts", title: "Finance Accounts", description: "Review Finance accounts, balances, and authorized account lifecycle actions.", visible: financeCapabilities.canReadAccounts },
     { href: "/accounts", title: "Account Administration", description: "Manage usernames, roles, status, and password setup.", visible: canOpenAccountManagement },
   ].filter((module) => module.visible);
 

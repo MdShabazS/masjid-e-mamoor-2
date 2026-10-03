@@ -10,6 +10,8 @@ import {
 
 export interface MobileCapabilities {
   canManageAccounts: boolean;
+  canReadFinanceAccounts: boolean;
+  canManageFinanceAccounts: boolean;
   canReadMembers: boolean;
   canUpdateMembers: boolean;
   canCreateReferral: boolean;
@@ -54,6 +56,8 @@ export async function loadCapabilities(
     obligationsManage,
     anonymousCreate,
     jummahCreate,
+    financeAccountsRead,
+    financeAccountsManage,
     committeeTasksRead,
     committeeTasksManage,
     committeeTasksAssign,
@@ -70,6 +74,8 @@ export async function loadCapabilities(
     hasPermission("donations.obligations.manage"),
     hasPermission("donations.anonymous.create"),
     hasPermission("donations.jummah.create"),
+    hasPermission("finance.accounts.read"),
+    hasPermission("finance.accounts.manage"),
     hasPermission("committee.tasks.read"),
     hasPermission("committee.tasks.manage"),
     hasPermission("committee.tasks.assign"),
@@ -97,6 +103,8 @@ export async function loadCapabilities(
   return {
     canManageAccounts:
       account.role === "system_admin" || account.role === "president",
+    canReadFinanceAccounts: financeAccountsRead,
+    canManageFinanceAccounts: financeAccountsManage,
     canReadMembers: !memberRead.error && memberRead.data === true,
     canUpdateMembers: memberUpdate,
     canCreateReferral,

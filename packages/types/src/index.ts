@@ -74,6 +74,11 @@ export interface FinanceAccount {
   updatedAt: string;
 }
 
+export interface FinanceAccountSnapshot
+  extends FinanceAccount {
+  balancePaise: number;
+}
+
 export type DonationPaymentStatus =
   | "submitted"
   | "under_review"

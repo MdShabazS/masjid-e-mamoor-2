@@ -138,6 +138,41 @@ export const accountStatusChangeSchema = z.object({
   status: accountStatusSchema,
 });
 
+export const financeOperationIdSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200);
+
+export const financeAccountTypeSchema = z.enum([
+  "bank",
+  "upi",
+  "cash",
+  "other",
+]);
+
+export const financeAccountStatusSchema = z.enum([
+  "active",
+  "inactive",
+  "closed",
+]);
+
+export const financeAccountCreateSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Account name is required.")
+    .max(120, "Account name must be 120 characters or fewer."),
+  accountType: financeAccountTypeSchema,
+  operationId: financeOperationIdSchema,
+});
+
+export const financeAccountStatusChangeSchema = z.object({
+  financeAccountId: z.string().uuid(),
+  status: financeAccountStatusSchema,
+  operationId: financeOperationIdSchema,
+});
+
 export const referralCodeSchema = z
   .string()
   .trim()
