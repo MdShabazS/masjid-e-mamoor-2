@@ -97,9 +97,36 @@ describe("Referral onboarding V1 security boundaries", () => {
       "utf8",
     );
 
-    expect(server).toContain("createAccount({");
-    expect(server).toContain('role: "member"');
-    expect(server).not.toContain("admin.auth.admin.createUser");
+    expect(server).toContain("provisionReferralAcrossBoundaries({");
+    expect(server).toContain('"finalize_referral_member_provisioning"');
+    expect(server).toContain("admin.auth.admin.createUser");
+    expect(server).not.toContain("createAccount({");
+    expect(server).not.toContain('.from("referrals")\n    .update(');
+    expect(server).not.toContain(
+      '.from("referral_operation_idempotency")\n    .insert(',
+    );
+    expect(server).not.toContain('.from("referral_audit_events")\n    .insert(');
     expect(server).not.toContain("role: input");
+
+    const precheckStart = server.indexOf("async precheckDatabase()");
+    const createAuthStart = server.indexOf("async createAuthUser()");
+    const finalizeStart = server.indexOf("async finalizeDatabase(authUserId)");
+
+    expect(precheckStart).toBeGreaterThanOrEqual(0);
+    expect(createAuthStart).toBeGreaterThan(precheckStart);
+    expect(finalizeStart).toBeGreaterThan(createAuthStart);
+
+    const precheckSection = server.slice(precheckStart, createAuthStart);
+    const createAuthSection = server.slice(createAuthStart, finalizeStart);
+
+    expect(precheckSection).toContain('.from("referrals")');
+    expect(precheckSection).toContain('referral.status !== "approved"');
+    expect(precheckSection).toContain('"referral_not_approved"');
+    expect(precheckSection).toContain('"phone_already_member"');
+
+    expect(createAuthSection).toContain("admin.auth.admin.createUser");
+    expect(createAuthSection).not.toContain("referral.status");
+    expect(createAuthSection).not.toContain('"referral_not_approved"');
+    expect(createAuthSection).not.toContain('"phone_already_member"');
   });
 });

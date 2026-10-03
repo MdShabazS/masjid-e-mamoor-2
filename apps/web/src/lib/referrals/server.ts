@@ -4,8 +4,19 @@ import { createHash, randomUUID } from "node:crypto";
 import { cache } from "react";
 
 import type { AccountRecord } from "@/lib/accounts/server";
-import { createAccount, getCurrentAccount, requireCurrentAccount } from "@/lib/accounts/server";
+import {
+  generateTemporaryPassword,
+  getCurrentAccount,
+  requireCurrentAccount,
+  validatePasswordPolicy,
+  validateUsernamePolicy,
+} from "@/lib/accounts/server";
 import { getOwnMemberProfile, hasPermission } from "@/lib/members/server";
+import {
+  provisionReferralAcrossBoundaries,
+  ReferralProvisioningError,
+  type ReferralProvisioningReconciliation,
+} from "@/lib/referrals/provisioning";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createMobileAuthClient } from "@/lib/supabase/mobile-auth";
@@ -77,6 +88,10 @@ function fingerprint(value: unknown) {
   return createHash("sha256")
     .update(JSON.stringify(value))
     .digest("hex");
+}
+
+function internalAuthEmail() {
+  return `${randomUUID()}@auth.masjid.local`;
 }
 
 export const canManageReferrals = cache(async function canManageReferrals() {
@@ -229,111 +244,319 @@ export async function completeReferralProvisioning(input: {
   assertCanManageReferrals(actor);
 
   const admin = createAdminClient();
-  const { data: referral, error: referralError } = await admin
-    .from("referrals")
-    .select(
-      "id, status, applicant_display_name, applicant_phone, referred_application_user_id, referred_member_profile_id",
-    )
-    .eq("id", input.referralId)
-    .single();
-
-  if (referralError || !referral) throw new Error("referral_not_found");
-
+  const usernameNormalized = validateUsernamePolicy(input.username);
+  const username = input.username.trim();
+  const password = input.password ?? generateTemporaryPassword();
+  validatePasswordPolicy(password);
   const requestFingerprint = fingerprint({
     referralId: input.referralId,
-    username: input.username.trim().toLowerCase(),
+    username: usernameNormalized,
   });
+  const authEmail = internalAuthEmail();
+  const actorClient = accessToken
+    ? createMobileAuthClient(accessToken)
+    : await createClient();
 
-  const { data: existingOperation, error: operationError } = await admin
-    .from("referral_operation_idempotency")
-    .select("operation_type, actor_application_user_id, referral_id, request_fingerprint")
-    .eq("operation_id", input.operationId)
-    .maybeSingle();
+  async function reconcileDatabase(
+    authUserId: string | null,
+  ): Promise<ReferralProvisioningReconciliation> {
+    const { data: operation, error: operationError } = await admin
+      .from("referral_operation_idempotency")
+      .select(
+        "operation_type, actor_application_user_id, referral_id, request_fingerprint",
+      )
+      .eq("operation_id", input.operationId.trim())
+      .maybeSingle();
 
-  if (operationError) throw operationError;
+    if (operationError) throw new Error("referral_reconciliation_failed");
 
-  if (existingOperation) {
-    if (
-      existingOperation.operation_type !== "referral_complete" ||
-      existingOperation.actor_application_user_id !== actor.id ||
-      existingOperation.referral_id !== input.referralId ||
-      existingOperation.request_fingerprint !== requestFingerprint
-    ) {
-      throw new Error("operation_id_conflict");
+    if (!operation) {
+      if (!authUserId) return { state: "absent" };
+
+      const { data: authReference, error: authReferenceError } = await admin
+        .from("application_users")
+        .select("id")
+        .eq("auth_user_id", authUserId)
+        .maybeSingle();
+
+      if (authReferenceError) {
+        throw new Error("referral_reconciliation_failed");
+      }
+
+      return authReference ? { state: "conflict" } : { state: "absent" };
     }
 
-    return { temporaryPassword: null };
+    if (
+      operation.operation_type !== "referral_complete" ||
+      operation.actor_application_user_id !== actor.id ||
+      operation.referral_id !== input.referralId ||
+      operation.request_fingerprint !== requestFingerprint
+    ) {
+      return { state: "conflict" };
+    }
+
+    const { data: referral, error: referralError } = await admin
+      .from("referrals")
+      .select(
+        "status, referred_application_user_id, referred_member_profile_id, completed_by_application_user_id, completed_at",
+      )
+      .eq("id", input.referralId)
+      .maybeSingle();
+
+    if (referralError) throw new Error("referral_reconciliation_failed");
+    if (
+      !referral ||
+      referral.status !== "completed" ||
+      !referral.referred_application_user_id ||
+      !referral.referred_member_profile_id ||
+      referral.completed_by_application_user_id !== actor.id ||
+      !referral.completed_at
+    ) {
+      return { state: "conflict" };
+    }
+
+    const accountId = String(referral.referred_application_user_id);
+    const memberProfileId = String(referral.referred_member_profile_id);
+    const [accountResult, rolesResult, profilesResult, accountAuditsResult, referralAuditsResult] =
+      await Promise.all([
+        admin
+          .from("application_users")
+          .select("id, auth_user_id")
+          .eq("id", accountId)
+          .maybeSingle(),
+        admin
+          .from("application_user_roles")
+          .select("roles!inner(key)")
+          .eq("application_user_id", accountId),
+        admin
+          .from("member_profiles")
+          .select("id, application_user_id")
+          .eq("application_user_id", accountId),
+        admin
+          .from("account_security_events")
+          .select("id, actor_application_user_id, metadata")
+          .eq("target_application_user_id", accountId)
+          .eq("event_type", "account.created"),
+        admin
+          .from("referral_audit_events")
+          .select("id, actor_application_user_id, metadata")
+          .eq("referral_id", input.referralId)
+          .eq("event_type", "referral.completed"),
+      ]);
+
+    if (
+      accountResult.error ||
+      rolesResult.error ||
+      profilesResult.error ||
+      accountAuditsResult.error ||
+      referralAuditsResult.error
+    ) {
+      throw new Error("referral_reconciliation_failed");
+    }
+
+    const roleKeys = (rolesResult.data ?? []).map((row) => {
+      const role = row.roles;
+      return role && !Array.isArray(role)
+        ? String((role as { key?: unknown }).key)
+        : null;
+    });
+    const profile = profilesResult.data?.[0];
+    const matchingAccountAudits = (accountAuditsResult.data ?? []).filter(
+      (audit) =>
+        audit.actor_application_user_id === actor.id &&
+        audit.metadata &&
+        !Array.isArray(audit.metadata) &&
+        String((audit.metadata as { role?: unknown }).role) === "member",
+    );
+    const matchingReferralAudits = (referralAuditsResult.data ?? []).filter(
+      (audit) =>
+        audit.actor_application_user_id === actor.id &&
+        audit.metadata &&
+        !Array.isArray(audit.metadata) &&
+        String(
+          (audit.metadata as { application_user_id?: unknown })
+            .application_user_id,
+        ) === accountId,
+    );
+
+    if (
+      !accountResult.data ||
+      roleKeys.length !== 1 ||
+      roleKeys[0] !== "member" ||
+      profilesResult.data?.length !== 1 ||
+      String(profile?.id) !== memberProfileId ||
+      String(profile?.application_user_id) !== accountId ||
+      accountAuditsResult.data?.length !== 1 ||
+      matchingAccountAudits.length !== 1 ||
+      referralAuditsResult.data?.length !== 1 ||
+      matchingReferralAudits.length !== 1
+    ) {
+      return { state: "conflict" };
+    }
+
+    if (!authUserId) {
+      return { state: "committed_to_existing_account", accountId };
+    }
+
+    if (accountResult.data.auth_user_id === authUserId) {
+      return { state: "committed_to_this_auth", accountId };
+    }
+
+    const { data: unexpectedReference, error: unexpectedReferenceError } =
+      await admin
+        .from("application_users")
+        .select("id")
+        .eq("auth_user_id", authUserId)
+        .maybeSingle();
+
+    if (unexpectedReferenceError) {
+      throw new Error("referral_reconciliation_failed");
+    }
+
+    return unexpectedReference
+      ? { state: "conflict" }
+      : { state: "committed_to_existing_account", accountId };
   }
 
-  if (referral.status !== "approved") {
-    throw new Error("referral_not_approved");
-  }
+  const result = await provisionReferralAcrossBoundaries({
+    async precheckDatabase() {
+      const reconciliation = await reconcileDatabase(null);
 
-  const { data: existingMember, error: existingMemberError } = await admin
-    .from("member_profiles")
-    .select("id")
-    .eq("phone", asString(referral.applicant_phone))
-    .eq("status", "active")
-    .maybeSingle();
+      if (reconciliation.state === "committed_to_existing_account") {
+        return {
+          state: "committed",
+          accountId: reconciliation.accountId,
+        };
+      }
 
-  if (existingMemberError) throw existingMemberError;
-  if (existingMember) throw new Error("phone_already_member");
+      if (reconciliation.state === "conflict") {
+        throw new ReferralProvisioningError("operation_id_conflict");
+      }
 
-  const result = await createAccount({
-    username: input.username,
-    role: "member",
-    password: input.password,
-    displayName: asString(referral.applicant_display_name),
-    phone: asString(referral.applicant_phone),
-  }, accessToken);
+      const { data: referral, error: referralError } = await admin
+        .from("referrals")
+        .select("status, applicant_phone")
+        .eq("id", input.referralId)
+        .maybeSingle();
 
-  const { data: memberProfile, error: memberError } = await admin
-    .from("member_profiles")
-    .select("id")
-    .eq("application_user_id", result.accountId)
-    .single();
+      if (referralError || !referral) {
+        throw new ReferralProvisioningError("referral_not_found");
+      }
 
-  if (memberError || !memberProfile) throw new Error("member_profile_missing");
+      if (referral.status !== "approved") {
+        throw new ReferralProvisioningError("referral_not_approved");
+      }
 
-  const now = new Date().toISOString();
-  const { data: completedReferral, error: updateError } = await admin
-    .from("referrals")
-    .update({
-      status: "completed",
-      referred_application_user_id: result.accountId,
-      referred_member_profile_id: memberProfile.id,
-      completed_at: now,
-      completed_by_application_user_id: actor.id,
-    })
-    .eq("id", input.referralId)
-    .eq("status", "approved")
-    .select("id")
-    .single();
+      if (!referral.applicant_phone) {
+        throw new ReferralProvisioningError(
+          "referral_provisioning_conflict",
+        );
+      }
 
-  if (updateError || !completedReferral) throw new Error("referral_not_approved");
+      const { data: existingMember, error: existingMemberError } = await admin
+        .from("member_profiles")
+        .select("id")
+        .eq("phone", asString(referral.applicant_phone))
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
 
-  const { error: operationInsertError } = await admin
-    .from("referral_operation_idempotency")
-    .insert({
-      operation_id: input.operationId,
-      operation_type: "referral_complete",
-      actor_application_user_id: actor.id,
-      referral_id: input.referralId,
-      request_fingerprint: requestFingerprint,
-    });
+      if (existingMemberError) {
+        throw new ReferralProvisioningError("referral_provisioning_failed");
+      }
 
-  if (operationInsertError) throw operationInsertError;
+      if (existingMember) {
+        throw new ReferralProvisioningError("phone_already_member");
+      }
 
-  const { error: auditError } = await admin
-    .from("referral_audit_events")
-    .insert({
-      referral_id: input.referralId,
-      actor_application_user_id: actor.id,
-      event_type: "referral.completed",
-      metadata: { application_user_id: result.accountId },
-    });
+      return { state: "absent" };
+    },
 
-  if (auditError) throw auditError;
+    async createAuthUser() {
+      const { data, error } = await admin.auth.admin.createUser({
+        email: authEmail,
+        password,
+        email_confirm: true,
+      });
 
-  return { temporaryPassword: result.temporaryPassword };
+      if (error || !data.user) {
+        throw new ReferralProvisioningError("referral_provisioning_failed");
+      }
+
+      return data.user.id;
+    },
+
+    async finalizeDatabase(authUserId) {
+      const { data, error } = await actorClient.rpc(
+        "finalize_referral_member_provisioning",
+        {
+          p_referral_id: input.referralId,
+          p_operation_id: input.operationId,
+          p_auth_user_id: authUserId,
+          p_auth_login_email: authEmail,
+          p_username: username,
+          p_username_normalized: usernameNormalized,
+        },
+      );
+
+      if (error) {
+        const safeCode = [
+          "not_authorized",
+          "invalid_username",
+          "referral_not_found",
+          "referral_not_approved",
+          "phone_already_member",
+          "operation_id_conflict",
+          "referral_provisioning_conflict",
+        ].find((code) => error.message.includes(code));
+
+        throw new ReferralProvisioningError(
+          (safeCode ?? "referral_provisioning_failed") as
+            | "not_authorized"
+            | "invalid_username"
+            | "referral_not_found"
+            | "referral_not_approved"
+            | "phone_already_member"
+            | "operation_id_conflict"
+            | "referral_provisioning_conflict"
+            | "referral_provisioning_failed",
+        );
+      }
+
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        throw new ReferralProvisioningError("referral_provisioning_failed");
+      }
+
+      const row = data as DbRow;
+      if (
+        !row.application_user_id ||
+        typeof row.used_supplied_auth_user !== "boolean"
+      ) {
+        throw new ReferralProvisioningError("referral_provisioning_failed");
+      }
+
+      return {
+        accountId: asString(row.application_user_id),
+        usedSuppliedAuthUser: row.used_supplied_auth_user,
+      };
+    },
+    reconcileDatabase,
+    async deleteAuthUser(authUserId) {
+      const { error } = await admin.auth.admin.deleteUser(authUserId);
+      if (error) throw new Error("auth_cleanup_failed");
+    },
+    observeReconciliationRequired(reason, authUserId) {
+      console.error("Referral provisioning requires manual reconciliation.", {
+        referralId: input.referralId,
+        operationId: input.operationId,
+        authUserId,
+        reason,
+      });
+    },
+  });
+
+  return {
+    accountId: result.accountId,
+    temporaryPassword: result.exposeCreatedCredential ? password : null,
+  };
 }
