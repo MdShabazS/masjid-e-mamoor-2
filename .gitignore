@@ -22,3 +22,4 @@ web-build/
 
 # Local database backups
 .local-backups/
+.vercel/
