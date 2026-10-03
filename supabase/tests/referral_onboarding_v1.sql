@@ -198,246 +198,9 @@ begin
     'PASS: identical referral creation replay is idempotent';
 end $$;
 
--- ------------------------------------------------------------
--- Complete referral as authenticated referred person
--- ------------------------------------------------------------
-
-RESET ROLE;
-
-select referral_code as referral_code
-from public.referrals
-where referrer_member_profile_id =
-  '30000000-0000-0000-0000-000000000001'
-  and status = 'pending'
-limit 1
-\gset
-
-SET LOCAL ROLE authenticated;
-
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
-  true
-);
-
-select public.complete_referral_registration(
-  :'referral_code',
-  'Referred Person',
-  '+919000000002',
-  'ref-complete-core-001'
-);
-
-RESET ROLE;
-
--- ------------------------------------------------------------
--- Verify resulting application identity
--- ------------------------------------------------------------
-
-DO $$
-declare
-  v_app_id uuid;
-  v_app_status text;
-  v_role_key text;
-  v_member_id uuid;
-  v_member_status text;
-  v_display_name text;
-  v_referral_status text;
-  v_referral_app uuid;
-  v_referral_member uuid;
-begin
-  select
-    id,
-    status
-  into
-    v_app_id,
-    v_app_status
-  from public.application_users
-  where auth_user_id =
-    '10000000-0000-0000-0000-000000000002';
-
-  if v_app_id is null then
-    raise exception
-      'FAIL: referred application user not created';
-  end if;
-
-  if v_app_status <> 'pending' then
-    raise exception
-      'FAIL: expected application status pending, got %',
-      v_app_status;
-  end if;
-
-  select r.key
-  into v_role_key
-  from public.application_user_roles aur
-  join public.roles r
-    on r.id = aur.role_id
-  where aur.application_user_id = v_app_id;
-
-  if v_role_key <> 'member' then
-    raise exception
-      'FAIL: expected member role, got %',
-      v_role_key;
-  end if;
-
-  select
-    id,
-    status,
-    display_name
-  into
-    v_member_id,
-    v_member_status,
-    v_display_name
-  from public.member_profiles
-  where application_user_id = v_app_id;
-
-  if v_member_id is null then
-    raise exception
-      'FAIL: referred member profile not created';
-  end if;
-
-  if v_member_status <> 'active' then
-    raise exception
-      'FAIL: expected active member profile, got %',
-      v_member_status;
-  end if;
-
-  if v_display_name <> 'Referred Person' then
-    raise exception
-      'FAIL: member profile display name mismatch';
-  end if;
-
-  select
-    status,
-    referred_application_user_id,
-    referred_member_profile_id
-  into
-    v_referral_status,
-    v_referral_app,
-    v_referral_member
-  from public.referrals
-  where referrer_member_profile_id =
-    '30000000-0000-0000-0000-000000000001';
-
-  if v_referral_status <> 'completed' then
-    raise exception
-      'FAIL: expected completed referral, got %',
-      v_referral_status;
-  end if;
-
-  if v_referral_app <> v_app_id then
-    raise exception
-      'FAIL: referral application-user linkage mismatch';
-  end if;
-
-  if v_referral_member <> v_member_id then
-    raise exception
-      'FAIL: referral member-profile linkage mismatch';
-  end if;
-
-  raise notice
-    'PASS: referred application user created';
-
-  raise notice
-    'PASS: application user starts pending';
-
-  raise notice
-    'PASS: default member role assigned';
-
-  raise notice
-    'PASS: member profile created and linked';
-
-  raise notice
-    'PASS: referral transitioned pending -> completed';
-end $$;
-
--- ------------------------------------------------------------
--- Completion identical replay
--- ------------------------------------------------------------
-
-SET LOCAL ROLE authenticated;
-
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
-  true
-);
-
-select public.complete_referral_registration(
-  :'referral_code',
-  'Referred Person',
-  '+919000000002',
-  'ref-complete-core-001'
-);
-
-RESET ROLE;
-
-DO $$
-declare
-  v_app_count integer;
-  v_member_count integer;
-  v_referral_count integer;
-  v_operation_count integer;
-begin
-  select count(*)
-  into v_app_count
-  from public.application_users
-  where auth_user_id =
-    '10000000-0000-0000-0000-000000000002';
-
-  select count(*)
-  into v_member_count
-  from public.member_profiles mp
-  join public.application_users au
-    on au.id = mp.application_user_id
-  where au.auth_user_id =
-    '10000000-0000-0000-0000-000000000002';
-
-  select count(*)
-  into v_referral_count
-  from public.referrals
-  where referrer_member_profile_id =
-    '30000000-0000-0000-0000-000000000001';
-
-  select count(*)
-  into v_operation_count
-  from public.referral_operation_idempotency;
-
-  if v_app_count <> 1 then
-    raise exception
-      'FAIL: completion replay duplicated application user';
-  end if;
-
-  if v_member_count <> 1 then
-    raise exception
-      'FAIL: completion replay duplicated member profile';
-  end if;
-
-  if v_referral_count <> 1 then
-    raise exception
-      'FAIL: completion replay duplicated referral';
-  end if;
-
-  if v_operation_count <> 2 then
-    raise exception
-      'FAIL: expected 2 idempotency operations, got %',
-      v_operation_count;
-  end if;
-
-  raise notice
-    'PASS: identical completion replay is idempotent';
-
-  raise notice
-    'PASS: exactly one application user exists';
-
-  raise notice
-    'PASS: exactly one member profile exists';
-
-  raise notice
-    'PASS: exactly one referral exists';
-
-  raise notice
-    'PASS: idempotency registry contains exactly 2 operations';
-end $$;
+-- The former referred-user completion RPC is intentionally retired. Current
+-- completion is covered by referral_member_provisioning_finalization_v1.sql,
+-- which exercises the authorized administrative provisioning boundary.
 
 
 -- ------------------------------------------------------------
@@ -446,7 +209,8 @@ end $$;
 
 \echo '--- SECURITY / NEGATIVE TESTS ---'
 
--- Ordinary Member must not be able to create a referral.
+-- An authenticated identity without an active application account/role must
+-- not be able to create a referral.
 SET LOCAL ROLE authenticated;
 
 select set_config(
@@ -459,15 +223,15 @@ DO $$
 begin
   begin
     perform public.create_referral('member-create-denied-001');
-    raise exception 'FAIL: pending referred Member created referral';
+    raise exception 'FAIL: unaffiliated authenticated identity created referral';
   exception
     when insufficient_privilege then
-      if sqlerrm <> 'missing_permission' then
+      if sqlerrm <> 'not_authenticated' then
         raise;
       end if;
   end;
 
-  raise notice 'PASS: pending ordinary Member cannot create referral';
+  raise notice 'PASS: unaffiliated authenticated identity cannot create referral';
 end $$;
 
 RESET ROLE;
@@ -510,76 +274,6 @@ begin
   end;
 
   raise notice 'PASS: authenticated idempotency registry SELECT blocked';
-end $$;
-
-RESET ROLE;
-
--- Changed payload with the same completion operation ID must conflict.
-SET LOCAL ROLE authenticated;
-
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
-  true
-);
-
-select set_config(
-  'test.referral_code',
-  :'referral_code',
-  true
-);
-
-DO $$
-declare
-  v_code text := current_setting('test.referral_code');
-begin
-  begin
-    perform public.complete_referral_registration(
-      v_code,
-      'Changed Referred Person',
-      '+919000000002',
-      'ref-complete-core-001'
-    );
-
-    raise exception 'FAIL: conflicting completion replay accepted';
-  exception
-    when unique_violation then
-      if sqlerrm <> 'operation_id_conflict' then
-        raise;
-      end if;
-  end;
-
-  raise notice 'PASS: conflicting completion replay rejected';
-end $$;
-
--- A completed referral cannot be consumed again under a new operation ID.
-select set_config(
-  'test.referral_code',
-  :'referral_code',
-  true
-);
-
-DO $$
-declare
-  v_code text := current_setting('test.referral_code');
-begin
-  begin
-    perform public.complete_referral_registration(
-      v_code,
-      'Referred Person',
-      '+919000000002',
-      'ref-complete-second-operation'
-    );
-
-    raise exception 'FAIL: completed referral consumed twice';
-  exception
-    when unique_violation then
-      if sqlerrm <> 'referral_not_pending' then
-        raise;
-      end if;
-  end;
-
-  raise notice 'PASS: duplicate referral consumption rejected';
 end $$;
 
 RESET ROLE;
@@ -650,7 +344,7 @@ begin
   raise notice 'PASS: identical cancellation replay is idempotent';
 end $$;
 
--- A completed referral cannot be cancelled.
+-- A cancelled referral cannot be cancelled again under a new operation ID.
 SET LOCAL ROLE authenticated;
 
 select set_config(
@@ -661,23 +355,23 @@ select set_config(
 
 DO $$
 declare
-  v_completed_id uuid;
+  v_cancelled_id uuid;
 begin
   select id
-  into v_completed_id
+  into v_cancelled_id
   from public.referrals
   where referrer_member_profile_id =
     '30000000-0000-0000-0000-000000000001'
-    and status = 'completed'
+    and status = 'cancelled'
   limit 1;
 
   begin
     perform public.cancel_referral(
-      v_completed_id,
-      'ref-cancel-completed-001'
+      v_cancelled_id,
+      'ref-cancel-cancelled-001'
     );
 
-    raise exception 'FAIL: completed referral cancellation succeeded';
+    raise exception 'FAIL: cancelled referral cancellation succeeded';
   exception
     when unique_violation then
       if sqlerrm <> 'referral_not_pending' then
@@ -685,7 +379,7 @@ begin
       end if;
   end;
 
-  raise notice 'PASS: completed referral cancellation rejected';
+  raise notice 'PASS: cancelled referral cancellation rejected';
 end $$;
 
 RESET ROLE;
