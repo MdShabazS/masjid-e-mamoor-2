@@ -16,7 +16,8 @@ from (values
   ('71000000-0000-0000-0000-000000000003'::uuid, 'picker-committee@example.invalid'),
   ('71000000-0000-0000-0000-000000000004'::uuid, 'picker-auditor@example.invalid'),
   ('71000000-0000-0000-0000-000000000005'::uuid, 'picker-member@example.invalid'),
-  ('71000000-0000-0000-0000-000000000006'::uuid, 'picker-inactive@example.invalid')
+  ('71000000-0000-0000-0000-000000000006'::uuid, 'picker-inactive@example.invalid'),
+  ('71000000-0000-0000-0000-000000000007'::uuid, 'picker-finance@example.invalid')
 ) x(auth_id, email);
 
 insert into public.application_users (
@@ -28,7 +29,8 @@ values
   ('72000000-0000-0000-0000-000000000003', '71000000-0000-0000-0000-000000000003', 'active', 'picker.committee', 'picker.committee', null),
   ('72000000-0000-0000-0000-000000000004', '71000000-0000-0000-0000-000000000004', 'active', 'picker.auditor', 'picker.auditor', 'Account Auditor'),
   ('72000000-0000-0000-0000-000000000005', '71000000-0000-0000-0000-000000000005', 'active', 'picker.member', 'picker.member', 'Account Member'),
-  ('72000000-0000-0000-0000-000000000006', '71000000-0000-0000-0000-000000000006', 'deactivated', 'picker.inactive', 'picker.inactive', 'Inactive Committee');
+  ('72000000-0000-0000-0000-000000000006', '71000000-0000-0000-0000-000000000006', 'deactivated', 'picker.inactive', 'picker.inactive', 'Inactive Committee'),
+  ('72000000-0000-0000-0000-000000000007', '71000000-0000-0000-0000-000000000007', 'active', 'picker.finance', 'picker.finance', 'Account Treasurer');
 
 insert into public.member_profiles (
   id, application_user_id, status, display_name
@@ -48,7 +50,8 @@ from (values
   ('72000000-0000-0000-0000-000000000003'::uuid, 'committee_member'),
   ('72000000-0000-0000-0000-000000000004'::uuid, 'auditor'),
   ('72000000-0000-0000-0000-000000000005'::uuid, 'member'),
-  ('72000000-0000-0000-0000-000000000006'::uuid, 'committee_member')
+  ('72000000-0000-0000-0000-000000000006'::uuid, 'committee_member'),
+  ('72000000-0000-0000-0000-000000000007'::uuid, 'finance')
 ) x(application_user_id, role_key)
 join public.roles r on r.key = x.role_key;
 
@@ -66,8 +69,8 @@ begin
   from public.list_committee_task_assignee_options() options
   where options.application_user_id::text like '72000000-0000-0000-0000-%';
 
-  if v_rows is null or jsonb_array_length(v_rows) <> 3 then
-    raise exception 'FAIL: expected three active read/manage assignees, got %', v_rows;
+  if v_rows is null or jsonb_array_length(v_rows) <> 4 then
+    raise exception 'FAIL: expected four active read/manage assignees, got %', v_rows;
   end if;
   if v_rows @> '[{"application_user_id":"72000000-0000-0000-0000-000000000004"}]'::jsonb
      or v_rows @> '[{"application_user_id":"72000000-0000-0000-0000-000000000005"}]'::jsonb
@@ -126,6 +129,10 @@ begin
   if not v_rows @> '[{"application_user_id":"72000000-0000-0000-0000-000000000003","display_name":"Committee Member","role_label":"Committee Member"}]'::jsonb then
     raise exception 'FAIL: safe role fallback was not used: %', v_rows;
   end if;
+
+  if not v_rows @> '[{"application_user_id":"72000000-0000-0000-0000-000000000007","display_name":"Account Treasurer","role_label":"Finance"}]'::jsonb then
+    raise exception 'FAIL: Finance/Treasurer was not eligible for assignment: %', v_rows;
+  end if;
 end $$;
 
 -- Task detail must use the same safe assignee-label boundary and must not
@@ -138,7 +145,8 @@ select public.create_committee_task(
   array[
     '72000000-0000-0000-0000-000000000001'::uuid,
     '72000000-0000-0000-0000-000000000002'::uuid,
-    '72000000-0000-0000-0000-000000000003'::uuid
+    '72000000-0000-0000-0000-000000000003'::uuid,
+    '72000000-0000-0000-0000-000000000007'::uuid
   ],
   'picker-detail-contract-create'
 );
@@ -156,7 +164,7 @@ begin
 
   v_detail := public.get_committee_task(v_task_id);
 
-  if jsonb_array_length(coalesce(v_detail -> 'assignees', '[]'::jsonb)) <> 3 then
+  if jsonb_array_length(coalesce(v_detail -> 'assignees', '[]'::jsonb)) <> 4 then
     raise exception 'FAIL: task detail assignee contract missing';
   end if;
 

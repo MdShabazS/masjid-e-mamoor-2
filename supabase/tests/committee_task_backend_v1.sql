@@ -119,13 +119,26 @@ from public.update_committee_task(
   'task-test-president-reassign'
 );
 
+select id as finance_task_id
+from public.create_committee_task(
+  'Finance assigned task', null, 'normal', current_date + 10,
+  array['62000000-0000-0000-0000-000000000009'::uuid],
+  'task-test-finance-assignment'
+) \gset
+select set_config('test.finance_task_id', :'finance_task_id', true);
+
 do $$
 declare
   v_original_activity_id uuid;
   v_replay public.committee_task_activity;
 begin
   if (select count(*) from public.committee_tasks
-      where title in ('President task', 'Vice President task', 'Secretary task')) <> 3 then
+      where title in (
+        'President task',
+        'Vice President task',
+        'Secretary task',
+        'Finance assigned task'
+      )) <> 4 then
     raise exception 'FAIL: assign-capable role creation';
   end if;
   if (select count(*) from public.committee_task_assignees
@@ -140,13 +153,69 @@ begin
   ) then
     raise exception 'FAIL: reassignment notification integration missing';
   end if;
-  if (select count(*) from public.list_committee_tasks(50, 0)) <> 3 then
+  if (select count(*) from public.list_committee_tasks(50, 0)) <> 4 then
     raise exception 'FAIL: assign-capable list did not return authorized tasks';
   end if;
   if public.get_committee_task(
     (select id from public.committee_tasks where title = 'President task')
   ) -> 'task' ->> 'title' <> 'President task' then
     raise exception 'FAIL: task detail did not return expected task';
+  end if;
+end $$;
+
+-- Finance can receive and manage only its assigned task. It cannot create or
+-- assign tasks and does not gain organization-wide task visibility.
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub":"61000000-0000-0000-0000-000000000009","role":"authenticated"}', true);
+do $$
+begin
+  if (select count(*) from public.committee_tasks) <> 1
+     or not exists (
+       select 1 from public.committee_tasks
+       where title = 'Finance assigned task'
+     ) then
+    raise exception 'FAIL: Finance assigned-only read scope is incorrect';
+  end if;
+
+  if (select count(*) from public.list_committee_tasks(50, 0)) <> 1 then
+    raise exception 'FAIL: Finance task list widened scope';
+  end if;
+
+  begin
+    perform public.create_committee_task(
+      'Forbidden Finance assignment', null, 'normal', null,
+      array['62000000-0000-0000-0000-000000000009'::uuid],
+      'task-test-finance-forbidden-create'
+    );
+    raise exception 'FAIL: Finance assigned a task';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+reset role;
+
+select set_config('request.jwt.claims',
+  '{"sub":"61000000-0000-0000-0000-000000000009","role":"authenticated"}', true);
+select public.add_committee_task_progress(
+  :'finance_task_id'::uuid,
+  'Treasurer progress',
+  'task-test-finance-progress'
+);
+select public.start_committee_task(
+  :'finance_task_id'::uuid,
+  'task-test-finance-start'
+);
+select public.complete_committee_task(
+  :'finance_task_id'::uuid,
+  'Treasurer completed assigned work',
+  'task-test-finance-complete'
+);
+
+do $$
+begin
+  if (select status from public.committee_tasks
+      where id = current_setting('test.finance_task_id')::uuid) <> 'completed' then
+    raise exception 'FAIL: Finance could not complete assigned task';
   end if;
 end $$;
 
@@ -321,7 +390,7 @@ begin
   end;
 end $$;
 
--- Read-only, unrelated, ordinary, and inactive roles are not assignees.
+-- Read-only, ordinary, and inactive roles are not assignees.
 select set_config('request.jwt.claims', '{"sub":"61000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 do $$
 begin
@@ -342,16 +411,6 @@ begin
       'task-test-auditor-assignee'
     );
     raise exception 'FAIL: read-only Auditor accepted as assignee';
-  exception when invalid_parameter_value then null;
-  end;
-
-  begin
-    perform public.create_committee_task(
-      'Finance assignee', null, 'normal', null,
-      array['62000000-0000-0000-0000-000000000009'::uuid],
-      'task-test-finance-assignee'
-    );
-    raise exception 'FAIL: Finance accepted as assignee';
   exception when invalid_parameter_value then null;
   end;
 

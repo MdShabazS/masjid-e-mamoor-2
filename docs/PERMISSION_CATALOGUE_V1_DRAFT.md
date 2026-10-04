@@ -114,6 +114,8 @@ audit.records.read
 | `committee.tasks.read` | Read assigned/authorized committee tasks |
 | `committee.tasks.manage` | Manage authorized committee tasks |
 | `committee.tasks.assign` | Assign committee tasks |
+| `committee.board.read` | Read the current and historical Board of Trustees directory |
+| `committee.board.manage` | Manage Board appointments through trusted operations |
 | `committee.meetings.read` | Read authorized meeting information |
 | `committee.meetings.manage` | Manage authorized meetings |
 | `committee.attendance.record` | Record authorized committee/meeting attendance |
@@ -195,6 +197,7 @@ The following permissions must never be treated as ordinary client-side CRUD aut
 - `finance.corrections.create`
 - `finance.cancellations.create`
 - `finance.reconciliation.manage`
+- `committee.board.manage`
 
 Sensitive operations require current authorization, business-rule validation, transaction boundaries, idempotency/duplicate prevention where applicable, and auditability.
 
@@ -215,6 +218,29 @@ The authoritative V1 roles are:
 7. Member
 
 No additional role is introduced by this catalogue.
+
+Board designations are organizational appointments, not authorization roles.
+The supported V1 mapping is:
+
+| Board designation | Application authorization role |
+|---|---|
+| President | `president` |
+| Vice President | `vice_president` |
+| Secretary | `secretary` |
+| Joint Secretary | `committee_member` |
+| Treasurer | `finance` |
+| Joint Treasurer | `finance` |
+| Trustee | `committee_member` |
+
+`committee.board.read` is granted to President, Vice President, Secretary,
+Finance, Auditor, Committee Member, and Member. `committee.board.manage` is
+granted only to President. The separate emergency `system_admin` role receives
+neither Board permission implicitly.
+
+Finance receives `committee.tasks.read` and `committee.tasks.manage` so a
+Treasurer or Joint Treasurer can manage tasks assigned to that account. Finance
+does not receive `committee.tasks.assign`, and assignment/resource scope remains
+enforced by trusted operations and RLS.
 
 ---
 

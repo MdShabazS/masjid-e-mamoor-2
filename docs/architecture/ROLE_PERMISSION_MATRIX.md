@@ -66,7 +66,7 @@ Membership, committee, and administrative operations, including meetings, tasks,
 
 ### 3.4 Finance
 
-Financial operations including donation/payment verification, allocation, accounts, transfers, expenses, authorized corrections/reversals, financial reports, and payment-proof handling. This role cannot arbitrarily change roles or authorization.
+Financial operations including donation/payment verification, allocation, accounts, transfers, expenses, authorized corrections/reversals, financial reports, and payment-proof handling. Finance may also receive and manage committee tasks assigned to that account, but cannot assign tasks. This role cannot arbitrarily change roles or authorization.
 
 ### 3.5 Auditor
 
@@ -194,11 +194,36 @@ Donation verification and allocation are trusted atomic operations. The matrix d
 
 | Permission group | President / Super Admin | Vice President | Secretary | Finance | Auditor | Committee Member | Member |
 |---|---|---|---|---|---|---|---|
-| Manage tasks | Full | Full | Full | None | Read | Assigned | None |
+| Manage tasks | Full | Full | Full | Assigned | Read | Assigned | None |
 | Assign tasks | Full | Full | Full | None | None | None | None |
+| Read current/historical Board | Read | Read | Read | Read | Read | Read | Read |
+| Manage Board appointments | Full | None | None | None | None | None | None |
 | Manage meetings | Full | Full | Full | None | Read | Assigned | None |
 | Meeting attendance | Full | Full | Full | None | Read | Assigned | None |
 | Committee/member operational information | Full | Read | Full | None | Read | Assigned | None |
+
+Finance task access is assignment-scoped. The Finance role does not gain
+organization-wide task visibility or `committee.tasks.assign`.
+
+Board designation is separate from application authorization. V1 uses this
+compatibility mapping:
+
+| Board designation | Application authorization role |
+|---|---|
+| President | `president` |
+| Vice President | `vice_president` |
+| Secretary | `secretary` |
+| Joint Secretary | `committee_member` |
+| Treasurer | `finance` |
+| Joint Treasurer | `finance` |
+| Trustee | `committee_member` |
+
+President manages Board appointments through trusted, audited operations.
+Changing or ending a Board appointment preserves appointment history and does
+not change or deactivate the application account. The current Board roster is
+operational data and is not hard-coded in migrations. The separate emergency
+`system_admin` role does not implicitly receive Board read/manage or ordinary
+committee-management permissions.
 
 ### 6.6 Attendance
 
