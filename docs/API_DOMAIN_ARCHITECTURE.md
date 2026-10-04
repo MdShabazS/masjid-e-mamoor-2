@@ -881,6 +881,12 @@ getUnreadNotificationCount()
 
 Users can only query notifications within their authorization scope.
 
+The V1 durable committee-task notification backend exposes authenticated-safe
+PostgreSQL RPCs for newest-first personal listing (including unread-only
+filtering) and unread counts. Ownership is derived from the authenticated
+application user; clients do not supply a recipient identity and receive no
+direct notification-table access.
+
 ------------------------------------------------------------------------
 
 # 40. Notification Commands
@@ -893,6 +899,12 @@ markAllNotificationsRead()
 ```
 
 System-generated notifications should use trusted outbox processing.
+
+The committee-task backend persists its durable in-app notification record in
+the same database transaction as task state and task activity. Personal read
+state changes use ownership-scoped trusted RPCs. Realtime fan-out, push
+dispatch, and channel workers remain later delivery phases and do not determine
+business truth.
 
 ------------------------------------------------------------------------
 
