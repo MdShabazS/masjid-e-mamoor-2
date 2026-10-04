@@ -5,6 +5,7 @@ import { canManageAccounts, getCurrentAccount } from "@/lib/accounts/server";
 import { getDonationManagementCapabilities } from "@/lib/donations/server";
 import { hasAdminMemberReadAccess } from "@/lib/members/server";
 import { canUseReferrals } from "@/lib/referrals/server";
+import { getCommitteeTaskCapabilities } from "@/lib/work/server";
 import { signOut } from "@/app/login/actions";
 import { SidebarNav } from "./SidebarNav";
 
@@ -12,17 +13,19 @@ export async function AppShell({ children }: { children: ReactNode }) {
   const account = await getCurrentAccount();
   if (!account || account.status !== "active") redirect("/login");
 
-  const [members, donations, accounts, referrals] = await Promise.all([
+  const [members, donations, accounts, referrals, work] = await Promise.all([
     hasAdminMemberReadAccess(),
     getDonationManagementCapabilities(),
     canManageAccounts(),
     canUseReferrals(),
+    getCommitteeTaskCapabilities(),
   ]);
 
   const donationManagement = donations.canVerify || donations.canManageObligations || donations.canCreateAnonymousDonation || donations.canCreateJummahCashDonation;
   const groups = [
     { label: "Overview", links: [{ href: "/dashboard", label: "Dashboard", visible: true }, { href: "/profile", label: "My Profile", visible: true }] },
     { label: "Community", links: [{ href: "/members", label: "Members", visible: members }, { href: "/referrals", label: "Referrals", visible: referrals }] },
+    { label: "Operations", links: [{ href: "/work", label: "Work", visible: work.canRead }] },
     { label: "Finance", links: [{ href: "/donations", label: "Donations", visible: true }, { href: "/donations/manage", label: "Donation Management", visible: donationManagement }] },
     { label: "Administration", links: [{ href: "/accounts", label: "Account Administration", visible: accounts }] },
   ];

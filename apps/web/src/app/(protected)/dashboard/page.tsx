@@ -6,6 +6,7 @@ import { getDonationManagementCapabilities } from "@/lib/donations/server";
 import { getFinanceAccountCapabilities } from "@/lib/finance/server";
 import { hasAdminMemberReadAccess } from "@/lib/members/server";
 import { canUseReferrals } from "@/lib/referrals/server";
+import { getCommitteeTaskCapabilities } from "@/lib/work/server";
 
 const criticalRoles = ["president", "vice_president", "secretary", "finance", "auditor"] as const;
 
@@ -21,6 +22,7 @@ export default async function DashboardPage() {
     financeCapabilities,
     canOpenAccountManagement,
     canOpenReferrals,
+    workCapabilities,
   ] = await Promise.all([
     getCurrentAccount(),
     hasAdminMemberReadAccess(),
@@ -28,6 +30,7 @@ export default async function DashboardPage() {
     getFinanceAccountCapabilities(),
     canManageAccounts(),
     canUseReferrals(),
+    getCommitteeTaskCapabilities(),
   ]);
   if (!account) redirect("/login");
 
@@ -39,6 +42,7 @@ export default async function DashboardPage() {
     { href: "/donations", title: "Donations", description: "View your obligations and submit payments.", visible: true },
     { href: "/referrals", title: "Referrals", description: "Track member referrals and onboarding progress.", visible: canOpenReferrals },
     { href: "/members", title: "Members", description: "Review member information within your authorized scope.", visible: canOpenMemberManagement },
+    { href: "/work", title: "Work", description: workCapabilities.canAssign ? "Create, assign, and manage committee tasks." : "Review and update your assigned committee tasks.", visible: workCapabilities.canRead },
     { href: "/donations/manage", title: "Donation Management", description: "Review payments and manage donation operations.", visible: canOpenDonationManagement },
     { href: "/finance/accounts", title: "Finance Accounts", description: "Review Finance accounts, balances, and authorized account lifecycle actions.", visible: financeCapabilities.canReadAccounts },
     { href: "/accounts", title: "Account Administration", description: "Manage usernames, roles, status, and password setup.", visible: canOpenAccountManagement },
