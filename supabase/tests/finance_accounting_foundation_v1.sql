@@ -464,6 +464,7 @@ begin
     'public.lock_active_finance_actor()',
     'public.create_finance_account(text,text,text)',
     'public.set_finance_account_status(uuid,text,text)',
+    'public.rename_finance_account(uuid,text,text)',
     'public.submit_finance_expense(uuid,bigint,text,text,date,text)',
     'public.decide_finance_expense(uuid,text,text,text)',
     'public.submit_finance_transfer(uuid,uuid,bigint,text,date,text)',

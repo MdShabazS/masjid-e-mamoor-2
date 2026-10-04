@@ -5,11 +5,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   financeAccountCreateSchema,
+  financeAccountRenameSchema,
   financeAccountStatusChangeSchema,
 } from "@masjid-e-mamoor/validation";
 
 import {
   createFinanceAccount,
+  renameFinanceAccount,
   setFinanceAccountStatus,
 } from "@/lib/finance/server";
 
@@ -78,4 +80,43 @@ export async function setFinanceAccountStatusAction(
   refreshFinanceAccountPaths();
 
   redirect("/finance/accounts?updated=1");
+}
+
+
+export async function renameFinanceAccountAction(
+  formData: FormData,
+) {
+  const currentName = String(
+    formData.get("currentName") ?? "",
+  ).trim();
+
+  const parsed = financeAccountRenameSchema.safeParse({
+    financeAccountId: String(
+      formData.get("financeAccountId") ?? "",
+    ),
+    name: String(formData.get("name") ?? ""),
+    operationId: randomUUID(),
+  });
+
+  if (!parsed.success) {
+    redirect(
+      "/finance/accounts?error=invalid_name",
+    );
+  }
+
+  if (parsed.data.name === currentName) {
+    redirect("/finance/accounts");
+  }
+
+  try {
+    await renameFinanceAccount(parsed.data);
+  } catch {
+    redirect(
+      "/finance/accounts?error=rename_failed",
+    );
+  }
+
+  refreshFinanceAccountPaths();
+
+  redirect("/finance/accounts?renamed=1");
 }

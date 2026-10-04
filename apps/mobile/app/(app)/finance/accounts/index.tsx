@@ -28,6 +28,7 @@ import {
   financeAccountTypeLabel,
   formatFinanceMoney,
   listFinanceAccounts,
+  renameFinanceAccount,
 } from "../../../../src/modules/finance";
 import { colors } from "../../../../src/theme/colors";
 
@@ -120,6 +121,27 @@ export default function FinanceAccountsScreen() {
       Alert.alert(
         "Finance account could not be updated",
         "The backend authorization and lifecycle rules prevented the change.",
+      );
+    },
+  });
+
+  const rename = useMutation({
+    mutationFn: (input: {
+      financeAccountId: string;
+      name: string;
+    }) => renameFinanceAccount(input),
+    onSuccess: async () => {
+      await refresh();
+
+      Alert.alert(
+        "Finance account name updated",
+        "The audited account label correction has been saved.",
+      );
+    },
+    onError: () => {
+      Alert.alert(
+        "Finance account name could not be updated",
+        "Check the name and your Finance account management permission, then try again.",
       );
     },
   });
@@ -329,13 +351,22 @@ export default function FinanceAccountsScreen() {
           ) : (
             items.map((item) => (
               <FinanceAccountCard
-                key={item.id}
+                key={`${item.id}:${item.updatedAt}`}
                 account={item}
                 canManage={
                   capabilities.data
                     .canManageFinanceAccounts
                 }
-                pending={changeStatus.isPending}
+                pending={
+                  changeStatus.isPending ||
+                  rename.isPending
+                }
+                onRename={(name) =>
+                  rename.mutate({
+                    financeAccountId: item.id,
+                    name,
+                  })
+                }
                 onChangeStatus={(status) =>
                   confirmStatusChange(
                     item,
@@ -360,15 +391,28 @@ function FinanceAccountCard({
   account,
   canManage,
   pending,
+  onRename,
   onChangeStatus,
 }: {
   account: FinanceAccountSnapshot;
   canManage: boolean;
   pending: boolean;
+  onRename: (name: string) => void;
   onChangeStatus: (
     status: FinanceAccount["status"],
   ) => void;
 }) {
+  const [renameName, setRenameName] =
+    useState(account.name);
+
+  const normalizedRenameName =
+    renameName.trim();
+
+  const renameDisabled =
+    pending ||
+    normalizedRenameName.length === 0 ||
+    normalizedRenameName === account.name;
+
   return (
     <View style={styles.accountCard}>
       <View style={styles.accountHeader}>
@@ -404,6 +448,46 @@ function FinanceAccountCard({
           )}
         </Text>
       </View>
+
+      {canManage ? (
+        <View style={styles.renamePanel}>
+          <Text style={styles.fieldLabel}>
+            Account name
+          </Text>
+
+          <FormTextInput
+            value={renameName}
+            onChangeText={setRenameName}
+            maxLength={120}
+            style={styles.input}
+          />
+
+          <Pressable
+            disabled={renameDisabled}
+            onPress={() => {
+              setRenameName(
+                normalizedRenameName,
+              );
+              onRename(normalizedRenameName);
+            }}
+            style={[
+              styles.secondaryButton,
+              styles.renameButton,
+              renameDisabled && styles.disabled,
+            ]}
+          >
+            <Text style={styles.secondaryButtonText}>
+              Save account name
+            </Text>
+          </Pressable>
+
+          <Text style={styles.renameHelp}>
+            Name corrections are audited and do not
+            change account identity, type, status,
+            balance, or ledger history.
+          </Text>
+        </View>
+      ) : null}
 
       {canManage && account.status !== "closed" ? (
         <View style={styles.buttonRow}>
@@ -798,6 +882,22 @@ const styles = StyleSheet.create({
     fontSize: 23,
     fontWeight: "700",
     marginTop: 4,
+  },
+  renamePanel: {
+    borderTopColor: colors.sand,
+    borderTopWidth: 1,
+    marginTop: 16,
+    paddingTop: 2,
+  },
+  renameButton: {
+    alignSelf: "flex-start",
+    marginTop: 12,
+  },
+  renameHelp: {
+    color: colors.secondary,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 10,
   },
   buttonRow: {
     flexDirection: "row",

@@ -8,6 +8,7 @@ import {
 
 import {
   createFinanceAccountAction,
+  renameFinanceAccountAction,
   setFinanceAccountStatusAction,
 } from "./actions";
 import { FinanceStatusSubmitButton } from "./FinanceStatusSubmitButton";
@@ -17,6 +18,7 @@ type PageProps = {
     error?: string;
     created?: string;
     updated?: string;
+    renamed?: string;
   }>;
 };
 
@@ -94,6 +96,12 @@ export default async function FinanceAccountsPage({
         {params.updated ? (
           <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
             Finance account status updated.
+          </div>
+        ) : null}
+
+        {params.renamed ? (
+          <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+            Finance account name updated.
           </div>
         ) : null}
 
@@ -252,6 +260,51 @@ export default async function FinanceAccountsPage({
                     </p>
                   </div>
                 </div>
+
+                {capabilities.canManageAccounts ? (
+                  <div className="border-t border-zinc-100 bg-zinc-50/70 p-5 sm:p-6">
+                    <form
+                      action={renameFinanceAccountAction}
+                      className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end"
+                    >
+                      <input
+                        type="hidden"
+                        name="financeAccountId"
+                        value={account.id}
+                      />
+
+                      <input
+                        type="hidden"
+                        name="currentName"
+                        value={account.name}
+                      />
+
+                      <label className="field-label">
+                        Account name
+                        <input
+                          name="name"
+                          required
+                          maxLength={120}
+                          defaultValue={account.name}
+                          className="field-input"
+                        />
+                      </label>
+
+                      <button
+                        type="submit"
+                        className="button-secondary"
+                      >
+                        Save account name
+                      </button>
+                    </form>
+
+                    <p className="mt-2 text-xs text-zinc-500">
+                      Name corrections are audited and do
+                      not change account identity, type,
+                      status, balance, or ledger history.
+                    </p>
+                  </div>
+                ) : null}
 
                 {capabilities.canManageAccounts &&
                 account.status !== "closed" ? (
@@ -431,5 +484,9 @@ function errorMessage(error: string) {
       "The requested Finance account status is invalid.",
     status_failed:
       "The Finance account status could not be changed.",
+    invalid_name:
+      "Enter a valid Finance account name.",
+    rename_failed:
+      "The Finance account name could not be updated.",
   }[error] ?? "The Finance action could not be completed.";
 }

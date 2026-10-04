@@ -5,6 +5,7 @@ import type {
 } from "@masjid-e-mamoor/types";
 import {
   financeAccountCreateSchema,
+  financeAccountRenameSchema,
   financeAccountStatusChangeSchema,
 } from "@masjid-e-mamoor/validation";
 
@@ -153,6 +154,31 @@ export async function changeFinanceAccountStatus(input: {
 
   if (error) {
     throw new Error("finance_account_status_failed");
+  }
+
+  return unwrapFinanceAccount(data);
+}
+
+export async function renameFinanceAccount(input: {
+  financeAccountId: string;
+  name: string;
+}) {
+  const parsed = financeAccountRenameSchema.parse({
+    ...input,
+    operationId: randomUUID(),
+  });
+
+  const { data, error } = await supabase.rpc(
+    "rename_finance_account",
+    {
+      p_finance_account_id: parsed.financeAccountId,
+      p_name: parsed.name,
+      p_operation_id: parsed.operationId,
+    },
+  );
+
+  if (error) {
+    throw new Error("finance_account_rename_failed");
   }
 
   return unwrapFinanceAccount(data);

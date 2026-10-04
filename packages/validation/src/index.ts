@@ -173,6 +173,16 @@ export const financeAccountStatusChangeSchema = z.object({
   operationId: financeOperationIdSchema,
 });
 
+export const financeAccountRenameSchema = z.object({
+  financeAccountId: z.string().uuid(),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Account name is required.")
+    .max(120, "Account name must be 120 characters or fewer."),
+  operationId: financeOperationIdSchema,
+});
+
 export const referralCodeSchema = z
   .string()
   .trim()

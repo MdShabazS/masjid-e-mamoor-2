@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   financeAccountCreateSchema,
+  financeAccountRenameSchema,
   financeAccountStatusChangeSchema,
 } from "@masjid-e-mamoor/validation";
 
@@ -36,6 +37,27 @@ describe("Finance account validation", () => {
         name: "Unsupported",
         accountType: "wallet",
         operationId: "finance-account-create-3",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates Finance account rename payloads", () => {
+    const financeAccountId =
+      "76000000-0000-4000-8000-000000000001";
+
+    expect(
+      financeAccountRenameSchema.safeParse({
+        financeAccountId,
+        name: "Masjid E Mamoor 2",
+        operationId: "finance-rename-valid",
+      }).success,
+    ).toBe(true);
+
+    expect(
+      financeAccountRenameSchema.safeParse({
+        financeAccountId,
+        name: "   ",
+        operationId: "finance-rename-invalid",
       }).success,
     ).toBe(false);
   });
@@ -76,6 +98,13 @@ describe("Finance account SQL boundary", () => {
     "utf8",
   );
 
+  const renameMigration = readFileSync(
+    repoFile(
+      "supabase/migrations/20261003211201_finance_account_rename.sql",
+    ),
+    "utf8",
+  );
+
   it("uses trusted account lifecycle operations", () => {
     expect(migration).toContain(
       "create_finance_account",
@@ -88,6 +117,24 @@ describe("Finance account SQL boundary", () => {
     );
     expect(migration).toContain(
       "finance.accounts.manage",
+    );
+  });
+
+  it("uses a trusted audited Finance account rename operation", () => {
+    expect(renameMigration).toContain(
+      "rename_finance_account",
+    );
+    expect(renameMigration).toContain(
+      "finance.accounts.manage",
+    );
+    expect(renameMigration).toContain(
+      "'account_rename'",
+    );
+    expect(renameMigration).toContain(
+      "'account_renamed'",
+    );
+    expect(renameMigration).toMatch(
+      /revoke\s+execute\s+on\s+function\s+public\.rename_finance_account/i,
     );
   });
 

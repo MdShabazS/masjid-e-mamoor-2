@@ -2,7 +2,66 @@
 
 set -euo pipefail
 
-db_container="${SUPABASE_DB_CONTAINER:-supabase_db_Masjid-e-Mamoor-2-Docs}"
+resolve_db_container() {
+  if [[ -n "${SUPABASE_DB_CONTAINER:-}" ]]; then
+    printf '%s\n' "$SUPABASE_DB_CONTAINER"
+    return
+  fi
+
+  local repo_root
+  local db_port
+  local container
+
+  repo_root="$(git rev-parse --show-toplevel)"
+
+  db_port="$(
+    awk '
+      /^\[db\]$/ {
+        in_db = 1
+        next
+      }
+
+      /^\[/ {
+        if (in_db) {
+          exit
+        }
+      }
+
+      in_db && /^[[:space:]]*port[[:space:]]*=/ {
+        line = $0
+        sub(/^[^=]*=[[:space:]]*/, "", line)
+        gsub(/[[:space:]]/, "", line)
+        print line
+        exit
+      }
+    ' "$repo_root/supabase/config.toml"
+  )"
+
+  if [[ -z "$db_port" ]]; then
+    echo "FAIL: could not resolve Supabase DB port" >&2
+    return 1
+  fi
+
+  container="$(
+    docker ps \
+      --format '{{.Names}} {{.Ports}}' \
+      | awk -v port="$db_port" '
+          index($0, ":" port "->5432/tcp") {
+            print $1
+            exit
+          }
+        '
+  )"
+
+  if [[ -z "$container" ]]; then
+    echo "FAIL: no running Supabase DB container found on port $db_port" >&2
+    return 1
+  fi
+
+  printf '%s\n' "$container"
+}
+
+db_container="$(resolve_db_container)"
 admin_auth_id="73000000-0000-0000-0000-000000000001"
 finance_auth_id="73000000-0000-0000-0000-000000000002"
 president_auth_id="73000000-0000-0000-0000-000000000003"

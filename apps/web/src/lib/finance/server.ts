@@ -182,3 +182,26 @@ export async function setFinanceAccountStatus(input: {
 
   return unwrapFinanceAccount(data);
 }
+
+export async function renameFinanceAccount(input: {
+  financeAccountId: string;
+  name: string;
+  operationId: string;
+}) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc(
+    "rename_finance_account",
+    {
+      p_finance_account_id: input.financeAccountId,
+      p_name: input.name,
+      p_operation_id: input.operationId,
+    },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return unwrapFinanceAccount(data);
+}

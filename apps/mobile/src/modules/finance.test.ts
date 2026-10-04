@@ -1,5 +1,6 @@
 import {
   financeAccountCreateSchema,
+  financeAccountRenameSchema,
   financeAccountStatusChangeSchema,
 } from "@masjid-e-mamoor/validation";
 
@@ -28,6 +29,27 @@ describe("mobile Finance account contract", () => {
         name: "",
         accountType: "upi",
         operationId: "finance-create-2",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates Finance account rename", () => {
+    const financeAccountId =
+      "76000000-0000-4000-8000-000000000001";
+
+    expect(
+      financeAccountRenameSchema.safeParse({
+        financeAccountId,
+        name: "Masjid E Mamoor 2",
+        operationId: "finance-rename-valid",
+      }).success,
+    ).toBe(true);
+
+    expect(
+      financeAccountRenameSchema.safeParse({
+        financeAccountId,
+        name: "",
+        operationId: "finance-rename-invalid",
       }).success,
     ).toBe(false);
   });
