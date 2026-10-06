@@ -252,6 +252,7 @@ summary:focus-visible {
 .app-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 10; display: flex; width: 250px; flex-direction: column; background: var(--brand-dark); color: #f7f3e9; padding: 1.5rem 1.1rem 1.1rem; }
 .brand-zone { position: relative; display: flex; align-items: center; gap: 0.7rem; overflow: hidden; border-bottom: 1px solid rgba(247,243,233,.14); padding: 0.3rem 0.35rem 1.35rem; }
 .brand-zone::after { position: absolute; right: -1.2rem; top: -1.5rem; width: 5rem; height: 5rem; border: 1px solid rgba(197,161,90,.2); transform: rotate(45deg); content: ""; }
+.brand-copy { min-width: 0; }
 .brand-mark { position: relative; display: inline-flex; width: 2.35rem; height: 2.35rem; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid rgba(197,161,90,.72); transform: rotate(45deg); }
 .brand-mark::before, .brand-mark::after, .brand-mark span { position: absolute; width: 0.85rem; height: 0.85rem; border: 1px solid rgba(197,161,90,.72); content: ""; }
 .brand-mark::before { transform: rotate(45deg); }
@@ -259,6 +260,9 @@ summary:focus-visible {
 .brand-mark span { transform: rotate(22.5deg); }
 .brand-name { color: #fffdf8; font-size: 0.9rem; font-weight: 700; line-height: 1.2; }
 .brand-subtitle { margin-top: 0.2rem; color: #b8cfc2; font-size: 0.68rem; }
+.notification-bell { position: relative; z-index: 1; display: inline-flex; width: 2.25rem; height: 2.25rem; flex: 0 0 auto; align-items: center; justify-content: center; margin-left: auto; border: 1px solid rgba(216,195,143,.3); border-radius: 0.55rem; color: #d9e5dd; }
+.notification-bell:hover, .notification-bell:focus-visible { border-color: rgba(216,195,143,.7); background: rgba(255,255,255,.08); color: #fffdf8; }
+.notification-badge { position: absolute; right: 0.08rem; top: 0.08rem; display: inline-flex; min-width: 1.2rem; height: 1.2rem; align-items: center; justify-content: center; border: 2px solid var(--brand-dark); border-radius: 999px; background: #c5a15a; padding: 0 0.2rem; color: #102e27; font-size: 0.6rem; font-weight: 800; line-height: 1; }
 .sidebar-nav { flex: 1; overflow-y: auto; padding-top: 1.5rem; }
 .nav-group { margin-bottom: 1.4rem; }
 .nav-group-label { padding: 0 0.55rem 0.45rem; color: #88aa98; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
@@ -270,6 +274,9 @@ summary:focus-visible {
 .sidebar-role { margin-top: 0.2rem; color: #a8c2b2; font-size: 0.75rem; }
 .sidebar-action { display: inline-block; margin-top: 0.75rem; margin-right: 1rem; color: #d8c38f; font-size: 0.78rem; }
 .sidebar-action:hover { color: #fffdf8; }
+.notification-item { display: flex; align-items: center; gap: 1rem; border: 1px solid var(--line); border-radius: 0.8rem; background: #fff; padding: 1.15rem 1.25rem; box-shadow: 0 6px 18px rgba(23,63,53,.035); }
+.notification-item-unread { border-left: 3px solid #c5a15a; background: #fffef9; }
+.notification-unread-label { color: #8b5b13; font-size: 0.7rem; font-weight: 750; }
 .app-content { min-height: 100vh; margin-left: 250px; padding: 0.5rem 0; }
 .mobile-brand { display: none; }
 .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 1rem; }
@@ -297,6 +304,7 @@ summary:focus-visible {
   .app-content { margin-left: 0; padding: 0; }
   .mobile-brand { display: none; }
   .welcome-panel { min-height: 7.5rem; }
+  .notification-item { align-items: flex-start; flex-direction: column; }
 }
 
 @media (max-width: 520px) {
