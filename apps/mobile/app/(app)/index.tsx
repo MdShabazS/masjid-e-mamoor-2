@@ -7,6 +7,7 @@ import { useAuth } from "../../src/auth/AuthProvider";
 import { colors, roleLabels } from "../../src/theme/colors";
 import { loadCapabilities } from "../../src/modules/capabilities";
 import { visibleWorkspaceModules } from "../../src/modules/presentation";
+import { NotificationBell } from "../../src/components/NotificationBell";
 
 export default function HomeScreen() {
   const { account } = useAuth();
@@ -23,8 +24,11 @@ export default function HomeScreen() {
       <StatusBar style="dark" />
       <View style={styles.content}>
         <View style={styles.brandRow}>
-          <View style={styles.mark} />
-          <Text style={styles.brand}>MASJID E MAMOOR 2</Text>
+          <View style={styles.brandIdentity}>
+            <View style={styles.mark} />
+            <Text style={styles.brand}>MASJID E MAMOOR 2</Text>
+          </View>
+          <NotificationBell />
         </View>
         <Text style={styles.greeting}>Assalamu Alaikum</Text>
         <Text style={styles.title}>Masjid E Mamoor 2</Text>
@@ -127,7 +131,8 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.ivory, flex: 1 },
   content: { padding: 24 },
-  brandRow: { alignItems: "center", flexDirection: "row", gap: 10 },
+  brandRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  brandIdentity: { alignItems: "center", flexDirection: "row", gap: 10 },
   mark: { backgroundColor: colors.gold, borderRadius: 5, height: 18, transform: [{ rotate: "45deg" }], width: 18 },
   brand: { color: colors.deepEmerald, fontSize: 12, fontWeight: "800", letterSpacing: 1.2 },
   greeting: { color: colors.deepEmerald, fontSize: 16, fontWeight: "700", marginTop: 48 },
