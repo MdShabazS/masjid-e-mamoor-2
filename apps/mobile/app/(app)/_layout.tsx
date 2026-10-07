@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../src/auth/AuthProvider";
 import { loadCapabilities } from "../../src/modules/capabilities";
 import { TabIcon } from "../../src/components/TabIcon";
+import { NotificationRealtime } from "../../src/components/NotificationRealtime";
 import { colors } from "../../src/theme/colors";
 
 export default function AppLayout() {
@@ -19,7 +20,9 @@ export default function AppLayout() {
   if (account.mustChangePassword) return <Redirect href="/(auth)/change-password" />;
 
   return (
-    <Tabs
+    <>
+      <NotificationRealtime applicationUserId={account.id} />
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.deepEmerald,
@@ -51,6 +54,7 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen name="profile" options={{ tabBarAccessibilityLabel: "Profile", tabBarIcon: ({ color }) => <TabIcon color={color} name="profile" />, title: "Profile" }} />
-    </Tabs>
+      </Tabs>
+    </>
   );
 }
