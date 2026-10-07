@@ -57,7 +57,11 @@ export function NotificationRealtime({
       }
 
       if (!disposed) {
-        channel.subscribe();
+        channel.subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            refreshNotifications();
+          }
+        });
       }
     })();
 

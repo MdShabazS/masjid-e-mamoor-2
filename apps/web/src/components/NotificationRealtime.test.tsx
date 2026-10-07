@@ -30,6 +30,7 @@ vi.mock("@/lib/supabase/client", () => ({
 
 describe("NotificationRealtime", () => {
   let broadcastHandler: (() => void) | undefined;
+  let subscribeHandler: ((status: string) => void) | undefined;
   let channelObject: {
     on: typeof mocks.on;
     subscribe: typeof mocks.subscribe;
@@ -39,6 +40,7 @@ describe("NotificationRealtime", () => {
     vi.clearAllMocks();
 
     broadcastHandler = undefined;
+    subscribeHandler = undefined;
 
     channelObject = {
       on: mocks.on,
@@ -49,6 +51,11 @@ describe("NotificationRealtime", () => {
 
     mocks.on.mockImplementation((_type, _filter, handler) => {
       broadcastHandler = handler as () => void;
+      return channelObject;
+    });
+
+    mocks.subscribe.mockImplementation((handler) => {
+      subscribeHandler = handler as (status: string) => void;
       return channelObject;
     });
 
@@ -92,6 +99,32 @@ describe("NotificationRealtime", () => {
     expect(
       mocks.setAuth.mock.invocationCallOrder[0],
     ).toBeLessThan(mocks.subscribe.mock.invocationCallOrder[0]);
+  });
+
+  it("reconciles durable notification state after the private channel subscribes", async () => {
+    vi.useFakeTimers();
+
+    render(
+      <NotificationRealtime applicationUserId="96000000-0000-0000-0000-000000000001" />,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(subscribeHandler).toBeDefined();
+
+    act(() => {
+      subscribeHandler?.("SUBSCRIBED");
+    });
+
+    expect(mocks.refresh).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 
   it("does not subscribe when Realtime authentication fails", async () => {
