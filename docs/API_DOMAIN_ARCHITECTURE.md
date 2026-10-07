@@ -887,6 +887,9 @@ filtering) and unread counts. Ownership is derived from the authenticated
 application user; clients do not supply a recipient identity and receive no
 direct notification-table access.
 
+The Web notification center and unread bell consume these trusted personal RPCs.
+Opening the notification center does not itself mutate read state.
+
 ------------------------------------------------------------------------
 
 # 40. Notification Commands
@@ -898,13 +901,24 @@ markNotificationRead(id)
 markAllNotificationsRead()
 ```
 
-System-generated notifications should use trusted outbox processing.
+System-generated durable notifications are created only by trusted backend
+operations.
 
 The committee-task backend persists its durable in-app notification record in
 the same database transaction as task state and task activity. Personal read
-state changes use ownership-scoped trusted RPCs. Realtime fan-out, push
-dispatch, and channel workers remain later delivery phases and do not determine
-business truth.
+state changes use ownership-scoped trusted RPCs.
+
+A durable notification INSERT also emits a private Supabase Realtime Broadcast
+to `notifications:<application_user_id>` using the `notification_created`
+event. Realtime authorization permits an authenticated application user to
+receive only their own notification topic and does not grant clients a
+notification Broadcast send policy.
+
+Realtime is transport, not authority. Clients must refresh authoritative state
+through the trusted notification RPCs after receiving an event. Missed
+WebSocket delivery therefore does not lose the durable notification. Web
+Realtime subscription, Mobile Realtime integration, and OS push delivery remain
+separate client/delivery phases.
 
 ------------------------------------------------------------------------
 

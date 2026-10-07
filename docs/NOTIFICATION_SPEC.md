@@ -1,7 +1,7 @@
 # Masjid E Mamoor 2 — Durable Notification Specification
 
-**Status:** V1 backend foundation implemented for committee-task events
-**Scope:** Durable in-app notification records and personal notification RPCs
+**Status:** V1 durable backend and private Realtime Broadcast foundation implemented
+**Scope:** Durable in-app notification records, personal notification RPCs, and recipient-scoped Realtime transport
 
 ## 1. Authority and Purpose
 
@@ -10,9 +10,10 @@ approve, or replace business state. Committee-task notifications are generated
 inside the same trusted PostgreSQL transaction that mutates the task and
 appends its activity record.
 
-The durable notification record is the source consumed by future Web, Mobile,
-Realtime, and push-delivery phases. Realtime and push delivery are not part of
-this phase.
+The durable notification record remains the authoritative source consumed by
+Web, Mobile, Realtime, and future push-delivery layers. Realtime Broadcast is
+only a low-latency delivery signal and does not replace durable notification
+storage or trusted personal notification RPCs.
 
 ## 2. Durable Model
 
@@ -102,13 +103,24 @@ recipients, source IDs, or target paths. Notification content must remain
 concise and must not expose authentication credentials or sensitive member or
 financial data.
 
-## 9. Deferred Phases
+## 9. Private Realtime Broadcast Transport
+
+Durable notification inserts emit a private Supabase Realtime Broadcast event.
+
+The topic contract is `notifications:<application_user_id>` and the event name is `notification_created`.
+
+Realtime authorization is recipient-scoped. An authenticated application user may receive Broadcast messages only from the topic matching their own `current_application_user_id()`. Anonymous users are not authorized and clients receive no notification-specific Broadcast send policy.
+
+The database trigger fires only after a durable `public.notifications` INSERT. Read-state updates such as `read_at` changes do not emit creation events.
+
+The durable notification row remains the source of truth. Broadcast delivery is best-effort transport only. A connected client should treat the event as a signal to refresh through the trusted personal notification RPCs rather than treating the Broadcast payload itself as authoritative application state.
+
+## 10. Deferred Phases
 
 The following remain explicitly deferred:
 
-- Web notification center and notification bell;
-- Mobile notification center;
-- Supabase Realtime delivery;
+- Web Realtime subscription and live notification refresh;
+- Mobile notification center and Realtime subscription;
 - OS push delivery and device-token management;
 - notification preferences and channel dispatch;
 - email, SMS, and WhatsApp delivery.
