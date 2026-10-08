@@ -215,3 +215,233 @@ export function financeAccountStatusLabel(
     closed: "Closed",
   }[status];
 }
+
+
+export type FinanceMonthlyReportStatus =
+  | "generating"
+  | "ready"
+  | "failed";
+
+export interface FinanceMonthlyReport {
+  id: string;
+  reportMonth: string;
+  revision: number;
+  status: FinanceMonthlyReportStatus;
+  generationSource: "scheduled" | "manual";
+  attemptCount: number;
+  openingBalancePaise: number;
+  donationInflowPaise: number;
+  expenseOutflowPaise: number;
+  adjustmentsNetPaise: number;
+  transferInPaise: number;
+  transferOutPaise: number;
+  closingBalancePaise: number;
+  cashClosingPaise: number;
+  bankClosingPaise: number;
+  upiClosingPaise: number;
+  otherClosingPaise: number;
+  transactionCount: number;
+  storageBucket: string;
+  storageObjectPath: string;
+  fileSizeBytes: number | null;
+  generatedAt: string | null;
+  lastErrorCode: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function mapFinanceMonthlyReport(
+  row: DbRow,
+): FinanceMonthlyReport {
+  return {
+    id: String(row.id),
+    reportMonth: String(row.report_month),
+    revision: Number(row.revision),
+    status: row.status as FinanceMonthlyReportStatus,
+    generationSource:
+      row.generation_source as FinanceMonthlyReport["generationSource"],
+    attemptCount: Number(row.attempt_count),
+    openingBalancePaise: Number(row.opening_balance_paise),
+    donationInflowPaise: Number(row.donation_inflow_paise),
+    expenseOutflowPaise: Number(row.expense_outflow_paise),
+    adjustmentsNetPaise: Number(row.adjustments_net_paise),
+    transferInPaise: Number(row.transfer_in_paise),
+    transferOutPaise: Number(row.transfer_out_paise),
+    closingBalancePaise: Number(row.closing_balance_paise),
+    cashClosingPaise: Number(row.cash_closing_paise),
+    bankClosingPaise: Number(row.bank_closing_paise),
+    upiClosingPaise: Number(row.upi_closing_paise),
+    otherClosingPaise: Number(row.other_closing_paise),
+    transactionCount: Number(row.transaction_count),
+    storageBucket: String(row.storage_bucket),
+    storageObjectPath: String(row.storage_object_path),
+    fileSizeBytes:
+      row.file_size_bytes === null ||
+      row.file_size_bytes === undefined
+        ? null
+        : Number(row.file_size_bytes),
+    generatedAt:
+      row.generated_at === null ||
+      row.generated_at === undefined
+        ? null
+        : String(row.generated_at),
+    lastErrorCode:
+      row.last_error_code === null ||
+      row.last_error_code === undefined
+        ? null
+        : String(row.last_error_code),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+export function financeMonthlyReportsQueryKey(
+  applicationUserId?: string,
+) {
+  return [
+    "finance",
+    "monthly-reports",
+    applicationUserId ?? "anonymous",
+  ] as const;
+}
+
+export async function listFinanceMonthlyReports(): Promise<
+  FinanceMonthlyReport[]
+> {
+  const { data, error } = await supabase
+    .from("finance_monthly_reports")
+    .select(
+      [
+        "id",
+        "report_month",
+        "revision",
+        "status",
+        "generation_source",
+        "attempt_count",
+        "opening_balance_paise",
+        "donation_inflow_paise",
+        "expense_outflow_paise",
+        "adjustments_net_paise",
+        "transfer_in_paise",
+        "transfer_out_paise",
+        "closing_balance_paise",
+        "cash_closing_paise",
+        "bank_closing_paise",
+        "upi_closing_paise",
+        "other_closing_paise",
+        "transaction_count",
+        "storage_bucket",
+        "storage_object_path",
+        "file_size_bytes",
+        "generated_at",
+        "last_error_code",
+        "created_at",
+        "updated_at",
+      ].join(", "),
+    )
+    .order("report_month", { ascending: false })
+    .order("revision", { ascending: false });
+
+  if (error) {
+    throw new Error("finance_monthly_reports_unavailable");
+  }
+
+  return (data ?? []).map((row) =>
+    mapFinanceMonthlyReport(row as unknown as DbRow),
+  );
+}
+
+export function normalizeFinanceReportMonth(
+  input: string,
+) {
+  const value = input.trim();
+
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) {
+    throw new Error("finance_monthly_report_month_invalid");
+  }
+
+  return `${value}-01`;
+}
+
+export async function generateFinanceMonthlyReport(
+  reportMonthInput: string,
+) {
+  const reportMonth =
+    normalizeFinanceReportMonth(reportMonthInput);
+
+  const { data, error } = await supabase.functions.invoke(
+    "render-finance-monthly-report",
+    {
+      body: {
+        report_month: reportMonth,
+      },
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      "finance_monthly_report_generate_failed",
+    );
+  }
+
+  return data;
+}
+
+export async function getFinanceMonthlyReportPdfUrl(
+  report: FinanceMonthlyReport,
+) {
+  if (report.status !== "ready") {
+    throw new Error("finance_monthly_report_not_ready");
+  }
+
+  const { data, error } = await supabase.storage
+    .from(report.storageBucket)
+    .createSignedUrl(report.storageObjectPath, 60);
+
+  if (error || !data?.signedUrl) {
+    throw new Error("finance_monthly_report_pdf_unavailable");
+  }
+
+  return data.signedUrl;
+}
+
+export function financeMonthlyReportStatusLabel(
+  status: FinanceMonthlyReportStatus,
+) {
+  return {
+    generating: "Generating",
+    ready: "Ready",
+    failed: "Failed",
+  }[status];
+}
+
+export function formatFinanceReportMonth(
+  reportMonth: string,
+) {
+  const [year, month] = reportMonth
+    .split("-")
+    .map(Number);
+
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  const monthName = monthNames[month - 1];
+
+  if (!year || !monthName) {
+    return reportMonth;
+  }
+
+  return `${monthName} ${year}`;
+}

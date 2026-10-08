@@ -18,8 +18,16 @@ export default function FinanceLayout() {
       }}
     >
       <Stack.Screen
+        name="index"
+        options={{ title: "Finance" }}
+      />
+      <Stack.Screen
         name="accounts/index"
         options={{ title: "Finance accounts" }}
+      />
+      <Stack.Screen
+        name="reports/index"
+        options={{ title: "Monthly reports" }}
       />
     </Stack>
   );

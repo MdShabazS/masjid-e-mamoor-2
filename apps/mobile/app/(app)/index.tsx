@@ -94,7 +94,7 @@ export default function HomeScreen() {
         ) : null}
         {visibleModules.includes("finance") ? (
           <Pressable
-            onPress={() => router.push("/finance/accounts")}
+            onPress={() => router.push("/finance")}
             style={styles.module}
           >
             <View style={styles.moduleText}>
