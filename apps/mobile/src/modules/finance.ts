@@ -9,7 +9,9 @@ import {
   financeAccountStatusChangeSchema,
 } from "@masjid-e-mamoor/validation";
 
+import { isValidIsoDate } from "../lib/date-input";
 import { supabase } from "../lib/supabase";
+import { parseRupeesToPaise } from "./donation-presentation";
 
 type DbRow = Record<string, unknown>;
 
@@ -216,6 +218,262 @@ export function financeAccountStatusLabel(
   }[status];
 }
 
+
+
+export type FinanceExpenseStatus =
+  | "submitted"
+  | "posted"
+  | "rejected";
+
+export interface FinanceExpense {
+  id: string;
+  financeAccountId: string;
+  amountPaise: number;
+  currency: string;
+  description: string;
+  payee: string | null;
+  businessDate: string;
+  status: FinanceExpenseStatus;
+  submittedByApplicationUserId: string;
+  decidedByApplicationUserId: string | null;
+  decidedAt: string | null;
+  rejectionReason: string | null;
+  postedTransactionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function nullableFinanceString(value: unknown) {
+  return value === null || value === undefined
+    ? null
+    : String(value);
+}
+
+function mapFinanceExpense(
+  row: DbRow,
+): FinanceExpense {
+  return {
+    id: String(row.id),
+    financeAccountId: String(row.finance_account_id),
+    amountPaise: Number(row.amount_paise),
+    currency: String(row.currency),
+    description: String(row.description),
+    payee: nullableFinanceString(row.payee),
+    businessDate: String(row.business_date),
+    status: row.status as FinanceExpenseStatus,
+    submittedByApplicationUserId: String(
+      row.submitted_by_application_user_id,
+    ),
+    decidedByApplicationUserId:
+      nullableFinanceString(
+        row.decided_by_application_user_id,
+      ),
+    decidedAt: nullableFinanceString(row.decided_at),
+    rejectionReason:
+      nullableFinanceString(row.rejection_reason),
+    postedTransactionId:
+      nullableFinanceString(row.posted_transaction_id),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+function unwrapFinanceExpense(
+  data: unknown,
+): FinanceExpense {
+  const row = Array.isArray(data) ? data[0] : data;
+
+  if (!row || typeof row !== "object") {
+    throw new Error("finance_expense_result_missing");
+  }
+
+  return mapFinanceExpense(row as DbRow);
+}
+
+export function financeExpensesQueryKey(
+  applicationUserId?: string,
+) {
+  return [
+    "finance",
+    "expenses",
+    applicationUserId ?? "anonymous",
+  ] as const;
+}
+
+export async function listFinanceExpenses(): Promise<
+  FinanceExpense[]
+> {
+  const { data, error } = await supabase
+    .from("finance_expenses")
+    .select(
+      [
+        "id",
+        "finance_account_id",
+        "amount_paise",
+        "currency",
+        "description",
+        "payee",
+        "business_date",
+        "status",
+        "submitted_by_application_user_id",
+        "decided_by_application_user_id",
+        "decided_at",
+        "rejection_reason",
+        "posted_transaction_id",
+        "created_at",
+        "updated_at",
+      ].join(", "),
+    )
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
+
+  if (error) {
+    throw new Error("finance_expenses_unavailable");
+  }
+
+  return (data ?? []).map((row) =>
+    mapFinanceExpense(row as unknown as DbRow),
+  );
+}
+
+export async function submitFinanceExpense(input: {
+  financeAccountId: string;
+  amount: string;
+  description: string;
+  payee?: string;
+  businessDate: string;
+}) {
+  const financeAccountId =
+    input.financeAccountId.trim();
+  const amountPaise =
+    parseRupeesToPaise(input.amount);
+  const description = input.description.trim();
+  const payee = input.payee?.trim() || null;
+  const businessDate = input.businessDate.trim();
+
+  if (!financeAccountId) {
+    throw new Error(
+      "finance_expense_account_required",
+    );
+  }
+
+  if (
+    amountPaise === null ||
+    !Number.isSafeInteger(amountPaise) ||
+    amountPaise <= 0
+  ) {
+    throw new Error(
+      "finance_expense_amount_invalid",
+    );
+  }
+
+  if (
+    description.length < 1 ||
+    description.length > 2000
+  ) {
+    throw new Error(
+      "finance_expense_description_invalid",
+    );
+  }
+
+  if (payee !== null && payee.length > 200) {
+    throw new Error(
+      "finance_expense_payee_invalid",
+    );
+  }
+
+  if (!isValidIsoDate(businessDate)) {
+    throw new Error(
+      "finance_expense_business_date_invalid",
+    );
+  }
+
+  const { data, error } = await supabase.rpc(
+    "submit_finance_expense",
+    {
+      p_finance_account_id: financeAccountId,
+      p_amount_paise: amountPaise,
+      p_description: description,
+      p_payee: payee,
+      p_business_date: businessDate,
+      p_operation_id: randomUUID(),
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      "finance_expense_submit_failed",
+    );
+  }
+
+  return unwrapFinanceExpense(data);
+}
+
+export async function decideFinanceExpense(input: {
+  financeExpenseId: string;
+  decision: "approve" | "reject";
+  reason?: string;
+}) {
+  const financeExpenseId =
+    input.financeExpenseId.trim();
+  const reason = input.reason?.trim() || null;
+
+  if (!financeExpenseId) {
+    throw new Error("finance_expense_id_required");
+  }
+
+  if (
+    input.decision !== "approve" &&
+    input.decision !== "reject"
+  ) {
+    throw new Error(
+      "finance_expense_decision_invalid",
+    );
+  }
+
+  if (
+    input.decision === "reject" &&
+    !reason
+  ) {
+    throw new Error(
+      "finance_expense_reason_required",
+    );
+  }
+
+  if (reason !== null && reason.length > 2000) {
+    throw new Error(
+      "finance_expense_reason_invalid",
+    );
+  }
+
+  const { data, error } = await supabase.rpc(
+    "decide_finance_expense",
+    {
+      p_finance_expense_id: financeExpenseId,
+      p_decision: input.decision,
+      p_reason: reason,
+      p_operation_id: randomUUID(),
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      "finance_expense_decide_failed",
+    );
+  }
+
+  return unwrapFinanceExpense(data);
+}
+
+export function financeExpenseStatusLabel(
+  status: FinanceExpenseStatus,
+) {
+  return {
+    submitted: "Submitted",
+    posted: "Posted",
+    rejected: "Rejected",
+  }[status];
+}
 
 export type FinanceMonthlyReportStatus =
   | "generating"

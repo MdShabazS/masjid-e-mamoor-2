@@ -10,7 +10,10 @@ export function visibleWorkspaceModules(capabilities: MobileCapabilities) {
   if (capabilities.canReadDonations) modules.push("donations");
   if (
     capabilities.canReadFinanceAccounts ||
-    capabilities.canReadFinanceMonthlyReports
+    capabilities.canReadFinanceMonthlyReports ||
+    capabilities.canReadFinanceTransactions ||
+    capabilities.canCreateFinanceExpenses ||
+    capabilities.canApproveFinanceExpenses
   ) {
     modules.push("finance");
   }

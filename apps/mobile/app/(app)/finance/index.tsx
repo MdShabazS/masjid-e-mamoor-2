@@ -44,7 +44,10 @@ export default function FinanceHomeScreen() {
     capabilities.isError ||
     !access ||
     (!access.canReadFinanceAccounts &&
-      !access.canReadFinanceMonthlyReports)
+      !access.canReadFinanceMonthlyReports &&
+      !access.canReadFinanceTransactions &&
+      !access.canCreateFinanceExpenses &&
+      !access.canApproveFinanceExpenses)
   ) {
     return (
       <Screen
@@ -94,6 +97,30 @@ export default function FinanceHomeScreen() {
             </Text>
             <Text style={styles.cardAction}>
               Open accounts →
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {access.canReadFinanceTransactions ||
+        access.canCreateFinanceExpenses ||
+        access.canApproveFinanceExpenses ? (
+          <Pressable
+            onPress={() =>
+              router.push("/finance/expenses")
+            }
+            style={styles.card}
+          >
+            <Text style={styles.cardTitle}>
+              Finance expenses
+            </Text>
+
+            <Text style={styles.cardCopy}>
+              Submit expenses and review their
+              approval and posting lifecycle.
+            </Text>
+
+            <Text style={styles.cardAction}>
+              Open expenses →
             </Text>
           </Pressable>
         ) : null}
