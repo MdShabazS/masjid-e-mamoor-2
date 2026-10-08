@@ -103,6 +103,28 @@ export default function FinanceHomeScreen() {
           </Pressable>
         ) : null}
 
+        {access.canReadFinanceTransactions ? (
+          <Pressable
+            onPress={() =>
+              router.push("/finance/transactions")
+            }
+            style={styles.card}
+          >
+            <Text style={styles.cardTitle}>
+              Finance transactions
+            </Text>
+
+            <Text style={styles.cardCopy}>
+              Review the read-only authoritative
+              Finance ledger across all accounts.
+            </Text>
+
+            <Text style={styles.cardAction}>
+              Open transactions →
+            </Text>
+          </Pressable>
+        ) : null}
+
         {access.canReadFinanceTransactions ||
         access.canCreateFinanceTransfers ||
         access.canApproveFinanceTransfers ? (

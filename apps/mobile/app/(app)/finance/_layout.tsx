@@ -26,6 +26,10 @@ export default function FinanceLayout() {
         options={{ title: "Finance accounts" }}
       />
       <Stack.Screen
+        name="transactions/index"
+        options={{ title: "Finance transactions" }}
+      />
+      <Stack.Screen
         name="transfers/index"
         options={{ title: "Finance transfers" }}
       />

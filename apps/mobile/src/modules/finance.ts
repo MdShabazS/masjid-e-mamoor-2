@@ -220,6 +220,157 @@ export function financeAccountStatusLabel(
 
 
 
+export type FinanceTransactionCategory =
+  | "DONATION_RECURRING"
+  | "DONATION_ADDITIONAL"
+  | "DONATION_ANONYMOUS"
+  | "DONATION_JUMMAH"
+  | "EXPENSE"
+  | "TRANSFER_IN"
+  | "TRANSFER_OUT"
+  | "CORRECTION"
+  | "REVERSAL";
+
+export type FinanceTransactionDirection =
+  | "inflow"
+  | "outflow";
+
+export interface FinanceTransaction {
+  id: string;
+  financeAccountId: string;
+  transactionCategory: FinanceTransactionCategory;
+  direction: FinanceTransactionDirection;
+  amountPaise: number;
+  currency: string;
+  businessDate: string;
+  referenceType: string;
+  referenceId: string;
+  relatedTransactionId: string | null;
+  operationId: string;
+  createdByApplicationUserId: string;
+  createdAt: string;
+}
+
+function mapFinanceTransaction(
+  row: DbRow,
+): FinanceTransaction {
+  return {
+    id: String(row.id),
+    financeAccountId: String(
+      row.finance_account_id,
+    ),
+    transactionCategory:
+      row.transaction_category as FinanceTransactionCategory,
+    direction:
+      row.direction as FinanceTransactionDirection,
+    amountPaise: Number(row.amount_paise),
+    currency: String(row.currency),
+    businessDate: String(row.business_date),
+    referenceType: String(row.reference_type),
+    referenceId: String(row.reference_id),
+    relatedTransactionId:
+      row.related_transaction_id === null ||
+      row.related_transaction_id === undefined
+        ? null
+        : String(row.related_transaction_id),
+    operationId: String(row.operation_id),
+    createdByApplicationUserId: String(
+      row.created_by_application_user_id,
+    ),
+    createdAt: String(row.created_at),
+  };
+}
+
+export function financeTransactionsQueryKey(
+  applicationUserId?: string,
+) {
+  return [
+    "finance",
+    "transactions",
+    applicationUserId ?? "anonymous",
+  ] as const;
+}
+
+export async function listFinanceTransactions(): Promise<
+  FinanceTransaction[]
+> {
+  const { data, error } = await supabase
+    .from("financial_transactions")
+    .select(
+      [
+        "id",
+        "finance_account_id",
+        "transaction_category",
+        "direction",
+        "amount_paise",
+        "currency",
+        "business_date",
+        "reference_type",
+        "reference_id",
+        "related_transaction_id",
+        "operation_id",
+        "created_by_application_user_id",
+        "created_at",
+      ].join(", "),
+    )
+    .order("business_date", {
+      ascending: false,
+    })
+    .order("created_at", {
+      ascending: false,
+    })
+    .order("id", {
+      ascending: false,
+    });
+
+  if (error) {
+    throw new Error(
+      "finance_transactions_unavailable",
+    );
+  }
+
+  return (data ?? []).map((row) =>
+    mapFinanceTransaction(
+      row as unknown as DbRow,
+    ),
+  );
+}
+
+export function financeTransactionCategoryLabel(
+  category: FinanceTransactionCategory,
+) {
+  return {
+    DONATION_RECURRING: "Recurring donation",
+    DONATION_ADDITIONAL: "Additional donation",
+    DONATION_ANONYMOUS: "Anonymous donation",
+    DONATION_JUMMAH: "Jummah donation",
+    EXPENSE: "Expense",
+    TRANSFER_IN: "Transfer in",
+    TRANSFER_OUT: "Transfer out",
+    CORRECTION: "Correction",
+    REVERSAL: "Reversal",
+  }[category];
+}
+
+export function financeTransactionDirectionLabel(
+  direction: FinanceTransactionDirection,
+) {
+  return direction === "inflow"
+    ? "Inflow"
+    : "Outflow";
+}
+
+export function signedFinanceTransactionAmount(
+  transaction: Pick<
+    FinanceTransaction,
+    "direction" | "amountPaise"
+  >,
+) {
+  return transaction.direction === "inflow"
+    ? transaction.amountPaise
+    : -transaction.amountPaise;
+}
+
 export type FinanceTransferStatus =
   | "submitted"
   | "approved"
