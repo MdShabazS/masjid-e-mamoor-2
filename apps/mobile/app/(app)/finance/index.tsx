@@ -46,6 +46,8 @@ export default function FinanceHomeScreen() {
     (!access.canReadFinanceAccounts &&
       !access.canReadFinanceMonthlyReports &&
       !access.canReadFinanceTransactions &&
+      !access.canCreateFinanceTransfers &&
+      !access.canApproveFinanceTransfers &&
       !access.canCreateFinanceExpenses &&
       !access.canApproveFinanceExpenses)
   ) {
@@ -97,6 +99,30 @@ export default function FinanceHomeScreen() {
             </Text>
             <Text style={styles.cardAction}>
               Open accounts →
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {access.canReadFinanceTransactions ||
+        access.canCreateFinanceTransfers ||
+        access.canApproveFinanceTransfers ? (
+          <Pressable
+            onPress={() =>
+              router.push("/finance/transfers")
+            }
+            style={styles.card}
+          >
+            <Text style={styles.cardTitle}>
+              Internal transfers
+            </Text>
+
+            <Text style={styles.cardCopy}>
+              Move funds between Masjid Finance
+              accounts using maker/checker approval.
+            </Text>
+
+            <Text style={styles.cardAction}>
+              Open transfers →
             </Text>
           </Pressable>
         ) : null}

@@ -220,6 +220,309 @@ export function financeAccountStatusLabel(
 
 
 
+export type FinanceTransferStatus =
+  | "submitted"
+  | "approved"
+  | "rejected";
+
+export interface FinanceTransfer {
+  id: string;
+  sourceFinanceAccountId: string;
+  destinationFinanceAccountId: string;
+  amountPaise: number;
+  currency: string;
+  reason: string;
+  businessDate: string;
+  status: FinanceTransferStatus;
+  submittedByApplicationUserId: string;
+  decidedByApplicationUserId: string | null;
+  decidedAt: string | null;
+  rejectionReason: string | null;
+  sourceTransactionId: string | null;
+  destinationTransactionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function mapFinanceTransfer(
+  row: DbRow,
+): FinanceTransfer {
+  return {
+    id: String(row.id),
+    sourceFinanceAccountId: String(
+      row.source_finance_account_id,
+    ),
+    destinationFinanceAccountId: String(
+      row.destination_finance_account_id,
+    ),
+    amountPaise: Number(row.amount_paise),
+    currency: String(row.currency),
+    reason: String(row.reason),
+    businessDate: String(row.business_date),
+    status: row.status as FinanceTransferStatus,
+    submittedByApplicationUserId: String(
+      row.submitted_by_application_user_id,
+    ),
+    decidedByApplicationUserId:
+      row.decided_by_application_user_id === null ||
+      row.decided_by_application_user_id === undefined
+        ? null
+        : String(
+            row.decided_by_application_user_id,
+          ),
+    decidedAt:
+      row.decided_at === null ||
+      row.decided_at === undefined
+        ? null
+        : String(row.decided_at),
+    rejectionReason:
+      row.rejection_reason === null ||
+      row.rejection_reason === undefined
+        ? null
+        : String(row.rejection_reason),
+    sourceTransactionId:
+      row.source_transaction_id === null ||
+      row.source_transaction_id === undefined
+        ? null
+        : String(row.source_transaction_id),
+    destinationTransactionId:
+      row.destination_transaction_id === null ||
+      row.destination_transaction_id === undefined
+        ? null
+        : String(row.destination_transaction_id),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+function unwrapFinanceTransfer(
+  data: unknown,
+): FinanceTransfer {
+  const row = Array.isArray(data) ? data[0] : data;
+
+  if (!row || typeof row !== "object") {
+    throw new Error(
+      "finance_transfer_result_missing",
+    );
+  }
+
+  return mapFinanceTransfer(row as DbRow);
+}
+
+export function financeTransfersQueryKey(
+  applicationUserId?: string,
+) {
+  return [
+    "finance",
+    "transfers",
+    applicationUserId ?? "anonymous",
+  ] as const;
+}
+
+export async function listFinanceTransfers(): Promise<
+  FinanceTransfer[]
+> {
+  const { data, error } = await supabase
+    .from("finance_transfers")
+    .select(
+      [
+        "id",
+        "source_finance_account_id",
+        "destination_finance_account_id",
+        "amount_paise",
+        "currency",
+        "reason",
+        "business_date",
+        "status",
+        "submitted_by_application_user_id",
+        "decided_by_application_user_id",
+        "decided_at",
+        "rejection_reason",
+        "source_transaction_id",
+        "destination_transaction_id",
+        "created_at",
+        "updated_at",
+      ].join(", "),
+    )
+    .order("created_at", {
+      ascending: false,
+    })
+    .order("id", {
+      ascending: false,
+    });
+
+  if (error) {
+    throw new Error(
+      "finance_transfers_unavailable",
+    );
+  }
+
+  return (data ?? []).map((row) =>
+    mapFinanceTransfer(
+      row as unknown as DbRow,
+    ),
+  );
+}
+
+export async function submitFinanceTransfer(input: {
+  sourceFinanceAccountId: string;
+  destinationFinanceAccountId: string;
+  amount: string;
+  reason: string;
+  businessDate: string;
+}) {
+  const sourceFinanceAccountId =
+    input.sourceFinanceAccountId.trim();
+
+  const destinationFinanceAccountId =
+    input.destinationFinanceAccountId.trim();
+
+  const amountPaise =
+    parseRupeesToPaise(input.amount);
+
+  const reason = input.reason.trim();
+  const businessDate = input.businessDate.trim();
+
+  if (
+    !sourceFinanceAccountId ||
+    !destinationFinanceAccountId
+  ) {
+    throw new Error(
+      "finance_transfer_account_required",
+    );
+  }
+
+  if (
+    sourceFinanceAccountId ===
+    destinationFinanceAccountId
+  ) {
+    throw new Error(
+      "finance_transfer_self_transfer",
+    );
+  }
+
+  if (
+    amountPaise === null ||
+    !Number.isSafeInteger(amountPaise) ||
+    amountPaise <= 0
+  ) {
+    throw new Error(
+      "finance_transfer_amount_invalid",
+    );
+  }
+
+  if (
+    reason.length < 1 ||
+    reason.length > 1000
+  ) {
+    throw new Error(
+      "finance_transfer_reason_invalid",
+    );
+  }
+
+  if (!isValidIsoDate(businessDate)) {
+    throw new Error(
+      "finance_transfer_business_date_invalid",
+    );
+  }
+
+  const { data, error } = await supabase.rpc(
+    "submit_finance_transfer",
+    {
+      p_source_finance_account_id:
+        sourceFinanceAccountId,
+      p_destination_finance_account_id:
+        destinationFinanceAccountId,
+      p_amount_paise: amountPaise,
+      p_reason: reason,
+      p_business_date: businessDate,
+      p_operation_id: randomUUID(),
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      "finance_transfer_submit_failed",
+    );
+  }
+
+  return unwrapFinanceTransfer(data);
+}
+
+export async function decideFinanceTransfer(input: {
+  financeTransferId: string;
+  decision: "approve" | "reject";
+  reason?: string;
+}) {
+  const financeTransferId =
+    input.financeTransferId.trim();
+
+  const reason =
+    input.reason?.trim() || null;
+
+  if (!financeTransferId) {
+    throw new Error(
+      "finance_transfer_id_required",
+    );
+  }
+
+  if (
+    input.decision !== "approve" &&
+    input.decision !== "reject"
+  ) {
+    throw new Error(
+      "finance_transfer_decision_invalid",
+    );
+  }
+
+  if (
+    input.decision === "reject" &&
+    !reason
+  ) {
+    throw new Error(
+      "finance_transfer_rejection_reason_required",
+    );
+  }
+
+  if (
+    reason !== null &&
+    reason.length > 2000
+  ) {
+    throw new Error(
+      "finance_transfer_decision_reason_invalid",
+    );
+  }
+
+  const { data, error } = await supabase.rpc(
+    "decide_finance_transfer",
+    {
+      p_finance_transfer_id:
+        financeTransferId,
+      p_decision: input.decision,
+      p_reason: reason,
+      p_operation_id: randomUUID(),
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      "finance_transfer_decide_failed",
+    );
+  }
+
+  return unwrapFinanceTransfer(data);
+}
+
+export function financeTransferStatusLabel(
+  status: FinanceTransferStatus,
+) {
+  return {
+    submitted: "Submitted",
+    approved: "Approved",
+    rejected: "Rejected",
+  }[status];
+}
+
 export type FinanceExpenseStatus =
   | "submitted"
   | "posted"
