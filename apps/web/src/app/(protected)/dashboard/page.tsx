@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { canManageAccounts, getCurrentAccount, listAccounts } from "@/lib/accounts/server";
 import { getDonationManagementCapabilities } from "@/lib/donations/server";
-import { getFinanceAccountCapabilities } from "@/lib/finance/server";
+import {
+  getFinanceAccountCapabilities,
+  getFinanceMonthlyReportCapabilities,
+} from "@/lib/finance/server";
 import { hasAdminMemberReadAccess } from "@/lib/members/server";
 import { canUseReferrals } from "@/lib/referrals/server";
 import { getCommitteeTaskCapabilities } from "@/lib/work/server";
@@ -20,6 +23,7 @@ export default async function DashboardPage() {
     canOpenMemberManagement,
     donationCapabilities,
     financeCapabilities,
+    monthlyReportCapabilities,
     canOpenAccountManagement,
     canOpenReferrals,
     workCapabilities,
@@ -28,6 +32,7 @@ export default async function DashboardPage() {
     hasAdminMemberReadAccess(),
     getDonationManagementCapabilities(),
     getFinanceAccountCapabilities(),
+    getFinanceMonthlyReportCapabilities(),
     canManageAccounts(),
     canUseReferrals(),
     getCommitteeTaskCapabilities(),
@@ -45,6 +50,7 @@ export default async function DashboardPage() {
     { href: "/work", title: "Work", description: workCapabilities.canAssign ? "Create, assign, and manage committee tasks." : "Review and update your assigned committee tasks.", visible: workCapabilities.canRead },
     { href: "/donations/manage", title: "Donation Management", description: "Review payments and manage donation operations.", visible: canOpenDonationManagement },
     { href: "/finance/accounts", title: "Finance Accounts", description: "Review Finance accounts, balances, and authorized account lifecycle actions.", visible: financeCapabilities.canReadAccounts },
+    { href: "/finance/monthly-reports", title: "Monthly Finance Reports", description: "Review, generate, and download immutable monthly Finance reports.", visible: monthlyReportCapabilities.canRead },
     { href: "/accounts", title: "Account Administration", description: "Manage usernames, roles, status, and password setup.", visible: canOpenAccountManagement },
   ].filter((module) => module.visible);
 

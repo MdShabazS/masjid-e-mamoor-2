@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { canManageAccounts, getCurrentAccount } from "@/lib/accounts/server";
 import { getDonationManagementCapabilities } from "@/lib/donations/server";
+import { getFinanceMonthlyReportCapabilities } from "@/lib/finance/server";
 import { hasAdminMemberReadAccess } from "@/lib/members/server";
 import { canUseReferrals } from "@/lib/referrals/server";
 import { formatUnreadBadge } from "@/lib/notifications/presentation";
@@ -16,12 +17,13 @@ export async function AppShell({ children }: { children: ReactNode }) {
   const account = await getCurrentAccount();
   if (!account || account.status !== "active") redirect("/login");
 
-  const [members, donations, accounts, referrals, work, unreadCount] = await Promise.all([
+  const [members, donations, accounts, referrals, work, monthlyReports, unreadCount] = await Promise.all([
     hasAdminMemberReadAccess(),
     getDonationManagementCapabilities(),
     canManageAccounts(),
     canUseReferrals(),
     getCommitteeTaskCapabilities(),
+    getFinanceMonthlyReportCapabilities(),
     getMyUnreadNotificationCount(),
   ]);
   const unreadBadge = formatUnreadBadge(unreadCount);
@@ -31,7 +33,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
     { label: "Overview", links: [{ href: "/dashboard", label: "Dashboard", visible: true }, { href: "/profile", label: "My Profile", visible: true }] },
     { label: "Community", links: [{ href: "/members", label: "Members", visible: members }, { href: "/referrals", label: "Referrals", visible: referrals }] },
     { label: "Operations", links: [{ href: "/work", label: "Work", visible: work.canRead }] },
-    { label: "Finance", links: [{ href: "/donations", label: "Donations", visible: true }, { href: "/donations/manage", label: "Donation Management", visible: donationManagement }] },
+    { label: "Finance", links: [{ href: "/donations", label: "Donations", visible: true }, { href: "/donations/manage", label: "Donation Management", visible: donationManagement }, { href: "/finance/monthly-reports", label: "Monthly Reports", visible: monthlyReports.canRead }] },
     { label: "Administration", links: [{ href: "/accounts", label: "Account Administration", visible: accounts }] },
   ];
 
