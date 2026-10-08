@@ -99,7 +99,11 @@ function parseAuthorization(request: Request): {
   return { header, token: match[1] };
 }
 
-async function parseRequestMonth(request: Request): Promise<string> {
+type RenderRequest =
+  | { mode: "manual"; reportMonth: string }
+  | { mode: "scheduled" };
+
+async function parseRenderRequest(request: Request): Promise<RenderRequest> {
   let body: unknown;
   try {
     body = await request.json();
@@ -121,19 +125,52 @@ async function parseRequestMonth(request: Request): Promise<string> {
 
   const record = body as JsonRecord;
   const keys = Object.keys(record);
+
   if (
-    keys.length !== 1 ||
-    keys[0] !== "report_month" ||
-    !validateReportMonth(record.report_month)
+    keys.length === 1 &&
+    keys[0] === "mode" &&
+    record.mode === "scheduled"
   ) {
-    throw new SafeHttpError(
-      400,
-      "renderer:invalid_request",
-      "report_month must use the YYYY-MM-01 format.",
-    );
+    return { mode: "scheduled" };
   }
 
-  return record.report_month;
+  if (
+    keys.length === 1 &&
+    keys[0] === "report_month" &&
+    validateReportMonth(record.report_month)
+  ) {
+    return { mode: "manual", reportMonth: record.report_month };
+  }
+
+  throw new SafeHttpError(
+    400,
+    "renderer:invalid_request",
+    "Provide report_month as YYYY-MM-01 or mode=scheduled.",
+  );
+}
+
+async function schedulerSecretMatches(request: Request): Promise<boolean> {
+  const supplied =
+    request.headers.get("x-finance-scheduler-secret")?.trim() ?? "";
+  const expected = requiredEnvironment("FINANCE_MONTHLY_SCHEDULER_SECRET");
+
+  if (!supplied || !expected) return false;
+
+  const encoder = new TextEncoder();
+  const [suppliedDigest, expectedDigest] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(supplied)),
+    crypto.subtle.digest("SHA-256", encoder.encode(expected)),
+  ]);
+
+  const suppliedBytes = new Uint8Array(suppliedDigest);
+  const expectedBytes = new Uint8Array(expectedDigest);
+  let difference = 0;
+
+  for (let index = 0; index < suppliedBytes.length; index += 1) {
+    difference |= suppliedBytes[index] ^ expectedBytes[index];
+  }
+
+  return difference === 0;
 }
 
 function isAuthorizationError(error: JsonRecord | null): boolean {
@@ -222,62 +259,106 @@ async function handleRequest(request: Request): Promise<Response> {
     );
   }
 
-  const { header: authorization, token } = parseAuthorization(request);
-  const reportMonth = await parseRequestMonth(request);
+  const renderRequest = await parseRenderRequest(request);
   const supabaseUrl = requiredEnvironment("SUPABASE_URL");
-  const anonKey = requiredEnvironment("SUPABASE_ANON_KEY");
 
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authorization } },
-    auth: {
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      persistSession: false,
-    },
-  });
+  let report: ReportRow;
+  let serverClient: ServerClient;
 
-  const { data: userData, error: userError } = await userClient.auth.getUser(
-    token,
-  );
-  if (userError || !userData.user) {
-    throw new SafeHttpError(
-      401,
-      "renderer:auth_failed",
-      "The authenticated session is invalid.",
-    );
-  }
-
-  const { data: generatedData, error: generatedError } = await userClient.rpc(
-    "generate_finance_monthly_report_snapshot",
-    { p_report_month: reportMonth },
-  );
-
-  if (generatedError) {
-    if (isAuthorizationError(generatedError as unknown as JsonRecord)) {
+  if (renderRequest.mode === "scheduled") {
+    if (!(await schedulerSecretMatches(request))) {
       throw new SafeHttpError(
         403,
-        "renderer:not_authorized",
-        "You are not authorized to generate monthly Finance reports.",
+        "renderer:scheduler_not_authorized",
+        "The scheduled report request is not authorized.",
       );
     }
-    throw new SafeHttpError(
-      500,
-      "renderer:snapshot_failed",
-      "The authoritative Finance snapshot could not be prepared.",
-    );
-  }
 
-  const report = firstRpcRow<ReportRow>(generatedData);
-  if (!report?.id) {
-    throw new SafeHttpError(
-      500,
-      "renderer:snapshot_failed",
-      "The authoritative Finance snapshot could not be prepared.",
-    );
-  }
+    const serviceRoleKey = requiredEnvironment("SUPABASE_SERVICE_ROLE_KEY");
+    serverClient = createServerClient(supabaseUrl, serviceRoleKey);
 
-  const serviceRoleKey = requiredEnvironment("SUPABASE_SERVICE_ROLE_KEY");
-  const serverClient = createServerClient(supabaseUrl, serviceRoleKey);
+    const { data: generatedData, error: generatedError } =
+      await serverClient.rpc(
+        "generate_scheduled_finance_monthly_report_snapshot",
+      );
+
+    if (generatedError) {
+      throw new SafeHttpError(
+        500,
+        "renderer:snapshot_failed",
+        "The scheduled Finance snapshot could not be prepared.",
+      );
+    }
+
+    const scheduledReport = firstRpcRow<ReportRow>(generatedData);
+    if (!scheduledReport?.id) {
+      throw new SafeHttpError(
+        500,
+        "renderer:snapshot_failed",
+        "The scheduled Finance snapshot could not be prepared.",
+      );
+    }
+
+    report = scheduledReport;
+  } else {
+    const { header: authorization, token } = parseAuthorization(request);
+    const anonKey = requiredEnvironment("SUPABASE_ANON_KEY");
+
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authorization } },
+      auth: {
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        persistSession: false,
+      },
+    });
+
+    const { data: userData, error: userError } = await userClient.auth.getUser(
+      token,
+    );
+    if (userError || !userData.user) {
+      throw new SafeHttpError(
+        401,
+        "renderer:auth_failed",
+        "The authenticated session is invalid.",
+      );
+    }
+
+    const { data: generatedData, error: generatedError } =
+      await userClient.rpc(
+        "generate_finance_monthly_report_snapshot",
+        { p_report_month: renderRequest.reportMonth },
+      );
+
+    if (generatedError) {
+      if (isAuthorizationError(generatedError as unknown as JsonRecord)) {
+        throw new SafeHttpError(
+          403,
+          "renderer:not_authorized",
+          "You are not authorized to generate monthly Finance reports.",
+        );
+      }
+      throw new SafeHttpError(
+        500,
+        "renderer:snapshot_failed",
+        "The authoritative Finance snapshot could not be prepared.",
+      );
+    }
+
+    const manualReport = firstRpcRow<ReportRow>(generatedData);
+    if (!manualReport?.id) {
+      throw new SafeHttpError(
+        500,
+        "renderer:snapshot_failed",
+        "The authoritative Finance snapshot could not be prepared.",
+      );
+    }
+
+    report = manualReport;
+
+    const serviceRoleKey = requiredEnvironment("SUPABASE_SERVICE_ROLE_KEY");
+    serverClient = createServerClient(supabaseUrl, serviceRoleKey);
+  }
 
   const { data: claimData, error: claimError } = await serverClient.rpc(
     "claim_finance_monthly_report_render",
