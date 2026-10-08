@@ -38,6 +38,10 @@ export default function FinanceLayout() {
         options={{ title: "Finance expenses" }}
       />
       <Stack.Screen
+        name="adjustments/index"
+        options={{ title: "Corrections & reversals" }}
+      />
+      <Stack.Screen
         name="reports/index"
         options={{ title: "Monthly reports" }}
       />

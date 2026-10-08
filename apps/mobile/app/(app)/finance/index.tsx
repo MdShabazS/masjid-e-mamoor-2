@@ -49,7 +49,9 @@ export default function FinanceHomeScreen() {
       !access.canCreateFinanceTransfers &&
       !access.canApproveFinanceTransfers &&
       !access.canCreateFinanceExpenses &&
-      !access.canApproveFinanceExpenses)
+      !access.canApproveFinanceExpenses &&
+      !access.canCreateFinanceCorrections &&
+      !access.canCreateFinanceReversals)
   ) {
     return (
       <Screen
@@ -169,6 +171,31 @@ export default function FinanceHomeScreen() {
 
             <Text style={styles.cardAction}>
               Open expenses →
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {access.canReadFinanceTransactions ||
+        access.canCreateFinanceCorrections ||
+        access.canCreateFinanceReversals ? (
+          <Pressable
+            onPress={() =>
+              router.push("/finance/adjustments")
+            }
+            style={styles.card}
+          >
+            <Text style={styles.cardTitle}>
+              Corrections & reversals
+            </Text>
+
+            <Text style={styles.cardCopy}>
+              Review and submit append-only
+              Finance corrections and reversals
+              with maker/checker control.
+            </Text>
+
+            <Text style={styles.cardAction}>
+              Open adjustments →
             </Text>
           </Pressable>
         ) : null}

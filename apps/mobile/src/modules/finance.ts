@@ -929,6 +929,417 @@ export function financeExpenseStatusLabel(
   }[status];
 }
 
+export type FinanceAdjustmentType =
+  | "correction"
+  | "reversal";
+
+export type FinanceAdjustmentStatus =
+  | "submitted"
+  | "applied"
+  | "rejected";
+
+export interface FinanceAdjustment {
+  id: string;
+  adjustmentType: FinanceAdjustmentType;
+  targetTransactionId: string;
+  reason: string;
+  correctionFinanceAccountId: string | null;
+  correctionDirection:
+    | FinanceTransactionDirection
+    | null;
+  correctionAmountPaise: number | null;
+  businessDate: string;
+  status: FinanceAdjustmentStatus;
+  submittedByApplicationUserId: string;
+  decidedByApplicationUserId: string | null;
+  decidedAt: string | null;
+  rejectionReason: string | null;
+  appliedTransactionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function mapFinanceAdjustment(
+  row: DbRow,
+): FinanceAdjustment {
+  return {
+    id: String(row.id),
+    adjustmentType:
+      row.adjustment_type as FinanceAdjustmentType,
+    targetTransactionId: String(
+      row.target_transaction_id,
+    ),
+    reason: String(row.reason),
+    correctionFinanceAccountId:
+      nullableFinanceString(
+        row.correction_finance_account_id,
+      ),
+    correctionDirection:
+      row.correction_direction === null ||
+      row.correction_direction === undefined
+        ? null
+        : (row.correction_direction as FinanceTransactionDirection),
+    correctionAmountPaise:
+      row.correction_amount_paise === null ||
+      row.correction_amount_paise === undefined
+        ? null
+        : Number(row.correction_amount_paise),
+    businessDate: String(row.business_date),
+    status:
+      row.status as FinanceAdjustmentStatus,
+    submittedByApplicationUserId: String(
+      row.submitted_by_application_user_id,
+    ),
+    decidedByApplicationUserId:
+      nullableFinanceString(
+        row.decided_by_application_user_id,
+      ),
+    decidedAt:
+      nullableFinanceString(row.decided_at),
+    rejectionReason:
+      nullableFinanceString(
+        row.rejection_reason,
+      ),
+    appliedTransactionId:
+      nullableFinanceString(
+        row.applied_transaction_id,
+      ),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+function unwrapFinanceAdjustment(
+  data: unknown,
+): FinanceAdjustment {
+  const row = Array.isArray(data) ? data[0] : data;
+
+  if (!row || typeof row !== "object") {
+    throw new Error(
+      "finance_adjustment_result_missing",
+    );
+  }
+
+  return mapFinanceAdjustment(row as DbRow);
+}
+
+export function financeAdjustmentsQueryKey(
+  applicationUserId?: string,
+) {
+  return [
+    "finance",
+    "adjustments",
+    applicationUserId ?? "anonymous",
+  ] as const;
+}
+
+export async function listFinanceAdjustments(): Promise<
+  FinanceAdjustment[]
+> {
+  const { data, error } = await supabase
+    .from("finance_adjustments")
+    .select(
+      [
+        "id",
+        "adjustment_type",
+        "target_transaction_id",
+        "reason",
+        "correction_finance_account_id",
+        "correction_direction",
+        "correction_amount_paise",
+        "business_date",
+        "status",
+        "submitted_by_application_user_id",
+        "decided_by_application_user_id",
+        "decided_at",
+        "rejection_reason",
+        "applied_transaction_id",
+        "created_at",
+        "updated_at",
+      ].join(", "),
+    )
+    .order("created_at", {
+      ascending: false,
+    })
+    .order("id", {
+      ascending: false,
+    });
+
+  if (error) {
+    throw new Error(
+      "finance_adjustments_unavailable",
+    );
+  }
+
+  return (data ?? []).map((row) =>
+    mapFinanceAdjustment(
+      row as unknown as DbRow,
+    ),
+  );
+}
+
+function validateAdjustmentBase(input: {
+  targetTransactionId: string;
+  reason: string;
+  businessDate: string;
+}) {
+  const targetTransactionId =
+    input.targetTransactionId.trim();
+
+  const reason = input.reason.trim();
+  const businessDate =
+    input.businessDate.trim();
+
+  if (!targetTransactionId) {
+    throw new Error(
+      "finance_adjustment_target_required",
+    );
+  }
+
+  if (
+    reason.length < 1 ||
+    reason.length > 2000
+  ) {
+    throw new Error(
+      "finance_adjustment_reason_invalid",
+    );
+  }
+
+  if (!isValidIsoDate(businessDate)) {
+    throw new Error(
+      "finance_adjustment_business_date_invalid",
+    );
+  }
+
+  return {
+    targetTransactionId,
+    reason,
+    businessDate,
+  };
+}
+
+export async function submitFinanceCorrection(
+  input: {
+    targetTransactionId: string;
+    reason: string;
+    correctionFinanceAccountId: string;
+    correctionDirection:
+      FinanceTransactionDirection;
+    amount: string;
+    businessDate: string;
+  },
+) {
+  const base =
+    validateAdjustmentBase(input);
+
+  const correctionFinanceAccountId =
+    input.correctionFinanceAccountId.trim();
+
+  const amountPaise =
+    parseRupeesToPaise(input.amount);
+
+  if (!correctionFinanceAccountId) {
+    throw new Error(
+      "finance_correction_account_required",
+    );
+  }
+
+  if (
+    input.correctionDirection !== "inflow" &&
+    input.correctionDirection !== "outflow"
+  ) {
+    throw new Error(
+      "finance_correction_direction_invalid",
+    );
+  }
+
+  if (
+    amountPaise === null ||
+    !Number.isSafeInteger(amountPaise) ||
+    amountPaise <= 0
+  ) {
+    throw new Error(
+      "finance_correction_amount_invalid",
+    );
+  }
+
+  const { data, error } = await supabase.rpc(
+    "submit_finance_adjustment",
+    {
+      p_target_transaction_id:
+        base.targetTransactionId,
+      p_adjustment_type: "correction",
+      p_reason: base.reason,
+      p_correction_finance_account_id:
+        correctionFinanceAccountId,
+      p_correction_direction:
+        input.correctionDirection,
+      p_correction_amount_paise:
+        amountPaise,
+      p_business_date: base.businessDate,
+      p_operation_id: randomUUID(),
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      "finance_correction_submit_failed",
+    );
+  }
+
+  return unwrapFinanceAdjustment(data);
+}
+
+export async function submitFinanceReversal(
+  input: {
+    targetTransactionId: string;
+    reason: string;
+    businessDate: string;
+  },
+) {
+  const base =
+    validateAdjustmentBase(input);
+
+  const { data, error } = await supabase.rpc(
+    "submit_finance_adjustment",
+    {
+      p_target_transaction_id:
+        base.targetTransactionId,
+      p_adjustment_type: "reversal",
+      p_reason: base.reason,
+      p_correction_finance_account_id:
+        null,
+      p_correction_direction: null,
+      p_correction_amount_paise: null,
+      p_business_date: base.businessDate,
+      p_operation_id: randomUUID(),
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      "finance_reversal_submit_failed",
+    );
+  }
+
+  return unwrapFinanceAdjustment(data);
+}
+
+export async function decideFinanceAdjustment(
+  input: {
+    financeAdjustmentId: string;
+    decision: "approve" | "reject";
+    reason?: string;
+  },
+) {
+  const financeAdjustmentId =
+    input.financeAdjustmentId.trim();
+
+  const reason =
+    input.reason?.trim() || null;
+
+  if (!financeAdjustmentId) {
+    throw new Error(
+      "finance_adjustment_id_required",
+    );
+  }
+
+  if (
+    input.decision !== "approve" &&
+    input.decision !== "reject"
+  ) {
+    throw new Error(
+      "finance_adjustment_decision_invalid",
+    );
+  }
+
+  if (
+    input.decision === "reject" &&
+    !reason
+  ) {
+    throw new Error(
+      "finance_adjustment_rejection_reason_required",
+    );
+  }
+
+  if (
+    reason !== null &&
+    reason.length > 2000
+  ) {
+    throw new Error(
+      "finance_adjustment_decision_reason_invalid",
+    );
+  }
+
+  const { data, error } = await supabase.rpc(
+    "decide_finance_adjustment",
+    {
+      p_finance_adjustment_id:
+        financeAdjustmentId,
+      p_decision: input.decision,
+      p_reason: reason,
+      p_operation_id: randomUUID(),
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      "finance_adjustment_decide_failed",
+    );
+  }
+
+  return unwrapFinanceAdjustment(data);
+}
+
+export function canCorrectFinanceTransaction(
+  transaction: Pick<
+    FinanceTransaction,
+    "transactionCategory"
+  >,
+) {
+  return (
+    transaction.transactionCategory !==
+      "TRANSFER_IN" &&
+    transaction.transactionCategory !==
+      "TRANSFER_OUT"
+  );
+}
+
+export function canReverseFinanceTransaction(
+  transaction: Pick<
+    FinanceTransaction,
+    "transactionCategory"
+  >,
+) {
+  return (
+    transaction.transactionCategory !==
+      "TRANSFER_IN" &&
+    transaction.transactionCategory !==
+      "TRANSFER_OUT" &&
+    transaction.transactionCategory !==
+      "REVERSAL"
+  );
+}
+
+export function financeAdjustmentTypeLabel(
+  type: FinanceAdjustmentType,
+) {
+  return {
+    correction: "Correction",
+    reversal: "Reversal",
+  }[type];
+}
+
+export function financeAdjustmentStatusLabel(
+  status: FinanceAdjustmentStatus,
+) {
+  return {
+    submitted: "Submitted",
+    applied: "Applied",
+    rejected: "Rejected",
+  }[status];
+}
+
 export type FinanceMonthlyReportStatus =
   | "generating"
   | "ready"

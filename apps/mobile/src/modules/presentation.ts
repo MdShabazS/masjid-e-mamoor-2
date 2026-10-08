@@ -15,7 +15,9 @@ export function visibleWorkspaceModules(capabilities: MobileCapabilities) {
     capabilities.canCreateFinanceTransfers ||
     capabilities.canApproveFinanceTransfers ||
     capabilities.canCreateFinanceExpenses ||
-    capabilities.canApproveFinanceExpenses
+    capabilities.canApproveFinanceExpenses ||
+    capabilities.canCreateFinanceCorrections ||
+    capabilities.canCreateFinanceReversals
   ) {
     modules.push("finance");
   }
