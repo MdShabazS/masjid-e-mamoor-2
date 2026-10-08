@@ -11,6 +11,7 @@ export function visibleWorkspaceModules(capabilities: MobileCapabilities) {
   if (
     capabilities.canReadFinanceAccounts ||
     capabilities.canReadFinanceMonthlyReports ||
+    capabilities.canReadFinanceReconciliation ||
     capabilities.canReadFinanceTransactions ||
     capabilities.canCreateFinanceTransfers ||
     capabilities.canApproveFinanceTransfers ||

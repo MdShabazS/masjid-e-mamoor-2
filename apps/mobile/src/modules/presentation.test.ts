@@ -16,7 +16,9 @@ describe("mobile workspace presentation", () => {
       canCreateFinanceExpenses: false,
       canApproveFinanceExpenses: false,
       canCreateFinanceCorrections: false,
-      canCreateFinanceReversals: false,
+          canCreateFinanceReversals: false,
+        canReadFinanceReconciliation: false,
+        canManageFinanceReconciliation: false,
         canReadMembers: false,
         canUpdateMembers: false,
         canCreateReferral: false,
@@ -54,6 +56,8 @@ describe("mobile workspace presentation", () => {
       canApproveFinanceExpenses: false,
       canCreateFinanceCorrections: false,
       canCreateFinanceReversals: false,
+    canReadFinanceReconciliation: false,
+    canManageFinanceReconciliation: false,
       canReadMembers: false,
       canUpdateMembers: false,
       canCreateReferral: false,
@@ -82,7 +86,7 @@ describe("mobile workspace presentation", () => {
     ]);
   });
 
-  it("shows Finance workspace from resolved Finance read permission", () => {
+  it("shows Finance workspace from resolved Finance read permissions", () => {
     const capabilities: MobileCapabilities = {
       canManageAccounts: false,
       canReadFinanceAccounts: true,
@@ -96,6 +100,8 @@ describe("mobile workspace presentation", () => {
       canApproveFinanceExpenses: false,
       canCreateFinanceCorrections: false,
       canCreateFinanceReversals: false,
+    canReadFinanceReconciliation: false,
+    canManageFinanceReconciliation: false,
       canReadMembers: false,
       canUpdateMembers: false,
       canCreateReferral: false,
@@ -121,6 +127,14 @@ describe("mobile workspace presentation", () => {
       "profile",
       "finance",
     ]);
+
+    expect(
+      visibleWorkspaceModules({
+        ...capabilities,
+        canReadFinanceAccounts: false,
+        canReadFinanceReconciliation: true,
+      }),
+    ).toEqual(["profile", "finance"]);
   });
 
   it("maps referral lifecycle states for display", () => {

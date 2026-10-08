@@ -1568,3 +1568,392 @@ export function formatFinanceReportMonth(
 
   return `${monthName} ${year}`;
 }
+
+// ---------------------------------------------------------------------------
+// Finance reconciliation
+// ---------------------------------------------------------------------------
+
+export type FinanceReconciliationType =
+  | "monthly"
+  | "on_demand";
+
+export type FinanceReconciliationStatus =
+  | "in_progress"
+  | "completed";
+
+export type FinanceReconciliationEvidenceType =
+  | "bank_statement"
+  | "upi_statement"
+  | "cash_count"
+  | "receipt"
+  | "other";
+
+export type FinanceReconciliationDiscrepancyStatus =
+  | "pending"
+  | "matched"
+  | "open"
+  | "investigated";
+
+export interface FinanceReconciliation {
+  id: string;
+  reconciliationType: FinanceReconciliationType;
+  periodMonth: string | null;
+  asOfBusinessDate: string;
+  status: FinanceReconciliationStatus;
+  startNotes: string | null;
+  completionNotes: string | null;
+  createdByApplicationUserId: string;
+  completedByApplicationUserId: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  updatedAt: string;
+}
+
+export interface FinanceReconciliationItem {
+  id: string;
+  reconciliationId: string;
+  financeAccountId: string;
+  accountNameSnapshot: string;
+  accountTypeSnapshot: FinanceAccount["accountType"];
+  currency: string;
+  systemBalancePaise: number;
+  externalBalancePaise: number | null;
+  differencePaise: number | null;
+  evidenceType: FinanceReconciliationEvidenceType | null;
+  evidenceReference: string | null;
+  investigationNote: string | null;
+  discrepancyStatus: FinanceReconciliationDiscrepancyStatus;
+  recordedByApplicationUserId: string | null;
+  recordedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function mapFinanceReconciliation(
+  row: DbRow,
+): FinanceReconciliation {
+  return {
+    id: String(row.id),
+    reconciliationType:
+      row.reconciliation_type as FinanceReconciliationType,
+    periodMonth: nullableFinanceString(row.period_month),
+    asOfBusinessDate: String(row.as_of_business_date),
+    status: row.status as FinanceReconciliationStatus,
+    startNotes: nullableFinanceString(row.start_notes),
+    completionNotes:
+      nullableFinanceString(row.completion_notes),
+    createdByApplicationUserId: String(
+      row.created_by_application_user_id,
+    ),
+    completedByApplicationUserId:
+      nullableFinanceString(
+        row.completed_by_application_user_id,
+      ),
+    startedAt: String(row.started_at),
+    completedAt: nullableFinanceString(row.completed_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+function mapFinanceReconciliationItem(
+  row: DbRow,
+): FinanceReconciliationItem {
+  return {
+    id: String(row.id),
+    reconciliationId: String(row.reconciliation_id),
+    financeAccountId: String(row.finance_account_id),
+    accountNameSnapshot: String(row.account_name_snapshot),
+    accountTypeSnapshot:
+      row.account_type_snapshot as FinanceAccount["accountType"],
+    currency: String(row.currency),
+    systemBalancePaise: Number(row.system_balance_paise),
+    externalBalancePaise:
+      row.external_balance_paise === null ||
+      row.external_balance_paise === undefined
+        ? null
+        : Number(row.external_balance_paise),
+    differencePaise:
+      row.difference_paise === null ||
+      row.difference_paise === undefined
+        ? null
+        : Number(row.difference_paise),
+    evidenceType:
+      row.evidence_type === null ||
+      row.evidence_type === undefined
+        ? null
+        : (row.evidence_type as FinanceReconciliationEvidenceType),
+    evidenceReference:
+      nullableFinanceString(row.evidence_reference),
+    investigationNote:
+      nullableFinanceString(row.investigation_note),
+    discrepancyStatus:
+      row.discrepancy_status as FinanceReconciliationDiscrepancyStatus,
+    recordedByApplicationUserId:
+      nullableFinanceString(
+        row.recorded_by_application_user_id,
+      ),
+    recordedAt: nullableFinanceString(row.recorded_at),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+function unwrapFinanceReconciliation(
+  data: unknown,
+): FinanceReconciliation {
+  const row = Array.isArray(data) ? data[0] : data;
+
+  if (!row || typeof row !== "object") {
+    throw new Error("finance_reconciliation_result_missing");
+  }
+
+  return mapFinanceReconciliation(row as DbRow);
+}
+
+function unwrapFinanceReconciliationItem(
+  data: unknown,
+): FinanceReconciliationItem {
+  const row = Array.isArray(data) ? data[0] : data;
+
+  if (!row || typeof row !== "object") {
+    throw new Error(
+      "finance_reconciliation_item_result_missing",
+    );
+  }
+
+  return mapFinanceReconciliationItem(row as DbRow);
+}
+
+export function financeReconciliationsQueryKey(
+  applicationUserId?: string,
+) {
+  return [
+    "finance",
+    "reconciliations",
+    applicationUserId ?? "anonymous",
+  ] as const;
+}
+
+export function financeReconciliationItemsQueryKey(
+  reconciliationId: string,
+  applicationUserId?: string,
+) {
+  return [
+    "finance",
+    "reconciliations",
+    reconciliationId,
+    "items",
+    applicationUserId ?? "anonymous",
+  ] as const;
+}
+
+export async function listFinanceReconciliations(): Promise<
+  FinanceReconciliation[]
+> {
+  const { data, error } = await supabase
+    .from("finance_reconciliations")
+    .select(
+      [
+        "id",
+        "reconciliation_type",
+        "period_month",
+        "as_of_business_date",
+        "status",
+        "start_notes",
+        "completion_notes",
+        "created_by_application_user_id",
+        "completed_by_application_user_id",
+        "started_at",
+        "completed_at",
+        "updated_at",
+      ].join(", "),
+    )
+    .order("started_at", { ascending: false })
+    .order("id", { ascending: false });
+
+  if (error) {
+    throw new Error("finance_reconciliations_unavailable");
+  }
+
+  return (data ?? []).map((row) =>
+    mapFinanceReconciliation(row as unknown as DbRow),
+  );
+}
+
+export async function listFinanceReconciliationItems(
+  reconciliationId: string,
+): Promise<FinanceReconciliationItem[]> {
+  if (!reconciliationId) {
+    throw new Error("finance_reconciliation_id_required");
+  }
+
+  const { data, error } = await supabase
+    .from("finance_reconciliation_items")
+    .select(
+      [
+        "id",
+        "reconciliation_id",
+        "finance_account_id",
+        "account_name_snapshot",
+        "account_type_snapshot",
+        "currency",
+        "system_balance_paise",
+        "external_balance_paise",
+        "difference_paise",
+        "evidence_type",
+        "evidence_reference",
+        "investigation_note",
+        "discrepancy_status",
+        "recorded_by_application_user_id",
+        "recorded_at",
+        "created_at",
+        "updated_at",
+      ].join(", "),
+    )
+    .eq("reconciliation_id", reconciliationId)
+    .order("account_name_snapshot", { ascending: true })
+    .order("finance_account_id", { ascending: true });
+
+  if (error) {
+    throw new Error(
+      "finance_reconciliation_items_unavailable",
+    );
+  }
+
+  return (data ?? []).map((row) =>
+    mapFinanceReconciliationItem(
+      row as unknown as DbRow,
+    ),
+  );
+}
+
+export async function startFinanceReconciliation(input: {
+  reconciliationType: FinanceReconciliationType;
+  periodMonth?: string | null;
+  asOfBusinessDate?: string | null;
+  notes?: string | null;
+}) {
+  const { data, error } = await supabase.rpc(
+    "start_finance_reconciliation",
+    {
+      p_reconciliation_type: input.reconciliationType,
+      p_period_month: input.periodMonth ?? null,
+      p_as_of_business_date:
+        input.asOfBusinessDate ?? null,
+      p_notes: input.notes?.trim() || null,
+      p_operation_id: randomUUID(),
+    },
+  );
+
+  if (error) {
+    throw new Error("finance_reconciliation_start_failed");
+  }
+
+  return unwrapFinanceReconciliation(data);
+}
+
+export async function recordFinanceReconciliationItem(
+  input: {
+    reconciliationId: string;
+    financeAccountId: string;
+    externalBalancePaise: number;
+    evidenceType: FinanceReconciliationEvidenceType;
+    evidenceReference?: string | null;
+    investigationNote?: string | null;
+  },
+) {
+  const { data, error } = await supabase.rpc(
+    "record_finance_reconciliation_item",
+    {
+      p_reconciliation_id: input.reconciliationId,
+      p_finance_account_id: input.financeAccountId,
+      p_external_balance_paise:
+        input.externalBalancePaise,
+      p_evidence_type: input.evidenceType,
+      p_evidence_reference:
+        input.evidenceReference?.trim() || null,
+      p_investigation_note:
+        input.investigationNote?.trim() || null,
+      p_operation_id: randomUUID(),
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      "finance_reconciliation_item_record_failed",
+    );
+  }
+
+  return unwrapFinanceReconciliationItem(data);
+}
+
+export async function completeFinanceReconciliation(
+  input: {
+    reconciliationId: string;
+    notes?: string | null;
+  },
+) {
+  const { data, error } = await supabase.rpc(
+    "complete_finance_reconciliation",
+    {
+      p_reconciliation_id: input.reconciliationId,
+      p_notes: input.notes?.trim() || null,
+      p_operation_id: randomUUID(),
+    },
+  );
+
+  if (error) {
+    throw new Error(
+      "finance_reconciliation_complete_failed",
+    );
+  }
+
+  return unwrapFinanceReconciliation(data);
+}
+
+export function financeReconciliationTypeLabel(
+  type: FinanceReconciliationType,
+) {
+  return type === "monthly" ? "Monthly" : "On-demand";
+}
+
+export function financeReconciliationStatusLabel(
+  status: FinanceReconciliationStatus,
+) {
+  return status === "in_progress"
+    ? "In progress"
+    : "Completed";
+}
+
+export function financeReconciliationEvidenceTypeLabel(
+  type: FinanceReconciliationEvidenceType,
+) {
+  const labels: Record<
+    FinanceReconciliationEvidenceType,
+    string
+  > = {
+    bank_statement: "Bank statement",
+    upi_statement: "UPI statement",
+    cash_count: "Cash count",
+    receipt: "Receipt",
+    other: "Other evidence",
+  };
+
+  return labels[type];
+}
+
+export function financeReconciliationDiscrepancyStatusLabel(
+  status: FinanceReconciliationDiscrepancyStatus,
+) {
+  const labels: Record<
+    FinanceReconciliationDiscrepancyStatus,
+    string
+  > = {
+    pending: "Pending",
+    matched: "Matched",
+    open: "Open discrepancy",
+    investigated: "Investigated",
+  };
+
+  return labels[status];
+}

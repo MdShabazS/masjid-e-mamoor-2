@@ -1,7 +1,7 @@
 # V1 Implementation Status
 
 **Status:** Current project status document
-**Last reviewed:** 2026-09-21
+**Last reviewed:** 2026-10-08 (Finance V1 rows refreshed; other domain rows retain their previous audit state)
 **Scope:** Documentation, architecture, database foundation, application foundations, testing, deployment readiness.
 
 This document is the single project implementation status map. It distinguishes documentation decisions from implemented and tested software behavior. Do not use this document to claim a domain is production-ready unless implementation evidence and verification evidence both exist in the repository.
@@ -52,7 +52,7 @@ The approved architecture is one shared web/mobile application platform backed b
 | Permission catalogue seed | IMPLEMENTED | `supabase/migrations/20260920185000_authorization_permission_catalogue.sql` seeds permission vocabulary and role-level grants. |
 | Authorization helper/RLS foundation | IMPLEMENTED | `supabase/migrations/20260921010000_authorization_rls_foundation.sql` adds helper functions and RLS policies for identity/authorization foundation tables. |
 | Donation domain schema | NOT STARTED | No domain migration evidence found for obligations, payments, allocations, waivers, or donation ledger behavior. |
-| Finance domain schema | NOT STARTED | No domain migration evidence found for accounts, ledger effects, expenses, transfers, corrections, reversals, or reconciliation. |
+| Finance domain schema | IMPLEMENTED | Finance migrations implement accounts, append-oriented financial transactions, expenses, transfers, corrections/reversals, monthly reports, reconciliation, audit, idempotency, and trusted RPC boundaries. |
 | Committee/attendance/notifications/reports schemas | NOT STARTED | No domain migrations found beyond identity, permissions, and RLS foundation. |
 
 ## 5. Authentication Status
@@ -71,7 +71,7 @@ The approved architecture is one shared web/mobile application platform backed b
 | Role list | IMPLEMENTED | Migration seeds exactly seven approved roles. |
 | Permission catalogue | IMPLEMENTED | Permission rows and role-permission grants are seeded by migration. |
 | RLS foundation | IMPLEMENTED | RLS is enabled and foundational policies exist for roles, permissions, role grants, application users, application user roles, and member profiles. |
-| Domain RLS | NOT STARTED | Domain-specific RLS is intentionally deferred until each domain migration exists. |
+| Domain RLS | PARTIAL | Implemented domains including Finance have domain-specific RLS and trusted-operation boundaries; remaining domain policies are added with their respective vertical slices. |
 | Arbitrary per-user permission overrides | NOT STARTED | V1 forbids arbitrary overrides; no implementation evidence indicates overrides were added. |
 
 ## 7. Web Status
@@ -87,8 +87,8 @@ The approved architecture is one shared web/mobile application platform backed b
 | Area | Status | Evidence / notes |
 |---|---|---|
 | Expo foundation | PARTIAL | Mobile package and app files exist. |
-| Product workflows | NOT STARTED | No evidence found for complete mobile member, donation, finance, attendance/offline, or notification workflows. |
-| Mobile tests | PARTIAL | Jest configuration exists. Meaningful domain test suites remain pending. |
+| Product workflows | PARTIAL | The mobile Finance V1 vertical slice is implemented, including accounts, expenses, transfers, transactions, adjustments, monthly reports, and reconciliation. Other product workflows remain at their respective implementation states. |
+| Mobile tests | PARTIAL | Meaningful Finance and other mobile domain test suites now exist; broader application and release coverage remains incomplete. |
 
 ## 9. Domain Implementation Status
 
@@ -97,12 +97,12 @@ The approved architecture is one shared web/mobile application platform backed b
 | Identity/membership database foundation | IMPLEMENTED | Foundation migration exists. |
 | Member domain product implementation | NOT STARTED | No complete member-management vertical slice evidence found. |
 | Donation domain | NOT STARTED | No donation migration or trusted operation implementation evidence found. |
-| Finance domain | NOT STARTED | No finance migration or trusted operation implementation evidence found. |
+| Finance domain | IMPLEMENTED | Finance V1 has repository evidence for accounts, expenses, transfers, ledger/history, corrections/reversals, monthly reports, and reconciliation with trusted backend authority. |
 | Committee domain | NOT STARTED | No committee product implementation evidence found. |
 | Attendance domain | NOT STARTED | No attendance product implementation evidence found. |
 | Offline sync | NOT STARTED | Architecture exists; implementation evidence not found. |
 | Notifications | NOT STARTED | Architecture exists; implementation evidence not found. |
-| Reports | NOT STARTED | Architecture exists; implementation evidence not found. |
+| Reports | PARTIAL | Finance monthly reporting is implemented and tested; broader cross-domain reporting remains incomplete. |
 | Realtime product behavior | PARTIAL | Architecture/foundation exists; full domain realtime behavior is not complete. |
 
 ## 10. Testing Status
@@ -111,10 +111,10 @@ The approved architecture is one shared web/mobile application platform backed b
 |---|---|---|
 | Unit test infrastructure | PARTIAL | Vitest/Jest configuration and package scripts exist. |
 | E2E infrastructure | PARTIAL | Playwright configuration and a foundation web E2E spec exist. |
-| Integration tests | NOT STARTED | No meaningful domain integration suite evidence found. |
-| RLS tests | NOT STARTED | RLS test expectations are documented; implemented domain RLS tests were not evidenced. |
-| Financial invariant tests | NOT STARTED | Required by specs; no domain implementation or test suite evidence found. |
-| Idempotency tests | NOT STARTED | Required by specs; no domain implementation or test suite evidence found. |
+| Integration tests | PARTIAL | Finance SQL integration/regression suites exist and pass against a fresh local database; broader domain integration coverage remains incomplete. |
+| RLS tests | PARTIAL | Finance authorization/RLS and RPC-boundary tests are implemented; remaining domains require equivalent coverage as implemented. |
+| Financial invariant tests | IMPLEMENTED | Finance SQL regression, authorization, idempotency, atomicity, immutability, reconciliation, and concurrency tests are implemented and passing. |
+| Idempotency tests | PARTIAL | Finance financial commands include tested idempotency behavior; remaining applicable domains require equivalent coverage. |
 | Offline sync tests | NOT STARTED | Required by specs; no implementation/test evidence found. |
 | Realtime tests | NOT STARTED | Required by specs; no implementation/test evidence found. |
 | Accessibility/i18n tests | NOT STARTED | Requirements exist; implementation/test evidence not found. |
@@ -131,8 +131,8 @@ The approved architecture is one shared web/mobile application platform backed b
 
 ## 12. Known Gaps
 
-- Domain schemas and trusted operations for donations, finance, committee, attendance, notifications, reports, offline sync, and realtime product behavior remain to be implemented.
-- Domain RLS policies and RLS tests remain to be implemented alongside domain tables.
+- Finance V1 schema and trusted operations are implemented. Other domains and broader notification/report/offline/realtime product behavior remain at their respective implementation states.
+- Finance domain RLS/trusted-operation boundaries and related authorization tests are implemented; remaining domains require their own RLS policies and tests as their vertical slices are built.
 - Authentication UI/integration is in progress, not complete.
 - Meaningful domain test suites are still pending.
 - Staging/production deployment, operational monitoring, backup validation, and recovery exercises are not complete.
@@ -153,7 +153,7 @@ The approved architecture is one shared web/mobile application platform backed b
 2. Add focused tests for identity, role resolution, and foundational RLS helper behavior.
 3. Implement the member-management vertical slice with trusted operations where required.
 4. Add donation schema/trusted operations for obligations, payment submission, review, rejection/resubmission, FIFO allocation, overpayment, additional donation, and waiver behavior.
-5. Add finance schema/trusted operations for accounts, append-oriented financial effects, maker/checker expenses and transfers, corrections, reversals, reconciliation, and idempotency.
+5. Finance V1 vertical slice implemented and verified: accounts, append-oriented financial effects, maker/checker expenses and transfers, corrections/reversals, monthly reports, reconciliation, and idempotency.
 6. Add domain RLS policies and negative authorization tests with each domain migration.
 7. Add offline attendance sync only after typed operation envelopes, stable operation IDs, server revalidation, and queue recovery tests are in place.
 8. Add notifications, realtime reconciliation, reports, deployment gates, backup/restore verification, and production readiness review after core domain invariants are tested.

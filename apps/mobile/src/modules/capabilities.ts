@@ -21,6 +21,8 @@ export interface MobileCapabilities {
   canApproveFinanceExpenses: boolean;
   canCreateFinanceCorrections: boolean;
   canCreateFinanceReversals: boolean;
+  canReadFinanceReconciliation: boolean;
+  canManageFinanceReconciliation: boolean;
   canReadMembers: boolean;
   canUpdateMembers: boolean;
   canCreateReferral: boolean;
@@ -76,6 +78,8 @@ export async function loadCapabilities(
     financeExpensesApprove,
     financeCorrectionsCreate,
     financeCancellationsCreate,
+    financeReconciliationManage,
+    financeReconciliationAuditRead,
     committeeTasksRead,
     committeeTasksManage,
     committeeTasksAssign,
@@ -103,6 +107,8 @@ export async function loadCapabilities(
     hasPermission("finance.expenses.approve"),
     hasPermission("finance.corrections.create"),
     hasPermission("finance.cancellations.create"),
+    hasPermission("finance.reconciliation.manage"),
+    hasPermission("audit.records.read"),
     hasPermission("committee.tasks.read"),
     hasPermission("committee.tasks.manage"),
     hasPermission("committee.tasks.assign"),
@@ -141,6 +147,9 @@ export async function loadCapabilities(
     canApproveFinanceExpenses: financeExpensesApprove,
     canCreateFinanceCorrections: financeCorrectionsCreate,
     canCreateFinanceReversals: financeCancellationsCreate,
+    canReadFinanceReconciliation:
+      financeReconciliationManage || financeReconciliationAuditRead,
+    canManageFinanceReconciliation: financeReconciliationManage,
     canReadMembers: !memberRead.error && memberRead.data === true,
     canUpdateMembers: memberUpdate,
     canCreateReferral,

@@ -45,6 +45,7 @@ export default function FinanceHomeScreen() {
     !access ||
     (!access.canReadFinanceAccounts &&
       !access.canReadFinanceMonthlyReports &&
+      !access.canReadFinanceReconciliation &&
       !access.canReadFinanceTransactions &&
       !access.canCreateFinanceTransfers &&
       !access.canApproveFinanceTransfers &&
@@ -196,6 +197,29 @@ export default function FinanceHomeScreen() {
 
             <Text style={styles.cardAction}>
               Open adjustments →
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {access.canReadFinanceReconciliation ? (
+          <Pressable
+            onPress={() =>
+              router.push("/finance/reconciliation")
+            }
+            style={styles.card}
+          >
+            <Text style={styles.cardTitle}>
+              Reconciliation
+            </Text>
+
+            <Text style={styles.cardCopy}>
+              Compare authoritative Finance balances
+              with external statements, cash counts,
+              evidence, and investigated discrepancies.
+            </Text>
+
+            <Text style={styles.cardAction}>
+              Open reconciliation →
             </Text>
           </Pressable>
         ) : null}
