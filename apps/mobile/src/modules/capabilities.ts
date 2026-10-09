@@ -42,6 +42,9 @@ export interface MobileCapabilities {
   canReadCommitteeTasks: boolean;
   canManageCommitteeTasks: boolean;
   canAssignCommitteeTasks: boolean;
+  canReadCommitteeMeetings: boolean;
+  canAdministerCommitteeMeetings: boolean;
+  canRecordCommitteeMeetingAttendance: boolean;
 }
 
 async function hasPermission(permission: string) {
@@ -83,6 +86,9 @@ export async function loadCapabilities(
     committeeTasksRead,
     committeeTasksManage,
     committeeTasksAssign,
+    committeeMeetingsRead,
+    committeeMeetingsManage,
+    committeeAttendanceRecord,
   ] = await Promise.all([
     supabase.rpc("can_use_member_admin_read_operations"),
     hasPermission("membership.members.update"),
@@ -112,11 +118,23 @@ export async function loadCapabilities(
     hasPermission("committee.tasks.read"),
     hasPermission("committee.tasks.manage"),
     hasPermission("committee.tasks.assign"),
+    hasPermission("committee.meetings.read"),
+    hasPermission("committee.meetings.manage"),
+    hasPermission("committee.attendance.record"),
   ]);
 
   const canManageReferrals =
     account.role === "president" || account.role === "system_admin";
   const canCreateReferral = Boolean(account.memberProfile) && referralCreate;
+
+  const canAdministerCommitteeMeetings =
+    committeeMeetingsManage &&
+    (
+      account.role === "president" ||
+      account.role === "vice_president" ||
+      account.role === "secretary"
+    );
+
   const resolvedDonationPermissions: ResolvedDonationPermissions = {
     obligationsRead,
     paymentsCreate,
@@ -158,6 +176,9 @@ export async function loadCapabilities(
     canReadCommitteeTasks: committeeTasksRead,
     canManageCommitteeTasks: committeeTasksManage,
     canAssignCommitteeTasks: committeeTasksAssign,
+    canReadCommitteeMeetings: committeeMeetingsRead,
+    canAdministerCommitteeMeetings,
+    canRecordCommitteeMeetingAttendance: committeeAttendanceRecord,
     ...donationCapabilities,
   };
 }

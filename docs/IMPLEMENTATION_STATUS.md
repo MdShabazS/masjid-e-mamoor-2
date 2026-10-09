@@ -1,7 +1,7 @@
 # V1 Implementation Status
 
 **Status:** Current project status document
-**Last reviewed:** 2026-10-08 (Finance V1 rows refreshed; other domain rows retain their previous audit state)
+**Last reviewed:** 2026-10-09 (Committee + Meetings Phase 10/11 backend and mobile-domain closure refreshed; unrelated domain rows retain their previous audit state)
 **Scope:** Documentation, architecture, database foundation, application foundations, testing, deployment readiness.
 
 This document is the single project implementation status map. It distinguishes documentation decisions from implemented and tested software behavior. Do not use this document to claim a domain is production-ready unless implementation evidence and verification evidence both exist in the repository.
@@ -39,7 +39,7 @@ The approved architecture is one shared web/mobile application platform backed b
 | Shared package skeleton | IMPLEMENTED | `packages/api-client`, `packages/config`, `packages/shared`, `packages/types`, and `packages/validation` exist. |
 | Web foundation | PARTIAL | Next.js app structure exists and current working tree contains ongoing web source changes. Product workflows are not complete. |
 | Mobile foundation | PARTIAL | Expo/React Native app structure exists. Product workflows are not complete. |
-| Trusted operation architecture | COMPLETE | Sensitive-operation requirements are documented, but domain trusted operations are not broadly implemented. |
+| Trusted operation architecture | COMPLETE | Trusted RPC/operation patterns are implemented across multiple vertical slices including Finance and Committee/Meetings. Remaining domains must preserve the same backend-authority model as they are implemented. |
 | Realtime architecture | COMPLETE | `docs/REALTIME_DATA_FLOW.md` defines authoritative state, transport, cache, and reconciliation behavior. Full product realtime implementation is not complete. |
 | Offline sync architecture | COMPLETE | `docs/OFFLINE_SYNC_ARCHITECTURE.md` defines typed operation records and server authority. Offline sync is not implemented. |
 
@@ -53,7 +53,10 @@ The approved architecture is one shared web/mobile application platform backed b
 | Authorization helper/RLS foundation | IMPLEMENTED | `supabase/migrations/20260921010000_authorization_rls_foundation.sql` adds helper functions and RLS policies for identity/authorization foundation tables. |
 | Donation domain schema | NOT STARTED | No domain migration evidence found for obligations, payments, allocations, waivers, or donation ledger behavior. |
 | Finance domain schema | IMPLEMENTED | Finance migrations implement accounts, append-oriented financial transactions, expenses, transfers, corrections/reversals, monthly reports, reconciliation, audit, idempotency, and trusted RPC boundaries. |
-| Committee/attendance/notifications/reports schemas | NOT STARTED | No domain migrations found beyond identity, permissions, and RLS foundation. |
+| Committee task + meeting schemas | IMPLEMENTED | Committee Tasks and Meetings now include direct/open task assignment, atomic volunteer claiming, derived overdue state, meeting participants, attendance, decisions/outcomes, follow-up task linkage, history, RLS/trusted RPCs, and durable task/meeting notification integration. |
+| Generic Attendance domain | NOT STARTED | Committee Meeting attendance is implemented as part of the Committee/Meetings domain. The separate generic Attendance domain (for example GPS/Jummah/offline attendance) remains outside Phase 10/11 and is not claimed complete. |
+| Notifications schema/product behavior | PARTIAL | Durable Committee Task and Meeting lifecycle notifications plus mobile compatibility are implemented and tested. The broader notification product/release scope remains incomplete. |
+| Reports schemas | PARTIAL | Finance monthly reporting is implemented. Broader cross-domain reporting remains incomplete. |
 
 ## 5. Authentication Status
 
@@ -87,8 +90,8 @@ The approved architecture is one shared web/mobile application platform backed b
 | Area | Status | Evidence / notes |
 |---|---|---|
 | Expo foundation | PARTIAL | Mobile package and app files exist. |
-| Product workflows | PARTIAL | The mobile Finance V1 vertical slice is implemented, including accounts, expenses, transfers, transactions, adjustments, monthly reports, and reconciliation. Other product workflows remain at their respective implementation states. |
-| Mobile tests | PARTIAL | Meaningful Finance and other mobile domain test suites now exist; broader application and release coverage remains incomplete. |
+| Product workflows | PARTIAL | Mobile Finance V1 is implemented. Committee + Meetings Phase 10/11 domain capability, task/open-task operations, meeting operations, attendance query, decisions, follow-up task operations, and notification compatibility are implemented. Final Committee/Meeting screen and route UX remains intentionally deferred to the selected UI implementation stage. |
+| Mobile tests | PARTIAL | Finance and Committee/Meetings domain suites are implemented. The latest full mobile regression passed 27 suites / 191 tests; broader release, device, accessibility, localization, and security acceptance coverage remains incomplete. |
 
 ## 9. Domain Implementation Status
 
@@ -98,10 +101,10 @@ The approved architecture is one shared web/mobile application platform backed b
 | Member domain product implementation | NOT STARTED | No complete member-management vertical slice evidence found. |
 | Donation domain | NOT STARTED | No donation migration or trusted operation implementation evidence found. |
 | Finance domain | IMPLEMENTED | Finance V1 has repository evidence for accounts, expenses, transfers, ledger/history, corrections/reversals, monthly reports, and reconciliation with trusted backend authority. |
-| Committee domain | NOT STARTED | No committee product implementation evidence found. |
-| Attendance domain | NOT STARTED | No attendance product implementation evidence found. |
+| Committee domain | IMPLEMENTED | Phase 10/11 backend and mobile-domain behavior is implemented and regression-tested: direct/open tasks, single-winner atomic claims, progress/start/completion, derived overdue state, meetings, participants, attendance, decisions, follow-up tasks, history, authorization, and mobile notification compatibility. UI redesign/final meeting screens are intentionally outside this functional closure. |
+| Attendance domain | PARTIAL | Committee Meeting attendance is implemented and tested inside the Committee domain. The separate generic Attendance product domain remains not started. |
 | Offline sync | NOT STARTED | Architecture exists; implementation evidence not found. |
-| Notifications | NOT STARTED | Architecture exists; implementation evidence not found. |
+| Notifications | PARTIAL | Committee Task and Meeting durable notification behavior plus mobile compatibility are implemented and tested. Broader Phase 14 notification functionality remains incomplete. |
 | Reports | PARTIAL | Finance monthly reporting is implemented and tested; broader cross-domain reporting remains incomplete. |
 | Realtime product behavior | PARTIAL | Architecture/foundation exists; full domain realtime behavior is not complete. |
 
@@ -111,10 +114,10 @@ The approved architecture is one shared web/mobile application platform backed b
 |---|---|---|
 | Unit test infrastructure | PARTIAL | Vitest/Jest configuration and package scripts exist. |
 | E2E infrastructure | PARTIAL | Playwright configuration and a foundation web E2E spec exist. |
-| Integration tests | PARTIAL | Finance SQL integration/regression suites exist and pass against a fresh local database; broader domain integration coverage remains incomplete. |
-| RLS tests | PARTIAL | Finance authorization/RLS and RPC-boundary tests are implemented; remaining domains require equivalent coverage as implemented. |
+| Integration tests | PARTIAL | Finance plus Committee/Meetings SQL integration/regression suites pass against fresh local database rebuilds. Other domains still require equivalent coverage as implemented. |
+| RLS tests | PARTIAL | Finance and Committee/Meetings authorization, visibility, RLS/RPC-boundary, negative-role, and participant/assignment-scope tests are implemented. Remaining domains require equivalent coverage. |
 | Financial invariant tests | IMPLEMENTED | Finance SQL regression, authorization, idempotency, atomicity, immutability, reconciliation, and concurrency tests are implemented and passing. |
-| Idempotency tests | PARTIAL | Finance financial commands include tested idempotency behavior; remaining applicable domains require equivalent coverage. |
+| Idempotency/concurrency tests | PARTIAL | Finance and Committee/Meetings mutable operations include tested idempotency. Open Committee Task claiming has a real two-connection race test proving exactly one winner. Remaining applicable domains require equivalent coverage. |
 | Offline sync tests | NOT STARTED | Required by specs; no implementation/test evidence found. |
 | Realtime tests | NOT STARTED | Required by specs; no implementation/test evidence found. |
 | Accessibility/i18n tests | NOT STARTED | Requirements exist; implementation/test evidence not found. |
@@ -131,10 +134,11 @@ The approved architecture is one shared web/mobile application platform backed b
 
 ## 12. Known Gaps
 
-- Finance V1 schema and trusted operations are implemented. Other domains and broader notification/report/offline/realtime product behavior remain at their respective implementation states.
-- Finance domain RLS/trusted-operation boundaries and related authorization tests are implemented; remaining domains require their own RLS policies and tests as their vertical slices are built.
+- Finance V1 and Committee + Meetings Phase 10/11 backend/mobile-domain behavior are implemented and regression-tested. Other domains and broader notification/report/offline/realtime product behavior remain at their respective implementation states.
+- Finance and Committee/Meetings RLS/trusted-operation boundaries and related authorization tests are implemented; remaining domains require their own RLS policies and tests as their vertical slices are built.
+- Committee/Meeting final UI screens and navigation are intentionally deferred until UI research is completed, a direction is selected, and Codex performs the UI implementation.
 - Authentication UI/integration is in progress, not complete.
-- Meaningful domain test suites are still pending.
+- Broader release-grade, security, device, accessibility, localization, E2E, and remaining-domain test coverage is still pending.
 - Staging/production deployment, operational monitoring, backup validation, and recovery exercises are not complete.
 - Legal/organizational retention periods and external incident-notification obligations remain deferred policy work.
 
@@ -149,14 +153,14 @@ The approved architecture is one shared web/mobile application platform backed b
 
 ## 14. Next Implementation Sequence
 
-1. Stabilize and verify authentication integration against the approved `auth.users -> application_users -> member_profiles` model.
-2. Add focused tests for identity, role resolution, and foundational RLS helper behavior.
-3. Implement the member-management vertical slice with trusted operations where required.
-4. Add donation schema/trusted operations for obligations, payment submission, review, rejection/resubmission, FIFO allocation, overpayment, additional donation, and waiver behavior.
-5. Finance V1 vertical slice implemented and verified: accounts, append-oriented financial effects, maker/checker expenses and transfers, corrections/reversals, monthly reports, reconciliation, and idempotency.
-6. Add domain RLS policies and negative authorization tests with each domain migration.
-7. Add offline attendance sync only after typed operation envelopes, stable operation IDs, server revalidation, and queue recovery tests are in place.
-8. Add notifications, realtime reconciliation, reports, deployment gates, backup/restore verification, and production readiness review after core domain invariants are tested.
+1. Finance V1 backend/mobile vertical slice remains implemented and verified.
+2. Committee + Meetings Phase 10/11 functional backend/mobile-domain scope is implemented and verified.
+3. Stop further Committee/Meeting functional expansion and perform the planned UI research.
+4. Present multiple suitable UI directions and obtain the selected UI direction before implementation.
+5. Implement the selected Committee/Meeting UI through Codex while preserving the verified backend/domain contracts.
+6. Continue remaining approved product vertical slices with domain RLS, trusted RPCs, negative authorization tests, idempotency, and concurrency protection where applicable.
+7. Implement generic Attendance/offline behavior only under its separate approved architecture; Meeting attendance must not be treated as completion of that domain.
+8. Complete broader notification/realtime/report behavior, then execute dedicated security, release, backup/recovery, cross-role, device, accessibility, localization, and production-readiness gates.
 
 ## 15. Status Rule
 

@@ -30,6 +30,7 @@ const notificationRow = {
   source_type: "committee_task",
   source_entity_id: "97000000-0000-0000-0000-000000000001",
   source_activity_id: null,
+  source_meeting_activity_id: null,
   metadata: { priority: "high" },
   read_at: null,
   created_at: "2026-10-07T03:00:00Z",
@@ -65,6 +66,7 @@ describe("mobile notification trusted RPC layer", () => {
         sourceType: "committee_task",
         sourceEntityId: notificationRow.source_entity_id,
         sourceActivityId: null,
+        sourceMeetingActivityId: null,
         metadata: { priority: "high" },
         readAt: null,
         createdAt: notificationRow.created_at,
@@ -132,6 +134,12 @@ describe("mobile notification trusted RPC layer", () => {
     expect(safeNotificationTarget("/work/task-1")).toBe(
       "/work/task-1",
     );
+
+    expect(
+      safeNotificationTarget(
+        "/work/meetings/meeting-1",
+      ),
+    ).toBe("/work/meetings/meeting-1");
     expect(
       safeNotificationTarget("/work/task-1?from=notifications"),
     ).toBe("/work/task-1?from=notifications");
@@ -165,6 +173,9 @@ describe("mobile notification trusted RPC layer", () => {
         "task_progress",
         "task_started",
         "task_completed",
+        "meeting_created",
+        "meeting_updated",
+        "meeting_cancelled",
       ].map(notificationKindLabel),
     ).toEqual([
       "Task assigned",
@@ -173,6 +184,9 @@ describe("mobile notification trusted RPC layer", () => {
       "Task progress",
       "Task started",
       "Task completed",
+      "Meeting created",
+      "Meeting updated",
+      "Meeting cancelled",
     ]);
 
     expect(notificationKindLabel("future_kind")).toBe("Notification");

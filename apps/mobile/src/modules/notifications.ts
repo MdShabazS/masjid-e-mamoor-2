@@ -14,6 +14,7 @@ export interface MobileNotification {
   sourceType: string;
   sourceEntityId: string;
   sourceActivityId: string | null;
+  sourceMeetingActivityId: string | null;
   metadata: Record<string, unknown>;
   readAt: string | null;
   createdAt: string;
@@ -34,6 +35,9 @@ function mapNotification(row: DbRow): MobileNotification {
     sourceType: String(row.source_type),
     sourceEntityId: String(row.source_entity_id),
     sourceActivityId: nullableString(row.source_activity_id),
+    sourceMeetingActivityId: nullableString(
+      row.source_meeting_activity_id,
+    ),
     metadata:
       row.metadata &&
       typeof row.metadata === "object" &&
@@ -156,6 +160,9 @@ export function notificationKindLabel(kind: string) {
       task_progress: "Task progress",
       task_started: "Task started",
       task_completed: "Task completed",
+      meeting_created: "Meeting created",
+      meeting_updated: "Meeting updated",
+      meeting_cancelled: "Meeting cancelled",
     }[kind] ?? "Notification"
   );
 }

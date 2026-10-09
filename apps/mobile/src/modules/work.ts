@@ -4,7 +4,12 @@ import { supabase } from "../lib/supabase";
 type DbRow = Record<string, unknown>;
 
 export type CommitteeTaskPriority = "low" | "normal" | "high";
-export type CommitteeTaskStatus = "assigned" | "in_progress" | "completed";
+export type CommitteeTaskStatus =
+  | "open"
+  | "assigned"
+  | "in_progress"
+  | "completed";
+export type CommitteeTaskAssignmentMode = "direct" | "open";
 
 export interface CommitteeTaskSummary {
   id: string;
@@ -12,7 +17,11 @@ export interface CommitteeTaskSummary {
   description: string | null;
   priority: CommitteeTaskPriority;
   status: CommitteeTaskStatus;
+  assignmentMode: CommitteeTaskAssignmentMode;
   dueDate: string | null;
+  isOverdue: boolean;
+  sourceMeetingId: string | null;
+  sourceMeetingDecisionId: string | null;
   createdByApplicationUserId: string;
   completedByApplicationUserId: string | null;
   completedAt: string | null;
@@ -58,6 +67,13 @@ export interface CommitteeTaskDraft {
   assigneeIds: string[];
 }
 
+export interface CommitteeOpenTaskDraft {
+  title: string;
+  description: string;
+  priority: CommitteeTaskPriority;
+  dueDate: string;
+}
+
 export function createCommitteeOperationId() {
   return randomUUID();
 }
@@ -95,8 +111,17 @@ function mapTask(row: DbRow): CommitteeTaskSummary {
     description: nullableString(row.description),
     priority: row.priority as CommitteeTaskPriority,
     status: row.status as CommitteeTaskStatus,
+    assignmentMode:
+      (row.assignment_mode ?? "direct") as CommitteeTaskAssignmentMode,
     dueDate: nullableString(row.due_date),
-    createdByApplicationUserId: String(row.created_by_application_user_id),
+    isOverdue: row.is_overdue === true,
+    sourceMeetingId: nullableString(row.source_meeting_id),
+    sourceMeetingDecisionId: nullableString(
+      row.source_meeting_decision_id,
+    ),
+    createdByApplicationUserId: String(
+      row.created_by_application_user_id,
+    ),
     completedByApplicationUserId: nullableString(row.completed_by_application_user_id),
     completedAt: nullableString(row.completed_at),
     createdAt: String(row.created_at),
@@ -188,6 +213,114 @@ export async function createCommitteeTask(
     p_operation_id: operationId,
   });
   if (error || !data) throw new Error(error?.message ?? "task_create_failed");
+  return mapTask(data as DbRow);
+}
+
+export async function createOpenCommitteeTask(
+  draft: CommitteeOpenTaskDraft,
+  operationId: string,
+) {
+  const { data, error } = await supabase.rpc(
+    "create_open_committee_task",
+    {
+      p_title: draft.title.trim(),
+      p_description: draft.description.trim() || null,
+      p_priority: draft.priority,
+      p_due_date: draft.dueDate.trim() || null,
+      p_operation_id: operationId,
+    },
+  );
+
+  if (error || !data) {
+    throw new Error(
+      error?.message ?? "open_task_create_failed",
+    );
+  }
+
+  return mapTask(data as DbRow);
+}
+
+export async function claimOpenCommitteeTask(
+  taskId: string,
+  operationId: string,
+) {
+  const { data, error } = await supabase.rpc(
+    "claim_open_committee_task",
+    {
+      p_task_id: taskId,
+      p_operation_id: operationId,
+    },
+  );
+
+  if (error || !data) {
+    throw new Error(
+      error?.message ?? "open_task_claim_failed",
+    );
+  }
+
+  return mapTask(data as DbRow);
+}
+
+export async function createCommitteeMeetingFollowupTask(
+  meetingId: string,
+  decisionId: string | null,
+  draft: CommitteeTaskDraft,
+  operationId: string,
+) {
+  const { data, error } = await supabase.rpc(
+    "create_committee_meeting_followup_task",
+    {
+      p_meeting_id: meetingId,
+      p_decision_id: decisionId,
+      p_title: draft.title.trim(),
+      p_description:
+        draft.description.trim() || null,
+      p_priority: draft.priority,
+      p_due_date:
+        draft.dueDate.trim() || null,
+      p_assignee_ids: draft.assigneeIds,
+      p_operation_id: operationId,
+    },
+  );
+
+  if (error || !data) {
+    throw new Error(
+      error?.message ??
+        "meeting_followup_task_create_failed",
+    );
+  }
+
+  return mapTask(data as DbRow);
+}
+
+export async function createOpenCommitteeMeetingFollowupTask(
+  meetingId: string,
+  decisionId: string | null,
+  draft: CommitteeOpenTaskDraft,
+  operationId: string,
+) {
+  const { data, error } = await supabase.rpc(
+    "create_open_committee_meeting_followup_task",
+    {
+      p_meeting_id: meetingId,
+      p_decision_id: decisionId,
+      p_title: draft.title.trim(),
+      p_description:
+        draft.description.trim() || null,
+      p_priority: draft.priority,
+      p_due_date:
+        draft.dueDate.trim() || null,
+      p_operation_id: operationId,
+    },
+  );
+
+  if (error || !data) {
+    throw new Error(
+      error?.message ??
+        "open_meeting_followup_task_create_failed",
+    );
+  }
+
   return mapTask(data as DbRow);
 }
 

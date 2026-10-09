@@ -51,6 +51,7 @@ export const taskPriorityLabels: Record<CommitteeTaskPriority, string> = {
 };
 
 export const taskStatusLabels: Record<CommitteeTaskStatus, string> = {
+  open: "Open",
   assigned: "Assigned",
   in_progress: "In progress",
   completed: "Completed",

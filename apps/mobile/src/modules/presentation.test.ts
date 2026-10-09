@@ -38,6 +38,9 @@ describe("mobile workspace presentation", () => {
         canReadCommitteeTasks: false,
         canManageCommitteeTasks: false,
         canAssignCommitteeTasks: false,
+        canReadCommitteeMeetings: false,
+        canAdministerCommitteeMeetings: false,
+        canRecordCommitteeMeetingAttendance: false,
       }),
     ).toEqual(["profile", "referrals", "donations"]);
   });
@@ -77,6 +80,9 @@ describe("mobile workspace presentation", () => {
       canReadCommitteeTasks: true,
       canManageCommitteeTasks: true,
       canAssignCommitteeTasks: true,
+      canReadCommitteeMeetings: false,
+      canAdministerCommitteeMeetings: false,
+      canRecordCommitteeMeetingAttendance: false,
     };
 
     expect(visibleWorkspaceModules(capabilities)).toEqual([
@@ -121,6 +127,9 @@ describe("mobile workspace presentation", () => {
       canReadCommitteeTasks: false,
       canManageCommitteeTasks: false,
       canAssignCommitteeTasks: false,
+      canReadCommitteeMeetings: false,
+      canAdministerCommitteeMeetings: false,
+      canRecordCommitteeMeetingAttendance: false,
     };
 
     expect(visibleWorkspaceModules(capabilities)).toEqual([
