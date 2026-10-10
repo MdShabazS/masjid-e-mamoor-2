@@ -16,6 +16,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { referralRejectSchema } from "@masjid-e-mamoor/validation";
 import { useAuth } from "../../../../src/auth/AuthProvider";
 import {
+  BrandedPageHeader,
+  StatusChip,
+} from "../../../../src/components/InstitutionalUI";
+import {
   approveManagedReferral,
   listManagedReferrals,
   provisionManagedReferral,
@@ -154,24 +158,28 @@ export default function ReferralsScreen() {
         refreshControl: <RefreshControl refreshing={Boolean((capabilities.data.canManageReferrals ? managedReferrals : ownReferrals).isRefetching)} onRefresh={() => void refetch()} tintColor={colors.deepEmerald} />,
       }}
     >
-        <Text style={styles.eyebrow}>MEMBERSHIP</Text>
-        <Text style={styles.title}>{capabilities.data.canManageReferrals ? "Referral management" : "Referrals"}</Text>
-        {capabilities.data.canManageReferrals ? (
-          <Text style={styles.intro}>Review submitted onboarding requests and provision approved members.</Text>
-        ) : null}
+        <BrandedPageHeader
+          eyebrow="Membership"
+          title={capabilities.data.canManageReferrals ? "Referral management" : "Referrals"}
+          description={
+            capabilities.data.canManageReferrals
+              ? "Review onboarding requests and provision approved members."
+              : "Create and track secure member referral onboarding."
+          }
+        />
         {rejectingReferral ? (
           <View style={styles.provisionForm}>
             <Text style={styles.cardTitle}>Reject membership request</Text>
             <Text style={styles.meta}>Add an optional reason for the applicant.</Text>
-            <FormTextInput maxLength={500} multiline onChangeText={setRejectionReason} placeholder="Optional reason" placeholderTextColor="#9EA9A3" style={[styles.provisionInput, styles.reasonInput]} value={rejectionReason} />
+            <FormTextInput accessibilityLabel="Rejection reason" maxLength={500} multiline onChangeText={setRejectionReason} placeholder="Optional reason" placeholderTextColor="#9EA9A3" style={[styles.provisionInput, styles.reasonInput]} value={rejectionReason} />
             <View style={styles.actionRow}>
-              <Pressable disabled={reject.isPending} onPress={submitReject} style={styles.rejectSmall}><Text style={styles.rejectText}>{reject.isPending ? "Rejecting..." : "Reject"}</Text></Pressable>
-              <Pressable disabled={reject.isPending} onPress={() => { setRejectingReferral(null); setRejectionReason(""); }} style={styles.secondarySmall}><Text style={styles.secondaryText}>Cancel</Text></Pressable>
+              <Pressable accessibilityRole="button" disabled={reject.isPending} onPress={submitReject} style={styles.rejectSmall}><Text style={styles.rejectText}>{reject.isPending ? "Rejecting..." : "Reject"}</Text></Pressable>
+              <Pressable accessibilityRole="button" disabled={reject.isPending} onPress={() => { setRejectingReferral(null); setRejectionReason(""); }} style={styles.secondarySmall}><Text style={styles.secondaryText}>Cancel</Text></Pressable>
             </View>
           </View>
         ) : null}
         {capabilities.data.canCreateReferral ? (
-          <Pressable disabled={create.isPending} onPress={() => create.mutate()} style={styles.primaryButton}>
+          <Pressable accessibilityRole="button" disabled={create.isPending} onPress={() => create.mutate()} style={styles.primaryButton}>
             <Text style={styles.primaryText}>{create.isPending ? "Creating..." : "Create referral"}</Text>
           </Pressable>
         ) : null}
@@ -180,11 +188,11 @@ export default function ReferralsScreen() {
           <View style={styles.provisionForm}>
             <Text style={styles.cardTitle}>Provision approved referral</Text>
             <Text style={styles.meta}>A temporary password will be generated and shown once.</Text>
-            <FormTextInput autoCapitalize="none" onChangeText={setProvisionUsername} placeholder="New member username" placeholderTextColor="#9EA9A3" style={styles.provisionInput} value={provisionUsername} />
-            <FormTextInput autoCapitalize="none" onChangeText={setProvisionPassword} placeholder="Optional temporary password" placeholderTextColor="#9EA9A3" secureTextEntry style={styles.provisionInput} value={provisionPassword} />
+            <FormTextInput accessibilityLabel="New member username" autoCapitalize="none" onChangeText={setProvisionUsername} placeholder="New member username" placeholderTextColor="#9EA9A3" style={styles.provisionInput} value={provisionUsername} />
+            <FormTextInput accessibilityLabel="Optional temporary password" autoCapitalize="none" onChangeText={setProvisionPassword} placeholder="Optional temporary password" placeholderTextColor="#9EA9A3" secureTextEntry style={styles.provisionInput} value={provisionPassword} />
             <View style={styles.actionRow}>
-              <Pressable disabled={!provisionUsername.trim()} onPress={() => void submitProvision()} style={styles.primarySmall}><Text style={styles.primaryText}>Provision</Text></Pressable>
-              <Pressable onPress={() => { setProvisioningReferral(null); setProvisionUsername(""); setProvisionPassword(""); }} style={styles.secondarySmall}><Text style={styles.secondaryText}>Cancel</Text></Pressable>
+              <Pressable accessibilityRole="button" disabled={!provisionUsername.trim()} onPress={() => void submitProvision()} style={styles.primarySmall}><Text style={styles.primaryText}>Provision</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={() => { setProvisioningReferral(null); setProvisionUsername(""); setProvisionPassword(""); }} style={styles.secondarySmall}><Text style={styles.secondaryText}>Cancel</Text></Pressable>
             </View>
           </View>
         ) : null}
@@ -223,31 +231,64 @@ function ReferralCard({
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>{referral.applicantDisplayName ?? "Referral link"}</Text>
-        <Text style={[styles.badge, referral.status === "rejected" && styles.rejected, referral.status === "completed" && styles.completed]}>{referralStatusLabel(referral.status)}</Text>
+        <StatusChip
+          label={referralStatusLabel(referral.status)}
+          tone={
+            referral.status === "rejected"
+              ? "danger"
+              : referral.status === "completed"
+                ? "success"
+                : referral.status === "approved"
+                  ? "info"
+                  : "warning"
+          }
+        />
       </View>
       <Text style={styles.meta}>Created {new Date(referral.createdAt).toLocaleDateString()}</Text>
       {referral.applicantPhone ? <Text style={styles.meta}>{referral.applicantPhone}</Text> : null}
       {referral.reviewReason ? <Text style={styles.reason}>Reason: {referral.reviewReason}</Text> : null}
-      {!managed && referral.status !== "completed" ? <Pressable onPress={onShare} style={styles.secondaryButton}><Text style={styles.secondaryText}>Share referral</Text></Pressable> : null}
+      {!managed && referral.status !== "completed" ? <Pressable accessibilityRole="button" onPress={onShare} style={styles.secondaryButton}><Text style={styles.secondaryText}>Share referral</Text></Pressable> : null}
       {managed && referral.status === "submitted" ? (
         <View style={styles.actionRow}>
-          <Pressable disabled={busy} onPress={onApprove} style={styles.primarySmall}><Text style={styles.primaryText}>Approve</Text></Pressable>
-          <Pressable disabled={busy} onPress={onReject} style={styles.rejectSmall}><Text style={styles.rejectText}>Reject</Text></Pressable>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={onApprove} style={styles.primarySmall}><Text style={styles.primaryText}>Approve</Text></Pressable>
+          <Pressable accessibilityRole="button" disabled={busy} onPress={onReject} style={styles.rejectSmall}><Text style={styles.rejectText}>Reject</Text></Pressable>
         </View>
       ) : null}
-      {managed && referral.status === "approved" ? <Pressable disabled={busy} onPress={onProvision} style={styles.primaryButton}><Text style={styles.primaryText}>Provision member</Text></Pressable> : null}
+      {managed && referral.status === "approved" ? <Pressable accessibilityRole="button" disabled={busy} onPress={onProvision} style={styles.primaryButton}><Text style={styles.primaryText}>Provision member</Text></Pressable> : null}
     </View>
   );
 }
 
 function CredentialPanel({ credential, onCopy, onDismiss }: { credential: { referralId: string; password: string }; onCopy: () => void; onDismiss: () => void }) {
-  return <View style={styles.credential}><Text style={styles.credentialLabel}>TEMPORARY PASSWORD</Text><Text style={styles.credentialCopy}>Show this once to the new member. It will not be available after dismissal.</Text><Text selectable style={styles.password}>{credential.password}</Text><View style={styles.actionRow}><Pressable onPress={onCopy} style={styles.primarySmall}><Text style={styles.primaryText}>Copy</Text></Pressable><Pressable onPress={onDismiss} style={styles.secondarySmall}><Text style={styles.secondaryText}>Dismiss</Text></Pressable></View></View>;
+  return <View style={styles.credential}><Text style={styles.credentialLabel}>TEMPORARY PASSWORD</Text><Text style={styles.credentialCopy}>Show this once to the new member. It will not be available after dismissal.</Text><Text selectable style={styles.password}>{credential.password}</Text><View style={styles.actionRow}><Pressable accessibilityRole="button" onPress={onCopy} style={styles.primarySmall}><Text style={styles.primaryText}>Copy</Text></Pressable><Pressable accessibilityRole="button" onPress={onDismiss} style={styles.secondarySmall}><Text style={styles.secondaryText}>Dismiss</Text></Pressable></View></View>;
 }
 
-function LoadingState() { return <View style={styles.state}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateText}>Loading referrals...</Text></View>; }
+function LoadingState() {
+  return (
+    <View
+      accessible
+      accessibilityLabel="Loading referrals..."
+      accessibilityRole="progressbar"
+      style={styles.state}
+    >
+      <ActivityIndicator color={colors.deepEmerald} />
+      <Text style={styles.stateText}>Loading referrals...</Text>
+    </View>
+  );
+}
 function AccessState() { return <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}><View style={styles.content}><Text style={styles.eyebrow}>MEMBERSHIP</Text><Text style={styles.title}>Referrals</Text><Text style={styles.stateText}>Referral tools are not available for your account.</Text></View></SafeAreaView>; }
 function EmptyState({ managed }: { managed: boolean }) { return <View style={styles.state}><Text style={styles.stateTitle}>{managed ? "No onboarding requests" : "No referrals yet"}</Text><Text style={styles.stateText}>{managed ? "Submitted requests will appear here." : "Create a referral link when you are ready."}</Text></View>; }
-function ErrorState({ onRetry }: { onRetry: () => void }) { return <View style={styles.state}><Text style={styles.stateTitle}>Referrals could not load</Text><Text style={styles.stateText}>Check your connection and try again.</Text><Pressable onPress={onRetry} style={styles.retry}><Text style={styles.retryText}>Retry</Text></Pressable></View>; }
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View accessible accessibilityRole="alert" style={styles.state}>
+      <Text style={styles.stateTitle}>Referrals could not load</Text>
+      <Text style={styles.stateText}>Check your connection and try again.</Text>
+      <Pressable accessibilityRole="button" onPress={onRetry} style={styles.retry}>
+        <Text style={styles.retryText}>Retry</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   page: { backgroundColor: colors.ivory, flex: 1 },
@@ -258,7 +299,7 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: "700", marginTop: 24 },
   primaryButton: { alignItems: "center", backgroundColor: colors.deepEmerald, borderRadius: 10, height: 48, justifyContent: "center", marginTop: 20 },
   primaryText: { color: colors.surface, fontSize: 14, fontWeight: "700" },
-  card: { backgroundColor: colors.surface, borderRadius: 14, marginTop: 14, padding: 16 },
+  card: { backgroundColor: colors.surface, borderColor: colors.sand, borderRadius: 14, borderWidth: 1, marginTop: 14, padding: 16 },
   cardHeader: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between", gap: 10 },
   cardTitle: { color: colors.text, flex: 1, fontSize: 16, fontWeight: "700" },
   badge: { backgroundColor: "#F2EAD7", borderRadius: 20, color: "#876B28", fontSize: 11, fontWeight: "700", overflow: "hidden", paddingHorizontal: 8, paddingVertical: 5 },
@@ -274,7 +315,7 @@ const styles = StyleSheet.create({
   rejectText: { color: colors.danger, fontSize: 14, fontWeight: "700" },
   secondarySmall: { alignItems: "center", borderColor: "#B9C6BE", borderRadius: 9, borderWidth: 1, flex: 1, height: 44, justifyContent: "center" },
   credential: { backgroundColor: colors.darkEmerald, borderRadius: 14, marginTop: 18, padding: 16 },
-  provisionForm: { backgroundColor: colors.surface, borderRadius: 14, marginTop: 18, padding: 16 },
+  provisionForm: { backgroundColor: colors.surface, borderColor: colors.sand, borderRadius: 14, borderWidth: 1, marginTop: 18, padding: 16 },
   provisionInput: { borderColor: "#D8DED8", borderRadius: 9, borderWidth: 1, color: colors.text, height: 46, marginTop: 14, paddingHorizontal: 12 },
   reasonInput: { height: 90, paddingTop: 12, textAlignVertical: "top" },
   credentialLabel: { color: colors.gold, fontSize: 11, fontWeight: "800", letterSpacing: 1.1 },

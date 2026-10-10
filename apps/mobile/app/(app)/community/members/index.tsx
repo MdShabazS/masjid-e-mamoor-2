@@ -12,6 +12,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useAuth } from "../../../../src/auth/AuthProvider";
+import {
+  BrandedPageHeader,
+  StatusChip,
+} from "../../../../src/components/InstitutionalUI";
 import { loadCapabilities } from "../../../../src/modules/capabilities";
 import { listMembers } from "../../../../src/modules/data";
 import type { MemberPageCursor, MobileMember } from "../../../../src/modules/types";
@@ -80,10 +84,14 @@ export default function MembersScreen() {
           }
           ListHeaderComponent={
             <View>
-              <Text style={styles.eyebrow}>MEMBERSHIP</Text>
-              <Text style={styles.title}>Members</Text>
+              <BrandedPageHeader
+                eyebrow="Membership"
+                title="Members"
+                description="Search and review members within your authorized scope."
+              />
               <View style={styles.searchRow}>
                 <FormTextInput
+                  accessibilityLabel="Search members"
                   autoCapitalize="none"
                   onChangeText={setSearchInput}
                   onSubmitEditing={() => setSearch(searchInput)}
@@ -92,7 +100,7 @@ export default function MembersScreen() {
                   style={styles.searchInput}
                   value={searchInput}
                 />
-                <Pressable onPress={() => setSearch(searchInput)} style={styles.searchButton}>
+                <Pressable accessibilityRole="button" onPress={() => setSearch(searchInput)} style={styles.searchButton}>
                   <Text style={styles.searchButtonText}>Search</Text>
                 </Pressable>
               </View>
@@ -100,20 +108,21 @@ export default function MembersScreen() {
           }
           ListFooterComponent={
             members.hasNextPage ? (
-              <Pressable disabled={members.isFetchingNextPage} onPress={() => void loadMore()} style={styles.loadMore}>
+              <Pressable accessibilityRole="button" disabled={members.isFetchingNextPage} onPress={() => void loadMore()} style={styles.loadMore}>
                 <Text style={styles.loadMoreText}>{members.isFetchingNextPage ? "Loading..." : "Load more"}</Text>
               </Pressable>
             ) : null
           }
           renderItem={({ item }) => (
-            <Pressable onPress={() => router.push(`/community/members/${item.id}`)} style={styles.memberRow}>
+            <Pressable accessibilityRole="button" onPress={() => router.push(`/community/members/${item.id}`)} style={styles.memberRow}>
               <View style={styles.memberCopy}>
                 <Text style={styles.memberName}>{item.displayName}</Text>
                 <Text style={styles.memberPhone}>{item.phone ?? "No phone provided"}</Text>
               </View>
-              <Text style={[styles.badge, item.status === "inactive" && styles.inactiveBadge]}>
-                {statusLabel(item.status)}
-              </Text>
+              <StatusChip
+                label={statusLabel(item.status)}
+                tone={item.status === "active" ? "success" : "danger"}
+              />
             </Pressable>
           )}
         />
@@ -122,7 +131,17 @@ export default function MembersScreen() {
 }
 
 function LoadingState() {
-  return <View style={styles.state}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateText}>Loading members...</Text></View>;
+  return (
+    <View
+      accessible
+      accessibilityLabel="Loading members..."
+      accessibilityRole="progressbar"
+      style={styles.state}
+    >
+      <ActivityIndicator color={colors.deepEmerald} />
+      <Text style={styles.stateText}>Loading members...</Text>
+    </View>
+  );
 }
 
 function AccessState() {
@@ -134,7 +153,15 @@ function EmptyState() {
 }
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
-  return <View style={styles.state}><Text style={styles.stateTitle}>Members could not load</Text><Text style={styles.stateText}>Check your connection and try again.</Text><Pressable onPress={onRetry} style={styles.retry}><Text style={styles.retryText}>Retry</Text></Pressable></View>;
+  return (
+    <View accessible accessibilityRole="alert" style={styles.state}>
+      <Text style={styles.stateTitle}>Members could not load</Text>
+      <Text style={styles.stateText}>Check your connection and try again.</Text>
+      <Pressable accessibilityRole="button" onPress={onRetry} style={styles.retry}>
+        <Text style={styles.retryText}>Retry</Text>
+      </Pressable>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -146,7 +173,7 @@ const styles = StyleSheet.create({
   searchInput: { backgroundColor: colors.surface, borderColor: "#D8DED8", borderRadius: 10, borderWidth: 1, color: colors.text, flex: 1, height: 48, paddingHorizontal: 13 },
   searchButton: { alignItems: "center", backgroundColor: colors.deepEmerald, borderRadius: 10, height: 48, justifyContent: "center", paddingHorizontal: 14 },
   searchButtonText: { color: colors.surface, fontSize: 13, fontWeight: "700" },
-  memberRow: { alignItems: "center", backgroundColor: colors.surface, borderRadius: 13, flexDirection: "row", justifyContent: "space-between", marginBottom: 10, padding: 16 },
+  memberRow: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.sand, borderRadius: 13, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginBottom: 10, padding: 16 },
   memberCopy: { flex: 1, paddingRight: 10 },
   memberName: { color: colors.text, fontSize: 16, fontWeight: "700" },
   memberPhone: { color: colors.secondary, fontSize: 13, marginTop: 5 },

@@ -12,6 +12,10 @@ import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../../src/auth/AuthProvider";
 import {
+  BrandedPageHeader,
+  StatusChip,
+} from "../../../src/components/InstitutionalUI";
+import {
   accountDirectoryQueryKey,
   accountStatusLabel,
   canAccessAccountAdministration,
@@ -55,14 +59,14 @@ export default function AccountsScreen() {
       >
         <View style={styles.headerRow}>
           <View style={styles.headerCopy}>
-            <Text style={styles.eyebrow}>ADMINISTRATION</Text>
-            <Text style={styles.title}>Accounts</Text>
-            <Text style={styles.intro}>
-              Manage authorized accounts and application access.
-            </Text>
+            <BrandedPageHeader
+              eyebrow="Administration"
+              title="Accounts"
+              description="Manage authorized accounts and application access."
+            />
           </View>
-          <Pressable
-            accessibilityRole="button"
+          <Pressable accessibilityRole="button"
+
             onPress={() => router.push("/accounts/create")}
             style={styles.createButton}
           >
@@ -89,7 +93,7 @@ export default function AccountsScreen() {
               <EmptyPanel />
             ) : (
               items.map((item) => (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={item.id}
                   onPress={() =>
                     router.push({
@@ -121,15 +125,10 @@ export default function AccountsScreen() {
                     </Text>
                   </View>
                   <View style={styles.cardAside}>
-                    <Text
-                      style={[
-                        styles.statusBadge,
-                        item.status === "deactivated" &&
-                          styles.statusDeactivated,
-                      ]}
-                    >
-                      {accountStatusLabel(item.status)}
-                    </Text>
+                    <StatusChip
+                      label={accountStatusLabel(item.status)}
+                      tone={item.status === "active" ? "success" : "danger"}
+                    />
                     <Text style={styles.arrow}>›</Text>
                   </View>
                 </Pressable>
@@ -153,7 +152,12 @@ function Summary({ label, value }: { label: string; value: number }) {
 
 function LoadingPanel() {
   return (
-    <View style={styles.statePanel}>
+    <View
+      accessible
+      accessibilityLabel="Loading accounts..."
+      accessibilityRole="progressbar"
+      style={styles.statePanel}
+    >
       <ActivityIndicator color={colors.deepEmerald} />
       <Text style={styles.stateCopy}>Loading accounts...</Text>
     </View>
@@ -162,10 +166,10 @@ function LoadingPanel() {
 
 function ErrorPanel({ onRetry }: { onRetry: () => void }) {
   return (
-    <View style={styles.statePanel}>
+    <View accessible accessibilityRole="alert" style={styles.statePanel}>
       <Text style={styles.stateTitle}>Accounts could not load</Text>
       <Text style={styles.stateCopy}>Check your connection and try again.</Text>
-      <Pressable onPress={onRetry} style={styles.retryButton}>
+      <Pressable accessibilityRole="button" onPress={onRetry} style={styles.retryButton}>
         <Text style={styles.retryText}>Retry</Text>
       </Pressable>
     </View>

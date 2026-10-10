@@ -22,6 +22,7 @@ import {
 } from "../../../src/modules/accounts";
 import { colors, roleLabels } from "../../../src/theme/colors";
 import { FormTextInput, Screen } from "../../../src/components/Screen";
+import { BrandedPageHeader } from "../../../src/components/InstitutionalUI";
 
 export default function CreateAccountScreen() {
   const { account, session } = useAuth();
@@ -87,18 +88,17 @@ export default function CreateAccountScreen() {
   if (temporaryPassword) {
     return (
       <Screen edges={["left", "right", "bottom"]} contentContainerStyle={styles.resultWrap}>
-          <Text style={styles.eyebrow}>ACCOUNT CREATED</Text>
-          <Text style={styles.title}>Temporary password</Text>
-          <Text style={styles.help}>
-            Share this password securely. The user must change it on first
-            login. It will not remain available after you leave this screen.
-          </Text>
+          <BrandedPageHeader
+            eyebrow="Account created"
+            title="Temporary password"
+            description="Share this password securely. The user must change it on first login. It will not remain available after you leave this screen."
+          />
           <View style={styles.credentialPanel}>
             <Text selectable style={styles.credential}>
               {temporaryPassword}
             </Text>
           </View>
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => {
               void Clipboard.setStringAsync(temporaryPassword);
               Alert.alert("Copied", "The temporary password was copied.");
@@ -107,7 +107,7 @@ export default function CreateAccountScreen() {
           >
             <Text style={styles.secondaryButtonText}>Copy password</Text>
           </Pressable>
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => {
               setTemporaryPassword(null);
               router.replace("/accounts");
@@ -122,11 +122,11 @@ export default function CreateAccountScreen() {
 
   return (
     <Screen contentContainerStyle={styles.content} edges={["left", "right", "bottom"]} keyboardAware scroll>
-        <Text style={styles.eyebrow}>PROVISIONING</Text>
-        <Text style={styles.title}>Create account</Text>
-        <Text style={styles.help}>
-          Create access only when the person is ready to receive their login.
-        </Text>
+        <BrandedPageHeader
+          eyebrow="Provisioning"
+          title="Create account"
+          description="Create access only when the person is ready to receive their login."
+        />
 
         <Field
           autoCapitalize="none"
@@ -142,8 +142,9 @@ export default function CreateAccountScreen() {
         <Text style={styles.fieldLabel}>Role</Text>
         <View style={styles.optionGrid}>
           {roleOptions.map((option) => (
-            <Pressable
+            <Pressable accessibilityRole="button"
               key={option}
+              accessibilityState={{ selected: option === role }}
               onPress={() => setRole(option)}
               style={[
                 styles.option,
@@ -178,7 +179,7 @@ export default function CreateAccountScreen() {
           </Text>
         </View>
 
-        <Pressable
+        <Pressable accessibilityRole="button"
           disabled={create.isPending}
           onPress={() => create.mutate()}
           style={({ pressed }) => [styles.primaryButton, (pressed || create.isPending) && styles.disabled]}
@@ -211,6 +212,7 @@ function Field({
       <Text style={styles.fieldLabel}>{label}</Text>
       <FormTextInput
         {...props}
+        accessibilityLabel={label}
         placeholderTextColor="#93A099"
         style={styles.input}
       />

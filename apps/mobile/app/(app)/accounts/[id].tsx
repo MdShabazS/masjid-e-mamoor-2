@@ -29,6 +29,10 @@ import {
 } from "../../../src/modules/accounts";
 import { colors, roleLabels } from "../../../src/theme/colors";
 import { FormTextInput, Screen } from "../../../src/components/Screen";
+import {
+  BrandedPageHeader,
+  StatusChip,
+} from "../../../src/components/InstitutionalUI";
 
 export default function AccountDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -171,11 +175,17 @@ export default function AccountDetailScreen() {
 
   return (
     <Screen contentContainerStyle={styles.content} edges={["left", "right", "bottom"]} keyboardAware scroll>
-        <Text style={styles.eyebrow}>ACCOUNT</Text>
-        <Text style={styles.title}>{target.username ?? "Username not set"}</Text>
-        {target.displayName ? (
-          <Text style={styles.intro}>{target.displayName}</Text>
-        ) : null}
+        <BrandedPageHeader
+          eyebrow="Account administration"
+          title={target.username ?? "Username not set"}
+          description={target.displayName ?? "Manage this account's authorized application access."}
+        />
+        <View style={styles.headerStatus}>
+          <StatusChip
+            label={accountStatusLabel(target.status)}
+            tone={target.status === "active" ? "success" : "danger"}
+          />
+        </View>
 
         <View style={styles.summaryCard}>
           <Detail label="Role" value={roleLabels[target.role]} />
@@ -202,7 +212,7 @@ export default function AccountDetailScreen() {
               {temporaryPassword}
             </Text>
             <View style={styles.buttonRow}>
-              <Pressable
+              <Pressable accessibilityRole="button"
                 onPress={() => {
                   void Clipboard.setStringAsync(temporaryPassword);
                   Alert.alert("Copied", "The temporary password was copied.");
@@ -211,7 +221,7 @@ export default function AccountDetailScreen() {
               >
                 <Text style={styles.credentialButtonText}>Copy</Text>
               </Pressable>
-              <Pressable
+              <Pressable accessibilityRole="button"
                 onPress={() => setTemporaryPassword(null)}
                 style={styles.credentialButton}
               >
@@ -223,6 +233,7 @@ export default function AccountDetailScreen() {
 
         <Text style={styles.sectionTitle}>Username</Text>
         <FormTextInput
+          accessibilityLabel="Username"
           autoCapitalize="none"
           onChangeText={setUsernameDraft}
           placeholder="Username"
@@ -230,7 +241,7 @@ export default function AccountDetailScreen() {
           style={styles.input}
           value={username}
         />
-        <Pressable
+        <Pressable accessibilityRole="button"
           disabled={changeUsername.isPending}
           onPress={() => changeUsername.mutate()}
           style={[
@@ -256,8 +267,9 @@ export default function AccountDetailScreen() {
           <>
             <View style={styles.optionGrid}>
               {roleOptions.map((option) => (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={option}
+                  accessibilityState={{ selected: selectedRole === option }}
                   onPress={() => setSelectedRoleDraft(option)}
                   style={[
                     styles.option,
@@ -275,7 +287,7 @@ export default function AccountDetailScreen() {
                 </Pressable>
               ))}
             </View>
-            <Pressable
+            <Pressable accessibilityRole="button"
               disabled={changeRole.isPending || selectedRole === target.role}
               onPress={confirmRoleChange}
               style={[
@@ -293,7 +305,7 @@ export default function AccountDetailScreen() {
 
         <Text style={styles.sectionTitle}>Account access</Text>
         {statusChangeAllowed ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             disabled={changeStatus.isPending}
             onPress={confirmStatusChange}
             style={[
@@ -329,7 +341,7 @@ export default function AccountDetailScreen() {
           Generate a new temporary password and require a password change at
           the next login.
         </Text>
-        <Pressable
+        <Pressable accessibilityRole="button"
           disabled={resetPassword.isPending}
           onPress={confirmPasswordReset}
           style={[
@@ -362,7 +374,12 @@ function formatDate(value: string) {
 function LoadingState() {
   return (
     <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
-      <View style={styles.centerState}>
+      <View
+        accessible
+        accessibilityLabel="Loading account..."
+        accessibilityRole="progressbar"
+        style={styles.centerState}
+      >
         <ActivityIndicator color={colors.deepEmerald} />
         <Text style={styles.help}>Loading account...</Text>
       </View>
@@ -373,12 +390,12 @@ function LoadingState() {
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
-      <View style={styles.centerState}>
+      <View accessible accessibilityRole="alert" style={styles.centerState}>
         <Text style={styles.stateTitle}>Account is not available</Text>
         <Text style={styles.help}>
           It may be outside your authorized scope. Refresh and try again.
         </Text>
-        <Pressable onPress={onRetry} style={styles.secondaryButton}>
+        <Pressable accessibilityRole="button" onPress={onRetry} style={styles.secondaryButton}>
           <Text style={styles.secondaryButtonText}>Retry</Text>
         </Pressable>
       </View>
@@ -406,6 +423,7 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.gold, fontSize: 11, fontWeight: "800", letterSpacing: 1.2 },
   title: { color: colors.text, fontSize: 28, fontWeight: "700", marginTop: 8 },
   intro: { color: colors.secondary, fontSize: 14, marginTop: 5 },
+  headerStatus: { alignItems: "flex-start", marginTop: 12 },
   summaryCard: {
     backgroundColor: colors.surface,
     borderColor: colors.sand,

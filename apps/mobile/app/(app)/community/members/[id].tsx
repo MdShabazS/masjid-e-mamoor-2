@@ -11,6 +11,10 @@ import {
 import { useLocalSearchParams } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../../../src/auth/AuthProvider";
+import {
+  BrandedPageHeader,
+  StatusChip,
+} from "../../../../src/components/InstitutionalUI";
 import { loadCapabilities } from "../../../../src/modules/capabilities";
 import { changeMemberStatus, getMember, updateMember } from "../../../../src/modules/data";
 import { colors } from "../../../../src/theme/colors";
@@ -33,14 +37,42 @@ export default function MemberDetailScreen() {
   });
 
   if (capabilities.isLoading) {
-    return <View style={styles.state}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateText}>Loading member...</Text></View>;
+    return (
+      <View
+        accessible
+        accessibilityLabel="Loading member..."
+        accessibilityRole="progressbar"
+        style={styles.state}
+      >
+        <ActivityIndicator color={colors.deepEmerald} />
+        <Text style={styles.stateText}>Loading member...</Text>
+      </View>
+    );
   }
   if (!capabilities.data?.canReadMembers) return <AccessState />;
   if (member.isLoading) {
-    return <View style={styles.state}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateText}>Loading member...</Text></View>;
+    return (
+      <View
+        accessible
+        accessibilityLabel="Loading member..."
+        accessibilityRole="progressbar"
+        style={styles.state}
+      >
+        <ActivityIndicator color={colors.deepEmerald} />
+        <Text style={styles.stateText}>Loading member...</Text>
+      </View>
+    );
   }
   if (member.isError || !member.data) {
-    return <View style={styles.state}><Text style={styles.stateTitle}>Member unavailable</Text><Text style={styles.stateText}>This member could not be loaded.</Text><Pressable onPress={() => void member.refetch()} style={styles.retry}><Text style={styles.retryText}>Retry</Text></Pressable></View>;
+    return (
+      <View accessible accessibilityRole="alert" style={styles.state}>
+        <Text style={styles.stateTitle}>Member unavailable</Text>
+        <Text style={styles.stateText}>This member could not be loaded.</Text>
+        <Pressable accessibilityRole="button" onPress={() => void member.refetch()} style={styles.retry}>
+          <Text style={styles.retryText}>Retry</Text>
+        </Pressable>
+      </View>
+    );
   }
 
   const canEdit = capabilities.data?.canUpdateMembers === true;
@@ -56,11 +88,17 @@ export default function MemberDetailScreen() {
         refreshControl: <RefreshControl refreshing={member.isRefetching} onRefresh={() => void member.refetch()} tintColor={colors.deepEmerald} />,
       }}
     >
-      <Text style={styles.eyebrow}>MEMBER DETAIL</Text>
-      <Text style={styles.title}>{currentMember.displayName}</Text>
+      <BrandedPageHeader
+        eyebrow="Member detail"
+        title={currentMember.displayName}
+        description="Review membership information and authorized profile controls."
+      />
       <View style={styles.card}>
         <Text style={styles.label}>Status</Text>
-        <Text style={[styles.status, currentMember.status === "inactive" && styles.inactive]}>{currentMember.status === "active" ? "Active" : "Inactive"}</Text>
+        <StatusChip
+          label={currentMember.status === "active" ? "Active" : "Inactive"}
+          tone={currentMember.status === "active" ? "success" : "danger"}
+        />
         <Text style={styles.label}>Phone</Text>
         <Text style={styles.value}>{currentMember.phone ?? "No phone provided"}</Text>
         <Text style={styles.label}>Created</Text>
@@ -149,13 +187,13 @@ function MemberEditor({
     <View style={styles.card}>
       <Text style={styles.cardTitle}>Edit member</Text>
       <Text style={styles.label}>Display name</Text>
-      <FormTextInput onChangeText={setDisplayName} style={styles.input} value={displayName} />
+      <FormTextInput accessibilityLabel="Display name" onChangeText={setDisplayName} style={styles.input} value={displayName} />
       <Text style={styles.label}>Phone</Text>
-      <FormTextInput autoCapitalize="none" keyboardType="phone-pad" onChangeText={setPhone} style={styles.input} value={phone} />
+      <FormTextInput accessibilityLabel="Phone" autoCapitalize="none" keyboardType="phone-pad" onChangeText={setPhone} style={styles.input} value={phone} />
       <Text style={styles.label}>Reason (optional)</Text>
-      <FormTextInput onChangeText={setReason} multiline style={[styles.input, styles.reason]} value={reason} />
-      <Pressable disabled={saving} onPress={() => void saveProfile()} style={styles.primaryButton}><Text style={styles.primaryText}>{saving ? "Saving..." : "Save changes"}</Text></Pressable>
-      <Pressable disabled={saving} onPress={confirmStatusChange} style={styles.secondaryButton}><Text style={styles.secondaryText}>{member.status === "active" ? "Deactivate member" : "Activate member"}</Text></Pressable>
+      <FormTextInput accessibilityLabel="Reason optional" onChangeText={setReason} multiline style={[styles.input, styles.reason]} value={reason} />
+      <Pressable accessibilityRole="button" disabled={saving} onPress={() => void saveProfile()} style={styles.primaryButton}><Text style={styles.primaryText}>{saving ? "Saving..." : "Save changes"}</Text></Pressable>
+      <Pressable accessibilityRole="button" disabled={saving} onPress={confirmStatusChange} style={styles.secondaryButton}><Text style={styles.secondaryText}>{member.status === "active" ? "Deactivate member" : "Activate member"}</Text></Pressable>
     </View>
   );
 }
@@ -164,7 +202,7 @@ const styles = StyleSheet.create({
   content: { backgroundColor: colors.ivory, flexGrow: 1, padding: 20 },
   eyebrow: { color: colors.deepEmerald, fontSize: 12, fontWeight: "800", letterSpacing: 1.2 },
   title: { color: colors.text, fontSize: 30, fontWeight: "700", marginTop: 8 },
-  card: { backgroundColor: colors.surface, borderRadius: 14, marginTop: 20, padding: 18 },
+  card: { backgroundColor: colors.surface, borderColor: colors.sand, borderRadius: 14, borderWidth: 1, marginTop: 20, padding: 18 },
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: "700", marginBottom: 4 },
   label: { color: colors.secondary, fontSize: 12, fontWeight: "700", marginTop: 14 },
   value: { color: colors.text, fontSize: 16, marginTop: 4 },
