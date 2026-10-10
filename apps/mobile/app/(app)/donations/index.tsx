@@ -12,6 +12,10 @@ import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DonationPaymentMethod } from "@masjid-e-mamoor/types";
 import { useAuth } from "../../../src/auth/AuthProvider";
+import {
+  BrandedPageHeader,
+  StatusChip,
+} from "../../../src/components/InstitutionalUI";
 import { loadCapabilities } from "../../../src/modules/capabilities";
 import {
   createAdditionalDonation,
@@ -138,12 +142,18 @@ export default function DonationsScreen() {
         refreshControl: <RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.deepEmerald} />,
       }}
     >
-        <Text style={styles.eyebrow}>DONATION V1</Text>
-        <Text style={styles.title}>Donations</Text>
-        <Text style={styles.intro}>Your obligations, payment submissions, and donation history.</Text>
+        <BrandedPageHeader
+          eyebrow="Donations"
+          title="Donation workspace"
+          description="Review monthly obligations, submit payments, and follow your donation history."
+        />
 
         {capabilities.data?.canManageDonations ? (
-          <Pressable onPress={() => router.push("/donations/manage")} style={styles.managementButton}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/donations/manage")}
+            style={styles.managementButton}
+          >
             <View style={styles.flexCopy}>
               <Text style={styles.managementTitle}>Donation management</Text>
               <Text style={styles.managementCopy}>Open authorized review and recording workflows</Text>
@@ -169,7 +179,17 @@ export default function DonationsScreen() {
               <View key={obligation.id} style={styles.card}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardTitle}>{formatDonationMonth(obligation.effectiveMonth)}</Text>
-                  <StatusBadge label={obligationStatusLabel(obligation.status)} success={obligation.status === "paid" || obligation.status === "waived"} />
+                  <StatusChip
+                    label={obligationStatusLabel(
+                      obligation.status,
+                    )}
+                    tone={
+                      obligation.status === "paid" ||
+                      obligation.status === "waived"
+                        ? "success"
+                        : "warning"
+                    }
+                  />
                 </View>
                 <MoneyRow label="Authoritative amount" value={obligation.authoritativeAmountPaise} />
                 <MoneyRow label="Allocated" value={obligation.allocatedAmountPaise} />
@@ -188,7 +208,19 @@ export default function DonationsScreen() {
             <Text style={styles.fieldLabel}>Payment method</Text>
             <View style={styles.choiceRow}>
               {methods.map((method) => (
-                <Pressable key={method} onPress={() => setPaymentMethod(method)} style={[styles.choice, paymentMethod === method && styles.choiceActive]}>
+                <Pressable
+                  key={method}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected: paymentMethod === method,
+                  }}
+                  onPress={() => setPaymentMethod(method)}
+                  style={[
+                    styles.choice,
+                    paymentMethod === method &&
+                      styles.choiceActive,
+                  ]}
+                >
                   <Text style={[styles.choiceText, paymentMethod === method && styles.choiceTextActive]}>{paymentMethodLabel(method)}</Text>
                 </Pressable>
               ))}
@@ -214,12 +246,31 @@ export default function DonationsScreen() {
           return (
             <Pressable
               key={payment.id}
-              onPress={() => router.push({ pathname: "/donations/payment/[id]", params: { id: payment.id } })}
+              accessibilityRole="button"
+              onPress={() =>
+                router.push({
+                  pathname: "/donations/payment/[id]",
+                  params: { id: payment.id },
+                })
+              }
               style={styles.card}
             >
               <View style={styles.cardHeader}>
                 <Text style={styles.paymentAmount}>{formatPaise(payment.amountPaise)}</Text>
-                <StatusBadge label={paymentStatusLabel(payment.status)} success={payment.status === "verified"} danger={payment.status === "rejected"} />
+                <StatusChip
+                  label={paymentStatusLabel(
+                    payment.status,
+                  )}
+                  tone={
+                    payment.status === "verified"
+                      ? "success"
+                      : payment.status === "rejected"
+                        ? "danger"
+                        : payment.status === "under_review"
+                          ? "info"
+                          : "warning"
+                  }
+                />
               </View>
               <Text style={styles.meta}>{paymentMethodLabel(payment.paymentMethod)} · {formatDonationDate(payment.createdAt)}</Text>
               <Text style={styles.meta}>Allocated: {formatPaise(allocated)} · Proofs: {proofCount}</Text>
@@ -246,13 +297,107 @@ export default function DonationsScreen() {
 
 function SectionTitle({ title }: { title: string }) { return <Text style={styles.sectionTitle}>{title}</Text>; }
 function MoneyRow({ label, value, emphasized = false }: { label: string; value: number; emphasized?: boolean }) { return <View style={styles.moneyRow}><Text style={[styles.meta, emphasized && styles.emphasized]}>{label}</Text><Text style={[styles.moneyValue, emphasized && styles.emphasized]}>{formatPaise(value)}</Text></View>; }
-function StatusBadge({ label, success = false, danger = false }: { label: string; success?: boolean; danger?: boolean }) { return <Text style={[styles.badge, success && styles.badgeSuccess, danger && styles.badgeDanger]}>{label}</Text>; }
 function Field({ label, ...props }: { label: string; value: string; onChangeText: (value: string) => void; placeholder: string; keyboardType?: "default" | "decimal-pad" }) { return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><FormTextInput {...props} placeholderTextColor="#93A099" style={styles.input} /></View>; }
-function PrimaryButton({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) { return <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.primaryButton, (pressed || disabled) && styles.disabled]}><Text style={styles.primaryText}>{label}</Text></Pressable>; }
-function LoadingState() { return <Screen contentContainerStyle={styles.centerState}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateCopy}>Loading donations...</Text></Screen>; }
-function AccessState() { return <Screen contentContainerStyle={styles.content}><Text style={styles.eyebrow}>DONATION V1</Text><Text style={styles.title}>Donations</Text><Text style={styles.stateCopy}>Donation tools are not available for this account.</Text></Screen>; }
-function LoadingPanel() { return <View style={styles.statePanel}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.stateCopy}>Loading donation records...</Text></View>; }
-function ErrorPanel({ onRetry }: { onRetry: () => void }) { return <View style={styles.statePanel}><Text style={styles.stateTitle}>Donation records could not load</Text><Text style={styles.stateCopy}>Check your connection and try again.</Text><Pressable onPress={onRetry} style={styles.retry}><Text style={styles.retryText}>Retry</Text></Pressable></View>; }
+function PrimaryButton({
+  label,
+  onPress,
+  disabled,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{
+        disabled: Boolean(disabled),
+      }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.primaryButton,
+        (pressed || disabled) && styles.disabled,
+      ]}
+    >
+      <Text style={styles.primaryText}>{label}</Text>
+    </Pressable>
+  );
+}
+function LoadingState() {
+  return (
+    <Screen contentContainerStyle={styles.centerState}>
+      <View
+        accessible
+        accessibilityLabel="Loading donations..."
+        accessibilityRole="progressbar"
+      >
+        <ActivityIndicator color={colors.deepEmerald} />
+      </View>
+
+      <Text style={styles.stateCopy}>
+        Loading donations...
+      </Text>
+    </Screen>
+  );
+}
+function AccessState() {
+  return (
+    <Screen contentContainerStyle={styles.content}>
+      <BrandedPageHeader
+        eyebrow="Donations"
+        title="Donations"
+        description="Donation tools are not available for this account."
+      />
+    </Screen>
+  );
+}
+function LoadingPanel() {
+  return (
+    <View
+      accessible
+      accessibilityLabel="Loading donation records..."
+      accessibilityRole="progressbar"
+      style={styles.statePanel}
+    >
+      <ActivityIndicator color={colors.deepEmerald} />
+      <Text style={styles.stateCopy}>
+        Loading donation records...
+      </Text>
+    </View>
+  );
+}
+function ErrorPanel({
+  onRetry,
+}: {
+  onRetry: () => void;
+}) {
+  return (
+    <View
+      accessible
+      accessibilityRole="alert"
+      style={styles.statePanel}
+    >
+      <Text style={styles.stateTitle}>
+        Donation records could not load
+      </Text>
+
+      <Text style={styles.stateCopy}>
+        Check your connection and try again.
+      </Text>
+
+      <Pressable
+        accessibilityRole="button"
+        onPress={onRetry}
+        style={styles.retry}
+      >
+        <Text style={styles.retryText}>
+          Retry
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
 function EmptyPanel({ title, copy }: { title: string; copy: string }) { return <View style={styles.statePanel}><Text style={styles.stateTitle}>{title}</Text><Text style={styles.stateCopy}>{copy}</Text></View>; }
 
 const styles = StyleSheet.create({
@@ -271,7 +416,13 @@ const styles = StyleSheet.create({
   summaryMeta: { color: "#C8D7D0", fontSize: 13, marginTop: 6 },
   sectionTitle: { color: colors.text, fontSize: 19, fontWeight: "700", marginTop: 28, marginBottom: 10 },
   card: { backgroundColor: colors.surface, borderColor: colors.sand, borderRadius: 14, borderWidth: 1, marginBottom: 10, padding: 16 },
-  cardHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", gap: 10 },
+  cardHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    justifyContent: "space-between",
+  },
   cardTitle: { color: colors.text, fontSize: 15, fontWeight: "700", textTransform: "capitalize" },
   paymentAmount: { color: colors.text, fontSize: 20, fontWeight: "700" },
   badge: { backgroundColor: colors.sand, borderRadius: 999, color: colors.secondary, fontSize: 11, fontWeight: "700", overflow: "hidden", paddingHorizontal: 9, paddingVertical: 5 },

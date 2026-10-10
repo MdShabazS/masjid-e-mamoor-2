@@ -12,6 +12,10 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DonationOutstandingSnapshot, DonationPayment } from "@masjid-e-mamoor/types";
 import { useAuth } from "../../../../src/auth/AuthProvider";
+import {
+  BrandedPageHeader,
+  StatusChip,
+} from "../../../../src/components/InstitutionalUI";
 import { loadCapabilities } from "../../../../src/modules/capabilities";
 import {
   createAnonymousDonation,
@@ -298,9 +302,11 @@ export default function DonationManagementScreen() {
         refreshControl: <RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.deepEmerald} />,
       }}
     >
-      <Text style={styles.eyebrow}>AUTHORIZED WORKFLOWS</Text>
-      <Text style={styles.title}>Donation management</Text>
-      <Text style={styles.intro}>Only sections granted to this account are shown. All decisions remain server-authoritative.</Text>
+      <BrandedPageHeader
+        eyebrow="Authorized workflows"
+        title="Donation management"
+        description="Review payments, manage obligations, and record authorized donation activity. All decisions remain server-authoritative."
+      />
 
       {resolvedCapabilities.canReviewPayments ? (
         <Section title="Payment review" copy="Inspect proof and payment state before deciding.">
@@ -313,12 +319,24 @@ export default function DonationManagementScreen() {
               <View key={payment.id} style={styles.card}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardAmount}>{formatPaise(payment.amountPaise)}</Text>
-                  <Text style={styles.badge}>{paymentStatusLabel(payment.status)}</Text>
+                  <StatusChip
+                    label={paymentStatusLabel(payment.status)}
+                    tone={
+                      payment.status === "under_review"
+                        ? "info"
+                        : "warning"
+                    }
+                  />
                 </View>
                 <Text style={styles.meta}>{paymentMethodLabel(payment.paymentMethod)} · {formatDonationDate(payment.createdAt)}</Text>
                 {paymentProofs.length === 0 ? <Text style={styles.noProof}>No proof attached.</Text> : null}
                 {paymentProofs.map((proof, index) => (
-                  <Pressable key={proof.id} onPress={() => void viewProof(proof.id)} style={styles.proofButton}>
+                  <Pressable
+                    key={proof.id}
+                    accessibilityRole="button"
+                    onPress={() => void viewProof(proof.id)}
+                    style={styles.proofButton}
+                  >
                     <Text style={styles.secondaryButtonText}>View proof {index + 1}</Text>
                   </Pressable>
                 ))}
@@ -355,6 +373,12 @@ export default function DonationManagementScreen() {
                     {(financeAccounts.data ?? []).map((financeAccount) => (
                       <Pressable
                         key={financeAccount.id}
+                        accessibilityRole="button"
+                        accessibilityState={{
+                          selected:
+                            verification.financeAccountId ===
+                            financeAccount.id,
+                        }}
                         onPress={() =>
                           setVerification((current) => ({
                             ...current,
@@ -487,12 +511,37 @@ export default function DonationManagementScreen() {
             {snapshot.data?.obligations.filter((item) => item.outstandingAmountPaise > 0).map((obligation) => (
               <Pressable
                 key={obligation.id}
-                onPress={() => setWaiver({ obligationId: obligation.id, amount: "", reason: "" })}
-                style={[styles.obligationChoice, waiver.obligationId === obligation.id && styles.obligationChoiceActive]}
+                accessibilityRole="button"
+                accessibilityState={{
+                  selected:
+                    waiver.obligationId === obligation.id,
+                }}
+                onPress={() =>
+                  setWaiver({
+                    obligationId: obligation.id,
+                    amount: "",
+                    reason: "",
+                  })
+                }
+                style={[
+                  styles.obligationChoice,
+                  waiver.obligationId === obligation.id &&
+                    styles.obligationChoiceActive,
+                ]}
               >
                 <View>
                   <Text style={styles.cardTitle}>{formatDonationMonth(obligation.effectiveMonth)}</Text>
-                  <Text style={styles.meta}>{obligationStatusLabel(obligation.status)}</Text>
+                  <StatusChip
+                    label={obligationStatusLabel(
+                      obligation.status,
+                    )}
+                    tone={
+                      obligation.status === "paid" ||
+                      obligation.status === "waived"
+                        ? "success"
+                        : "warning"
+                    }
+                  />
                 </View>
                 <Text style={styles.outstanding}>{formatPaise(obligation.outstandingAmountPaise)}</Text>
               </Pressable>
@@ -619,6 +668,7 @@ function Field({
       <Text style={styles.fieldLabel}>{label}</Text>
       <FormTextInput
         {...props}
+        accessibilityLabel={label}
         maxLength={maxLength}
         multiline={multiline}
         placeholderTextColor="#93A099"
@@ -632,22 +682,134 @@ function Field({
     </View>
   );
 }
-function ActionButton({ label, onPress, disabled = false, secondary = false, danger = false }: { label: string; onPress: () => void; disabled?: boolean; secondary?: boolean; danger?: boolean }) { return <Pressable disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.actionButton, secondary && styles.secondaryButton, danger && styles.dangerButton, (pressed || disabled) && styles.disabled]}><Text style={[styles.actionText, secondary && styles.secondaryButtonText, danger && styles.dangerText]}>{label}</Text></Pressable>; }
-function LoadingLine() { return <View style={styles.loadingLine}><ActivityIndicator color={colors.deepEmerald} /><Text style={styles.meta}>Loading...</Text></View>; }
+function ActionButton({
+  label,
+  onPress,
+  disabled = false,
+  secondary = false,
+  danger = false,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  secondary?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.actionButton,
+        secondary && styles.secondaryButton,
+        danger && styles.dangerButton,
+        (pressed || disabled) && styles.disabled,
+      ]}
+    >
+      <Text
+        style={[
+          styles.actionText,
+          secondary && styles.secondaryButtonText,
+          danger && styles.dangerText,
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+function LoadingLine() {
+  return (
+    <View
+      accessible
+      accessibilityLabel="Loading..."
+      accessibilityRole="progressbar"
+      style={styles.loadingLine}
+    >
+      <ActivityIndicator color={colors.deepEmerald} />
+      <Text style={styles.meta}>Loading...</Text>
+    </View>
+  );
+}
 function EmptyLine({ copy }: { copy: string }) { return <Text style={styles.empty}>{copy}</Text>; }
-function InlineError({ onRetry }: { onRetry: () => void }) { return <View style={styles.inlineError}><Text style={styles.meta}>This section could not load.</Text><Pressable onPress={onRetry}><Text style={styles.secondaryButtonText}>Retry</Text></Pressable></View>; }
-function PageState({ copy, loading = false }: { copy: string; loading?: boolean }) { return <View style={styles.pageState}>{loading ? <ActivityIndicator color={colors.deepEmerald} /> : null}<Text style={styles.pageStateCopy}>{copy}</Text></View>; }
+function InlineError({
+  onRetry,
+}: {
+  onRetry: () => void;
+}) {
+  return (
+    <View
+      accessible
+      accessibilityRole="alert"
+      style={styles.inlineError}
+    >
+      <Text style={styles.meta}>
+        This section could not load.
+      </Text>
+
+      <Pressable
+        accessibilityRole="button"
+        onPress={onRetry}
+      >
+        <Text style={styles.secondaryButtonText}>
+          Retry
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+function PageState({
+  copy,
+  loading = false,
+}: {
+  copy: string;
+  loading?: boolean;
+}) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={copy}
+      accessibilityRole={
+        loading ? "progressbar" : undefined
+      }
+      style={styles.pageState}
+    >
+      {loading ? (
+        <ActivityIndicator color={colors.deepEmerald} />
+      ) : null}
+
+      <Text style={styles.pageStateCopy}>
+        {copy}
+      </Text>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   content: { backgroundColor: colors.ivory, flexGrow: 1, padding: 20, paddingBottom: 48 },
   eyebrow: { color: colors.gold, fontSize: 11, fontWeight: "800", letterSpacing: 1.2 },
   title: { color: colors.text, fontSize: 28, fontWeight: "700", marginTop: 8 },
   intro: { color: colors.secondary, fontSize: 14, lineHeight: 21, marginTop: 6 },
-  section: { borderTopColor: colors.sand, borderTopWidth: 1, marginTop: 28, paddingTop: 22 },
+  section: {
+    backgroundColor: colors.surface,
+    borderColor: colors.sand,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 20,
+    padding: 18,
+  },
   sectionTitle: { color: colors.text, fontSize: 19, fontWeight: "700" },
   sectionCopy: { color: colors.secondary, fontSize: 13, lineHeight: 19, marginBottom: 12, marginTop: 5 },
   card: { backgroundColor: colors.surface, borderColor: colors.sand, borderRadius: 14, borderWidth: 1, marginBottom: 10, padding: 16 },
-  cardHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", gap: 10 },
+  cardHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    justifyContent: "space-between",
+  },
   cardAmount: { color: colors.text, fontSize: 20, fontWeight: "700" },
   cardTitle: { color: colors.text, fontSize: 14, fontWeight: "700" },
   badge: { backgroundColor: colors.sand, borderRadius: 999, color: colors.secondary, fontSize: 11, fontWeight: "700", overflow: "hidden", paddingHorizontal: 9, paddingVertical: 5 },

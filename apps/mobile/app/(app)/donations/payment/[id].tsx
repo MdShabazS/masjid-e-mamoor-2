@@ -13,6 +13,10 @@ import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../../../src/auth/AuthProvider";
+import {
+  BrandedPageHeader,
+  StatusChip,
+} from "../../../../src/components/InstitutionalUI";
 import { loadCapabilities } from "../../../../src/modules/capabilities";
 import {
   createDonationProofSignedUrl,
@@ -109,12 +113,30 @@ export default function DonationPaymentScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={payment.isRefetching || allocations.isRefetching || proofs.isRefetching} onRefresh={() => void refresh()} tintColor={colors.deepEmerald} />}
     >
-      <Text style={styles.eyebrow}>PAYMENT</Text>
-      <View style={styles.headingRow}>
-        <Text style={styles.amount}>{formatPaise(payment.data.amountPaise)}</Text>
-        <Text style={[styles.badge, payment.data.status === "verified" && styles.success, payment.data.status === "rejected" && styles.danger]}>{paymentStatusLabel(payment.data.status)}</Text>
+      <BrandedPageHeader
+        eyebrow="Donation payment"
+        title={formatPaise(payment.data.amountPaise)}
+        description={`${paymentMethodLabel(
+          payment.data.paymentMethod,
+        )} · Submitted ${formatDonationDate(
+          payment.data.createdAt,
+        )}`}
+      />
+
+      <View style={styles.statusRow}>
+        <StatusChip
+          label={paymentStatusLabel(payment.data.status)}
+          tone={
+            payment.data.status === "verified"
+              ? "success"
+              : payment.data.status === "rejected"
+                ? "danger"
+                : payment.data.status === "under_review"
+                  ? "info"
+                  : "warning"
+          }
+        />
       </View>
-      <Text style={styles.meta}>{paymentMethodLabel(payment.data.paymentMethod)} · Submitted {formatDonationDate(payment.data.createdAt)}</Text>
 
       <View style={styles.card}>
         <Row label="Payment amount" value={formatPaise(payment.data.amountPaise)} />
@@ -131,10 +153,23 @@ export default function DonationPaymentScreen() {
       ) : null}
 
       <Text style={styles.sectionTitle}>Private payment proof</Text>
-      {proofs.isLoading ? <ActivityIndicator color={colors.deepEmerald} /> : null}
+      {proofs.isLoading ? (
+        <View
+          accessible
+          accessibilityLabel="Loading payment proofs..."
+          accessibilityRole="progressbar"
+        >
+          <ActivityIndicator color={colors.deepEmerald} />
+        </View>
+      ) : null}
       {proofs.isError ? <State copy="Payment proofs could not load." onRetry={() => void proofs.refetch()} compact /> : null}
       {proofs.data?.map((proof, index) => (
-        <Pressable key={proof.id} onPress={() => void viewProof(proof.id)} style={styles.proofRow}>
+        <Pressable
+          key={proof.id}
+          accessibilityRole="button"
+          onPress={() => void viewProof(proof.id)}
+          style={styles.proofRow}
+        >
           <View>
             <Text style={styles.proofTitle}>Payment proof {index + 1}</Text>
             <Text style={styles.meta}>{formatDonationDate(proof.createdAt)}</Text>
@@ -147,7 +182,18 @@ export default function DonationPaymentScreen() {
       ) : null}
 
       {canAttach ? (
-        <Pressable disabled={upload.isPending} onPress={() => upload.mutate()} style={[styles.primaryButton, upload.isPending && styles.disabled]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{
+            disabled: upload.isPending,
+          }}
+          disabled={upload.isPending}
+          onPress={() => upload.mutate()}
+          style={[
+            styles.primaryButton,
+            upload.isPending && styles.disabled,
+          ]}
+        >
           <Text style={styles.primaryText}>{upload.isPending ? "Uploading..." : "Attach payment proof"}</Text>
         </Pressable>
       ) : null}
@@ -158,12 +204,63 @@ export default function DonationPaymentScreen() {
 }
 
 function Row({ label, value }: { label: string; value: string }) { return <View style={styles.row}><Text style={styles.rowLabel}>{label}</Text><Text style={styles.rowValue}>{value}</Text></View>; }
-function State({ copy, loading = false, onRetry, compact = false }: { copy: string; loading?: boolean; onRetry?: () => void; compact?: boolean }) { return <View style={[styles.state, compact && styles.compactState]}>{loading ? <ActivityIndicator color={colors.deepEmerald} /> : null}<Text style={styles.stateCopy}>{copy}</Text>{onRetry ? <Pressable onPress={onRetry} style={styles.retry}><Text style={styles.link}>Retry</Text></Pressable> : null}</View>; }
+function State({
+  copy,
+  loading = false,
+  onRetry,
+  compact = false,
+}: {
+  copy: string;
+  loading?: boolean;
+  onRetry?: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <View
+      accessible
+      accessibilityLabel={copy}
+      accessibilityRole={
+        loading
+          ? "progressbar"
+          : onRetry
+            ? "alert"
+            : undefined
+      }
+      style={[
+        styles.state,
+        compact && styles.compactState,
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator color={colors.deepEmerald} />
+      ) : null}
+
+      <Text style={styles.stateCopy}>
+        {copy}
+      </Text>
+
+      {onRetry ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={onRetry}
+          style={styles.retry}
+        >
+          <Text style={styles.link}>
+            Retry
+          </Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   content: { backgroundColor: colors.ivory, flexGrow: 1, padding: 20, paddingBottom: 44 },
   eyebrow: { color: colors.gold, fontSize: 11, fontWeight: "800", letterSpacing: 1.2 },
-  headingRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
+  statusRow: {
+    alignItems: "flex-start",
+    marginTop: 14,
+  },
   amount: { color: colors.text, fontSize: 30, fontWeight: "700" },
   badge: { backgroundColor: colors.sand, borderRadius: 999, color: colors.secondary, fontSize: 11, fontWeight: "700", overflow: "hidden", paddingHorizontal: 10, paddingVertical: 6 },
   success: { backgroundColor: "#E1F0E7", color: colors.success },
@@ -177,7 +274,19 @@ const styles = StyleSheet.create({
   rejectionTitle: { color: colors.danger, fontSize: 14, fontWeight: "700" },
   rejectionCopy: { color: colors.text, fontSize: 13, lineHeight: 19, marginTop: 6 },
   sectionTitle: { color: colors.text, fontSize: 19, fontWeight: "700", marginBottom: 10, marginTop: 28 },
-  proofRow: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.sand, borderRadius: 12, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", marginBottom: 8, padding: 15 },
+  proofRow: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.sand,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    justifyContent: "space-between",
+    marginBottom: 8,
+    padding: 15,
+  },
   proofTitle: { color: colors.text, fontSize: 14, fontWeight: "700" },
   link: { color: colors.deepEmerald, fontSize: 13, fontWeight: "700" },
   emptyCopy: { color: colors.secondary, fontSize: 14, marginVertical: 8 },
