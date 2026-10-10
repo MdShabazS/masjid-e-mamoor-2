@@ -2,12 +2,23 @@ import { NextResponse } from "next/server";
 import { accountCreateSchema } from "@masjid-e-mamoor/validation";
 import { createAccount } from "@/lib/accounts/server";
 import {
+  enforceMobileApiRateLimit,
   getBearerToken,
   mobileError,
   mobileNoStoreHeaders,
 } from "@/lib/mobile-api";
 
 export async function POST(request: Request) {
+  const rateLimitResponse =
+    await enforceMobileApiRateLimit(
+      request,
+      "accounts.create",
+    );
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const accessToken = getBearerToken(request);
   if (!accessToken) return mobileError(401);
 

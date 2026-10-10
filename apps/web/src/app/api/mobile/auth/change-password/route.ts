@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ownPasswordChangeSchema } from "@masjid-e-mamoor/validation";
 import { changePasswordWithAccessToken } from "@/lib/accounts/server";
+import { enforceMobileApiRateLimit } from "@/lib/mobile-rate-limit";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 
@@ -12,6 +13,16 @@ function safeError(status = 400) {
 }
 
 export async function POST(request: Request) {
+  const rateLimitResponse =
+    await enforceMobileApiRateLimit(
+      request,
+      "auth.change-password",
+    );
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const authorization = request.headers.get("authorization") ?? "";
   const match = authorization.match(/^Bearer\s+(.+)$/i);
   if (!match) return safeError(401);

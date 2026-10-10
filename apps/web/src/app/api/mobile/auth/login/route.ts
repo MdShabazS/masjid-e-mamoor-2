@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { usernamePasswordLoginSchema } from "@masjid-e-mamoor/validation";
 import { getLoginAccountByUsername } from "@/lib/accounts/server";
 import { createMobileAuthClient } from "@/lib/supabase/mobile-auth";
+import { enforceMobileApiRateLimit } from "@/lib/mobile-rate-limit";
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
 
@@ -13,6 +14,16 @@ function invalidCredentials() {
 }
 
 export async function POST(request: Request) {
+  const rateLimitResponse =
+    await enforceMobileApiRateLimit(
+      request,
+      "auth.login",
+    );
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   let body: unknown;
 
   try {
