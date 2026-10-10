@@ -25,6 +25,7 @@ import {
   committeeTaskListQueryKey,
   completeCommitteeTask,
   createCommitteeOperationId,
+  declineCommitteeTaskAssignment,
   getCommitteeTask,
   startCommitteeTask,
 } from "../../../../src/modules/work";
@@ -46,6 +47,7 @@ export default function CommitteeTaskDetailScreen() {
   const queryClient = useQueryClient();
   const [progressRemark, setProgressRemark] = useState("");
   const [completionNotes, setCompletionNotes] = useState("");
+  const [declineReason, setDeclineReason] = useState("");
 
   const capabilities = useQuery({
     queryKey: ["capabilities", account?.id],
@@ -106,6 +108,18 @@ export default function CommitteeTaskDetailScreen() {
       Alert.alert("Task could not be completed", taskErrorMessage(error));
     },
   });
+  const decline = useMutation({
+    mutationFn: ({ reason, operationId }: { reason: string; operationId: string }) =>
+      declineCommitteeTaskAssignment(taskId, reason, operationId),
+    onSuccess: async () => {
+      setDeclineReason("");
+      await queryClient.invalidateQueries({ queryKey: committeeTaskListQueryKey(account?.id) });
+      router.replace("/work");
+    },
+    onError: (error) => {
+      Alert.alert("Assignment could not be declined", taskErrorMessage(error));
+    },
+  });
 
   if (!account || capabilities.isLoading) {
     return <PageState loading copy="Loading committee task..." />;
@@ -142,7 +156,7 @@ export default function CommitteeTaskDetailScreen() {
   const activeAssignees = task.data.assignees.filter((assignee) => assignee.removedAt === null);
   const sourceContext = taskSourceContext(task.data);
   const mutationPending =
-    progress.isPending || claim.isPending || start.isPending || complete.isPending;
+    progress.isPending || claim.isPending || start.isPending || complete.isPending || decline.isPending;
 
   const addProgress = () => {
     const remark = progressRemark.trim();
@@ -187,6 +201,21 @@ export default function CommitteeTaskDetailScreen() {
               notes: completionNotes,
               operationId: createCommitteeOperationId(),
             }),
+        },
+      ],
+    );
+  };
+  const confirmDecline = () => {
+    if (mutationPending) return;
+    Alert.alert(
+      "Decline assignment?",
+      "You will be removed from this task. The manager will be notified.",
+      [
+        { text: "Keep assignment", style: "cancel" },
+        {
+          text: "Decline",
+          style: "destructive",
+          onPress: () => decline.mutate({ reason: declineReason.trim(), operationId: createCommitteeOperationId() }),
         },
       ],
     );
@@ -336,6 +365,31 @@ export default function CommitteeTaskDetailScreen() {
         </ActionSection>
       ) : null}
 
+      {actions.canDecline ? (
+        <ActionSection
+          description="Leave an optional note for the task manager before declining this direct assignment."
+          title="Decline assignment"
+        >
+          <FormTextInput
+            maxLength={1000}
+            multiline
+            onChangeText={setDeclineReason}
+            placeholder="Reason (optional)"
+            placeholderTextColor={colors.textMuted}
+            style={[styles.input, styles.multiline]}
+            textAlignVertical="top"
+            value={declineReason}
+          />
+          <AppButton
+            disabled={mutationPending}
+            label="Decline assignment"
+            loading={decline.isPending}
+            onPress={confirmDecline}
+            variant="secondary"
+          />
+        </ActionSection>
+      ) : null}
+
       {actions.canAddProgress ? (
         <ActionSection
           description="Record a concise update for authorized users."
@@ -477,6 +531,7 @@ function activityLabel(type: string) {
       task_updated: "Task updated",
       assignment_added: "Assignee added",
       assignment_removed: "Assignee removed",
+      assignment_declined: "Assignment declined",
       progress_added: "Progress added",
       status_changed: "Status changed",
       task_completed: "Task completed",

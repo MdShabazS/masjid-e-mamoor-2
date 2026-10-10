@@ -5,18 +5,20 @@ describe("mobile workspace presentation", () => {
   it("only exposes modules granted by resolved capabilities", () => {
     expect(
       visibleWorkspaceModules({
+        canReadNotifications: false,
+        canManageAnnouncements: false,
         canManageAccounts: false,
         canReadFinanceAccounts: false,
         canManageFinanceAccounts: false,
-      canReadFinanceMonthlyReports: false,
-      canManageFinanceMonthlyReports: false,
-      canReadFinanceTransactions: false,
-      canCreateFinanceTransfers: false,
-      canApproveFinanceTransfers: false,
-      canCreateFinanceExpenses: false,
-      canApproveFinanceExpenses: false,
-      canCreateFinanceCorrections: false,
-          canCreateFinanceReversals: false,
+        canReadFinanceMonthlyReports: false,
+        canManageFinanceMonthlyReports: false,
+        canReadFinanceTransactions: false,
+        canCreateFinanceTransfers: false,
+        canApproveFinanceTransfers: false,
+        canCreateFinanceExpenses: false,
+        canApproveFinanceExpenses: false,
+        canCreateFinanceCorrections: false,
+        canCreateFinanceReversals: false,
         canReadFinanceReconciliation: false,
         canManageFinanceReconciliation: false,
         canReadMembers: false,
@@ -42,11 +44,13 @@ describe("mobile workspace presentation", () => {
         canAdministerCommitteeMeetings: false,
         canRecordCommitteeMeetingAttendance: false,
       }),
-    ).toEqual(["profile", "referrals", "donations"]);
+    ).toEqual(["referrals", "donations", "profile"]);
   });
 
   it("shows account administration only for resolved account managers", () => {
     const capabilities: MobileCapabilities = {
+      canReadNotifications: false,
+      canManageAnnouncements: false,
       canManageAccounts: true,
       canReadFinanceAccounts: false,
       canManageFinanceAccounts: false,
@@ -59,8 +63,8 @@ describe("mobile workspace presentation", () => {
       canApproveFinanceExpenses: false,
       canCreateFinanceCorrections: false,
       canCreateFinanceReversals: false,
-    canReadFinanceReconciliation: false,
-    canManageFinanceReconciliation: false,
+      canReadFinanceReconciliation: false,
+      canManageFinanceReconciliation: false,
       canReadMembers: false,
       canUpdateMembers: false,
       canCreateReferral: false,
@@ -85,15 +89,13 @@ describe("mobile workspace presentation", () => {
       canRecordCommitteeMeetingAttendance: false,
     };
 
-    expect(visibleWorkspaceModules(capabilities)).toEqual([
-      "profile",
-      "accounts",
-      "work",
-    ]);
+    expect(visibleWorkspaceModules(capabilities)).toEqual(["accounts", "work", "profile"]);
   });
 
   it("shows Finance workspace from resolved Finance read permissions", () => {
     const capabilities: MobileCapabilities = {
+      canReadNotifications: false,
+      canManageAnnouncements: false,
       canManageAccounts: false,
       canReadFinanceAccounts: true,
       canManageFinanceAccounts: false,
@@ -106,8 +108,8 @@ describe("mobile workspace presentation", () => {
       canApproveFinanceExpenses: false,
       canCreateFinanceCorrections: false,
       canCreateFinanceReversals: false,
-    canReadFinanceReconciliation: false,
-    canManageFinanceReconciliation: false,
+      canReadFinanceReconciliation: false,
+      canManageFinanceReconciliation: false,
       canReadMembers: false,
       canUpdateMembers: false,
       canCreateReferral: false,
@@ -132,10 +134,7 @@ describe("mobile workspace presentation", () => {
       canRecordCommitteeMeetingAttendance: false,
     };
 
-    expect(visibleWorkspaceModules(capabilities)).toEqual([
-      "profile",
-      "finance",
-    ]);
+    expect(visibleWorkspaceModules(capabilities)).toEqual(["finance", "profile"]);
 
     expect(
       visibleWorkspaceModules({
@@ -143,7 +142,7 @@ describe("mobile workspace presentation", () => {
         canReadFinanceAccounts: false,
         canReadFinanceReconciliation: true,
       }),
-    ).toEqual(["profile", "finance"]);
+    ).toEqual(["finance", "profile"]);
   });
 
   it("maps referral lifecycle states for display", () => {
@@ -152,17 +151,29 @@ describe("mobile workspace presentation", () => {
   });
 
   it("labels current referral statuses", () => {
-    expect(["pending", "submitted", "approved", "rejected", "completed", "cancelled"].map(referralStatusLabel)).toEqual([
-      "Pending", "Submitted", "Approved", "Rejected", "Completed", "Cancelled",
-    ]);
+    expect(
+      ["pending", "submitted", "approved", "rejected", "completed", "cancelled"].map(
+        referralStatusLabel,
+      ),
+    ).toEqual(["Pending", "Submitted", "Approved", "Rejected", "Completed", "Cancelled"]);
   });
 
   it("keeps all member pages available through the end cursor", () => {
-    const member = (id: string) => ({ id, applicationUserId: id, status: "active" as const, displayName: id, phone: null, createdAt: id, updatedAt: id });
-    expect(mergeMemberPages([
-      { members: [member("page-1")] },
-      { members: [member("page-2")] },
-      { members: [member("page-3")] },
-    ]).map((item) => item.id)).toEqual(["page-1", "page-2", "page-3"]);
+    const member = (id: string) => ({
+      id,
+      applicationUserId: id,
+      status: "active" as const,
+      displayName: id,
+      phone: null,
+      createdAt: id,
+      updatedAt: id,
+    });
+    expect(
+      mergeMemberPages([
+        { members: [member("page-1")] },
+        { members: [member("page-2")] },
+        { members: [member("page-3")] },
+      ]).map((item) => item.id),
+    ).toEqual(["page-1", "page-2", "page-3"]);
   });
 });

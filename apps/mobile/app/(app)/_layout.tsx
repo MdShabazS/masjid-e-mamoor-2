@@ -4,6 +4,7 @@ import { useAuth } from "../../src/auth/AuthProvider";
 import { loadCapabilities } from "../../src/modules/capabilities";
 import { TabIcon } from "../../src/components/TabIcon";
 import { NotificationRealtime } from "../../src/components/NotificationRealtime";
+import { primaryMobileTabs, type MobileModuleKey } from "../../src/modules/mobile-navigation";
 import { colors } from "../../src/theme/colors";
 
 export default function AppLayout() {
@@ -18,6 +19,12 @@ export default function AppLayout() {
   if (!session) return <Redirect href="/(auth)/sign-in" />;
   if (!account) return null;
   if (account.mustChangePassword) return <Redirect href="/(auth)/change-password" />;
+
+  const primaryTabs: MobileModuleKey[] = capabilities.data
+    ? primaryMobileTabs(account.role, capabilities.data)
+    : ["home"];
+  const tabHref = (key: MobileModuleKey) =>
+    primaryTabs.includes(key) ? undefined : null;
 
   return (
     <>
@@ -45,17 +52,19 @@ export default function AppLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ tabBarAccessibilityLabel: "Home", tabBarIcon: ({ color }) => <TabIcon color={color} name="home" />, title: "Home" }} />
-      <Tabs.Screen name="community" options={{ tabBarAccessibilityLabel: "Community", tabBarIcon: ({ color }) => <TabIcon color={color} name="community" />, title: "Community" }} />
-      <Tabs.Screen name="accounts" options={{ href: null }} />
-      <Tabs.Screen name="finance" options={{ href: null }} />
-      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="community" options={{ href: tabHref("community"), tabBarAccessibilityLabel: "Community", tabBarIcon: ({ color }) => <TabIcon color={color} name="community" />, title: "Community" }} />
+      <Tabs.Screen name="accounts" options={{ href: tabHref("accounts"), tabBarAccessibilityLabel: "Accounts", tabBarIcon: ({ color }) => <TabIcon color={color} name="accounts" />, title: "Accounts" }} />
+      <Tabs.Screen name="finance" options={{ href: tabHref("finance"), tabBarAccessibilityLabel: "Finance", tabBarIcon: ({ color }) => <TabIcon color={color} name="finance" />, title: "Finance" }} />
+      <Tabs.Screen name="notifications" options={{ href: tabHref("notifications"), tabBarAccessibilityLabel: "Updates", tabBarIcon: ({ color }) => <TabIcon color={color} name="notifications" />, title: "Updates" }} />
+      <Tabs.Screen name="announcements" options={{ href: null }} />
+      <Tabs.Screen name="meetings" options={{ href: tabHref("meetings"), tabBarAccessibilityLabel: "Meetings", tabBarIcon: ({ color }) => <TabIcon color={color} name="meetings" />, title: "Meetings" }} />
       <Tabs.Screen
         name="work"
         options={{
-          title: "Work",
-          tabBarAccessibilityLabel: "Work",
+          title: "Tasks",
+          tabBarAccessibilityLabel: "Tasks",
           tabBarIcon: ({ color }) => <TabIcon color={color} name="work" />,
-          href: capabilities.data?.canReadCommitteeTasks ? undefined : null,
+          href: tabHref("tasks"),
         }}
       />
       <Tabs.Screen
@@ -64,10 +73,11 @@ export default function AppLayout() {
           title: "Donations",
           tabBarAccessibilityLabel: "Donations",
           tabBarIcon: ({ color }) => <TabIcon color={color} name="donations" />,
-          href: capabilities.data?.canReadDonations ? undefined : null,
+          href: tabHref("donations"),
         }}
       />
-      <Tabs.Screen name="profile" options={{ tabBarAccessibilityLabel: "Profile", tabBarIcon: ({ color }) => <TabIcon color={color} name="profile" />, title: "Profile" }} />
+      <Tabs.Screen name="profile" options={{ href: tabHref("profile"), tabBarAccessibilityLabel: "Profile", tabBarIcon: ({ color }) => <TabIcon color={color} name="profile" />, title: "Profile" }} />
+      <Tabs.Screen name="more" options={{ href: tabHref("more"), tabBarAccessibilityLabel: "More", tabBarIcon: ({ color }) => <TabIcon color={color} name="more" />, title: "More" }} />
       </Tabs>
     </>
   );

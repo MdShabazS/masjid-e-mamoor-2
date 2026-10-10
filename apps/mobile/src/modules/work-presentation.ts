@@ -38,6 +38,11 @@ export function taskActionVisibility(input: {
       input.task.status === "open",
     canAddProgress: canMutate && input.task.status !== "completed",
     canStart: canMutate && input.task.status === "assigned",
+    canDecline:
+      input.capabilities.canManageCommitteeTasks &&
+      assigned &&
+      input.task.assignmentMode === "direct" &&
+      input.task.status === "assigned",
     canComplete: canMutate && input.task.status === "in_progress",
     canEdit:
       input.capabilities.canAssignCommitteeTasks &&
@@ -144,6 +149,9 @@ export function taskErrorMessage(error: unknown) {
   }
   if (message.includes("missing_permission") || message.includes("not_assigned")) {
     return "This task action is not available for your account.";
+  }
+  if (message.includes("task_decline_not_allowed") || message.includes("open_task_cannot_be_declined")) {
+    return "This assignment can no longer be declined.";
   }
   return "The task could not be updated. Check your connection and try again.";
 }

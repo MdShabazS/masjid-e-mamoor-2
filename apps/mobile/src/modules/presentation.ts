@@ -2,11 +2,12 @@ import type { MobileCapabilities } from "./capabilities";
 import type { MobileMember } from "./types";
 
 export function visibleWorkspaceModules(capabilities: MobileCapabilities) {
-  const modules = ["profile"];
+  const modules: string[] = [];
   if (capabilities.canManageAccounts) modules.push("accounts");
   if (capabilities.canReadMembers) modules.push("members");
   if (capabilities.canUseReferrals) modules.push("referrals");
   if (capabilities.canReadCommitteeTasks) modules.push("work");
+  if (capabilities.canReadCommitteeMeetings) modules.push("meetings");
   if (capabilities.canReadDonations) modules.push("donations");
   if (
     capabilities.canReadFinanceAccounts ||
@@ -22,6 +23,9 @@ export function visibleWorkspaceModules(capabilities: MobileCapabilities) {
   ) {
     modules.push("finance");
   }
+  if (capabilities.canReadNotifications) modules.push("notifications");
+  if (capabilities.canManageAnnouncements) modules.push("announcements");
+  modules.push("profile");
   return modules;
 }
 

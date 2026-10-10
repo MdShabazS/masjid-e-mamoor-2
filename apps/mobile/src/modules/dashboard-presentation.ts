@@ -31,6 +31,9 @@ export function dashboardWorkspaceModules(
     finance: capabilities.canManageFinanceAccounts
       ? "Finance accounts, balances, and account administration"
       : "Review authorized Finance accounts and balances",
+    meetings: "Committee schedules, agendas, and records",
+    notifications: "Recent personal updates and action alerts",
+    announcements: "Publish organization-wide updates",
   } as const;
 
   const definitions = {
@@ -41,6 +44,9 @@ export function dashboardWorkspaceModules(
     work: { href: "/work", title: "Work" },
     donations: { href: "/donations", title: "Donations" },
     finance: { href: "/finance", title: "Finance" },
+    meetings: { href: "/work/meetings", title: "Meetings" },
+    notifications: { href: "/notifications", title: "Notifications" },
+    announcements: { href: "/announcements", title: "Announcements" },
   } as const;
 
   return visibleWorkspaceModules(capabilities).map((key) => ({
@@ -92,4 +98,17 @@ export function formatDashboardMeetingDate(value: string) {
     month: "short",
     weekday: "short",
   });
+}
+
+export function formatDashboardMeetingRange(startValue: string, endValue: string | null) {
+  const start = new Date(startValue);
+  if (Number.isNaN(start.getTime())) return "Time unavailable";
+  if (!endValue) return formatDashboardMeetingDate(startValue);
+  const end = new Date(endValue);
+  if (Number.isNaN(end.getTime())) return formatDashboardMeetingDate(startValue);
+
+  return `${formatDashboardMeetingDate(startValue)} – ${end.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  })}`;
 }

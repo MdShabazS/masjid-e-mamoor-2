@@ -103,6 +103,8 @@ const unreadRefetch = jest.fn();
 const invalidateQueries = jest.fn();
 
 const baseCapabilities: MobileCapabilities = {
+  canReadNotifications: true,
+  canManageAnnouncements: false,
   canManageAccounts: false,
   canReadFinanceAccounts: false,
   canManageFinanceAccounts: false,

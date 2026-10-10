@@ -28,6 +28,8 @@ const mockPush = router.push as jest.Mock;
 const refetch = jest.fn();
 
 const capabilities: MobileCapabilities = {
+  canReadNotifications: true,
+  canManageAnnouncements: false,
   canManageAccounts: false,
   canReadFinanceAccounts: false,
   canManageFinanceAccounts: false,

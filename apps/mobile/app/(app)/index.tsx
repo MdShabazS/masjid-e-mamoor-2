@@ -22,7 +22,7 @@ import { loadCapabilities, type MobileCapabilities } from "../../src/modules/cap
 import {
   activeDashboardTasks,
   dashboardWorkspaceModules,
-  formatDashboardMeetingDate,
+  formatDashboardMeetingRange,
   upcomingDashboardMeetings,
 } from "../../src/modules/dashboard-presentation";
 import {
@@ -42,6 +42,7 @@ import {
   claimOpenCommitteeTask,
   committeeTaskListQueryKey,
   createCommitteeOperationId,
+  declineCommitteeTaskAssignment,
   listCommitteeTasks,
   startCommitteeTask,
   type CommitteeTaskSummary,
@@ -52,9 +53,9 @@ import {
   taskStatusLabels,
 } from "../../src/modules/work-presentation";
 import { colors, roleLabels } from "../../src/theme/colors";
-import { radii, spacing, typography } from "../../src/theme/tokens";
+import { spacing, typography } from "../../src/theme/tokens";
 
-type TaskHomeAction = "claim" | "start";
+type TaskHomeAction = "claim" | "start" | "decline";
 
 export default function HomeScreen() {
   const { account } = useAuth();
@@ -85,7 +86,7 @@ export default function HomeScreen() {
   const notifications = useQuery({
     queryKey: notificationListQueryKey(account?.id, "unread"),
     queryFn: () => listMyNotifications("unread"),
-    enabled: Boolean(account),
+    enabled: Boolean(account) && capabilities.data?.canReadNotifications === true,
   });
 
   const taskAction = useMutation({
@@ -102,10 +103,14 @@ export default function HomeScreen() {
         return claimOpenCommitteeTask(task.id, operationId);
       }
 
+      if (action === "decline") {
+        return declineCommitteeTaskAssignment(task.id, "", operationId);
+      }
+
       return startCommitteeTask(task.id, operationId);
     },
 
-    onSuccess: async (updatedTask) => {
+    onSuccess: async (updatedTask, variables) => {
       if (account) {
         await Promise.all([
           queryClient.invalidateQueries({
@@ -118,6 +123,8 @@ export default function HomeScreen() {
           ),
         ]);
       }
+
+      if (variables.action === "decline") return;
 
       router.push({
         pathname: "/work/[id]",
@@ -217,26 +224,15 @@ export default function HomeScreen() {
       <StatusBar style="dark" />
 
       <BrandedPageHeader
-        action={<NotificationBell />}
-        description="What needs your attention, followed by the tools available to your role."
+        action={capabilities.data?.canReadNotifications ? <NotificationBell /> : undefined}
+        description={`${roleLabels[account.role]} workspace`}
         eyebrow="Masjid E Mamoor 2"
-        title="Home"
+        title="Assalamu Alaikum"
       />
 
-      <View style={styles.welcomePanel}>
-        <View style={styles.welcomeAccent} />
-
-        <Text style={styles.greeting}>Assalamu Alaikum</Text>
-
-        <Text style={styles.accountName}>{accountName}</Text>
-
-        <View style={styles.roleContext}>
-          <Text style={styles.roleLabel}>{roleLabels[account.role]}</Text>
-
-          <Text style={styles.roleSeparator}>•</Text>
-
-          <Text style={styles.accountStatus}>Active account</Text>
-        </View>
+      <View style={styles.identityRow}>
+        <Text numberOfLines={1} style={styles.identityName}>{accountName}</Text>
+        <StatusChip label="Active" tone="success" />
       </View>
 
       {capabilities.isLoading ? (
@@ -325,13 +321,13 @@ function AttentionSection({
 
   const myTasks = activeTasks.filter((task) => task.assigneeIds.includes(accountId)).slice(0, 2);
 
-  const openTask = activeTasks.find(
+  const openTasks = activeTasks.filter(
     (task) => task.assignmentMode === "open" && task.status === "open",
-  );
+  ).slice(0, 2);
 
   const nextMeeting = upcomingDashboardMeetings(canReadMeetings ? (meetings.data ?? []) : [])[0];
 
-  const unreadNotifications = (notifications.data ?? []).slice(0, 2);
+  const unreadNotifications = (notifications.data ?? []).slice(0, 3);
 
   const loading =
     notifications.isLoading ||
@@ -340,16 +336,23 @@ function AttentionSection({
 
   const hasAttention =
     myTasks.length > 0 ||
-    Boolean(openTask) ||
+    openTasks.length > 0 ||
     Boolean(nextMeeting) ||
     unreadNotifications.length > 0;
 
   return (
     <View style={styles.section}>
-      <SectionHeader
-        description="Important items are placed here first so nothing gets missed."
-        title="Needs your attention"
-      />
+      <InformationCard style={styles.attentionBanner}>
+        <View style={styles.attentionBannerCopy}>
+          <Text style={styles.attentionBannerTitle}>Needs your attention</Text>
+          <Text style={styles.attentionBannerBody}>
+            {hasAttention
+              ? `${myTasks.length + openTasks.length + unreadNotifications.length + (nextMeeting ? 1 : 0)} current item${myTasks.length + openTasks.length + unreadNotifications.length + (nextMeeting ? 1 : 0) === 1 ? "" : "s"}`
+              : "You are all caught up"}
+          </Text>
+        </View>
+        <StatusChip label={hasAttention ? "Review" : "Clear"} tone={hasAttention ? "warning" : "success"} />
+      </InformationCard>
 
       {loading && !hasAttention ? (
         <LoadingState label="Checking tasks, meetings and notifications" />
@@ -369,29 +372,47 @@ function AttentionSection({
         </InformationCard>
       ) : null}
 
-      {myTasks.map((task) => (
-        <TaskAttentionCard
-          key={task.id}
-          busy={taskActionId === task.id}
-          onAction={(action) => onTaskAction(task, action)}
-          task={task}
-          type="assigned"
-        />
-      ))}
-
-      {openTask ? (
-        <TaskAttentionCard
-          busy={taskActionId === openTask.id}
-          onAction={(action) => onTaskAction(openTask, action)}
-          task={openTask}
-          type="open"
-        />
+      {myTasks.length > 0 ? (
+        <View style={styles.dashboardGroup}>
+          <SectionHeader title="Assigned to you" />
+          {myTasks.map((task) => (
+            <TaskAttentionCard
+              key={task.id}
+              busy={taskActionId === task.id}
+              onAction={(action) => onTaskAction(task, action)}
+              task={task}
+              type="assigned"
+            />
+          ))}
+        </View>
       ) : null}
 
-      {nextMeeting ? <MeetingAttentionCard meeting={nextMeeting} /> : null}
+      {openTasks.length > 0 ? (
+        <View style={styles.dashboardGroup}>
+          <SectionHeader title="Open tasks" />
+          {openTasks.map((task) => (
+            <TaskAttentionCard
+              key={task.id}
+              busy={taskActionId === task.id}
+              onAction={(action) => onTaskAction(task, action)}
+              task={task}
+              type="open"
+            />
+          ))}
+        </View>
+      ) : null}
+
+      {nextMeeting ? (
+        <View style={styles.dashboardGroup}>
+          <SectionHeader title="Next meeting" />
+          <MeetingAttentionCard meeting={nextMeeting} />
+        </View>
+      ) : null}
 
       {unreadNotifications.length > 0 ? (
-        <InformationCard emphasis style={styles.attentionCard}>
+        <View style={styles.dashboardGroup}>
+          <SectionHeader title="Recent notifications" />
+          <InformationCard emphasis style={styles.attentionCard}>
           <View style={styles.attentionHeading}>
             <View>
               <Text style={styles.attentionEyebrow}>NEW NOTIFICATIONS</Text>
@@ -431,7 +452,8 @@ function AttentionSection({
               variant="secondary"
             />
           </View>
-        </InformationCard>
+          </InformationCard>
+        </View>
       ) : null}
     </View>
   );
@@ -455,6 +477,8 @@ function TaskAttentionCard({
   const primaryLabel = isOpen ? "Accept task" : canStart ? "Accept & start" : null;
 
   const primaryAction: TaskHomeAction | null = isOpen ? "claim" : canStart ? "start" : null;
+  const canDecline =
+    !isOpen && task.assignmentMode === "direct" && task.status === "assigned";
 
   return (
     <InformationCard emphasis style={styles.attentionCard}>
@@ -498,6 +522,26 @@ function TaskAttentionCard({
           </View>
         ) : null}
 
+        {canDecline ? (
+          <View style={styles.actionButton}>
+            <AppButton
+              label="Decline"
+              disabled={busy}
+              onPress={() =>
+                Alert.alert(
+                  "Decline assignment?",
+                  "You will be removed from this task and the manager will be notified.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Decline", style: "destructive", onPress: () => onAction("decline") },
+                  ],
+                )
+              }
+              variant="secondary"
+            />
+          </View>
+        ) : null}
+
         <View style={styles.actionButton}>
           <AppButton
             label="View task"
@@ -530,10 +574,12 @@ function MeetingAttentionCard({ meeting }: { meeting: CommitteeMeetingSummary })
         <StatusChip label="Scheduled" tone="success" />
       </View>
 
-      <Text style={styles.meetingDate}>{formatDashboardMeetingDate(meeting.scheduledStart)}</Text>
+      <Text style={styles.meetingDate}>
+        {formatDashboardMeetingRange(meeting.scheduledStart, meeting.scheduledEnd)}
+      </Text>
 
       <Text style={styles.attentionDescription}>
-        {meeting.location ?? "Location not specified"}
+        {meeting.meetingType.replaceAll("_", " ")} · {meeting.location ?? "Location not specified"}
       </Text>
 
       <View style={styles.singleAction}>
@@ -686,57 +732,14 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.section,
   },
 
-  welcomePanel: {
-    backgroundColor: colors.darkEmerald,
-    borderRadius: radii.card,
-    marginTop: spacing.xxl,
-    overflow: "hidden",
-    padding: spacing.xl,
-    position: "relative",
-  },
-
-  welcomeAccent: {
-    backgroundColor: colors.gold,
-    height: 3,
-    left: spacing.xl,
-    position: "absolute",
-    top: 0,
-    width: 52,
-  },
-
-  greeting: {
-    color: colors.goldMuted,
-    ...typography.label,
-  },
-
-  accountName: {
-    color: colors.surface,
-    marginTop: spacing.sm,
-    ...typography.pageTitle,
-  },
-
-  roleContext: {
+  identityRow: {
     alignItems: "center",
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-    marginTop: spacing.md,
+    gap: spacing.md,
+    justifyContent: "space-between",
+    marginTop: spacing.lg,
   },
-
-  roleLabel: {
-    color: colors.surface,
-    ...typography.bodySmall,
-  },
-
-  roleSeparator: {
-    color: colors.gold,
-    ...typography.bodySmall,
-  },
-
-  accountStatus: {
-    color: colors.goldMuted,
-    ...typography.bodySmall,
-  },
+  identityName: { color: colors.secondary, flex: 1, ...typography.body },
 
   section: {
     gap: spacing.lg,
@@ -746,6 +749,17 @@ const styles = StyleSheet.create({
   attentionCard: {
     gap: spacing.md,
   },
+  attentionBanner: {
+    alignItems: "center",
+    backgroundColor: colors.warningSurface,
+    borderColor: colors.goldMuted,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  attentionBannerCopy: { flex: 1, marginRight: spacing.md },
+  attentionBannerTitle: { color: colors.textStrong, ...typography.sectionTitle },
+  attentionBannerBody: { color: colors.secondary, marginTop: spacing.xs, ...typography.bodySmall },
+  dashboardGroup: { gap: spacing.md },
 
   attentionHeading: {
     alignItems: "flex-start",

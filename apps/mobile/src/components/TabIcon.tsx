@@ -1,6 +1,6 @@
 import { StyleSheet, View, type ColorValue } from "react-native";
 
-type TabIconName = "home" | "community" | "work" | "donations" | "profile";
+type TabIconName = "home" | "community" | "work" | "meetings" | "donations" | "finance" | "accounts" | "notifications" | "profile" | "more";
 
 export function TabIcon({ color, name }: { color: ColorValue; name: TabIconName }) {
   if (name === "home") {
@@ -36,6 +36,24 @@ export function TabIcon({ color, name }: { color: ColorValue; name: TabIconName 
       <View style={styles.frame}>
         <View style={[styles.workBoard, { borderColor: color }]} />
         <View style={[styles.workCheck, { borderColor: color }]} />
+      </View>
+    );
+  }
+
+  if (name === "meetings" || name === "finance" || name === "accounts" || name === "notifications") {
+    return (
+      <View style={styles.frame}>
+        <View style={[styles.moduleBox, { borderColor: color }]} />
+        <View style={[styles.moduleLine, { backgroundColor: color }]} />
+        {name === "notifications" ? <View style={[styles.notificationDot, { backgroundColor: color }]} /> : null}
+      </View>
+    );
+  }
+
+  if (name === "more") {
+    return (
+      <View style={[styles.frame, styles.moreFrame]}>
+        {[0, 1, 2].map((index) => <View key={index} style={[styles.moreDot, { backgroundColor: color }]} />)}
       </View>
     );
   }
@@ -78,6 +96,11 @@ const styles = StyleSheet.create({
   donationLine: { height: 2, left: 7, position: "absolute", top: 9, width: 10 },
   workBoard: { borderRadius: 3, borderWidth: 2, height: 18, left: 4, position: "absolute", top: 3, width: 16 },
   workCheck: { borderBottomWidth: 2, borderRightWidth: 2, height: 8, left: 9, position: "absolute", top: 7, transform: [{ rotate: "45deg" }], width: 5 },
+  moduleBox: { borderRadius: 4, borderWidth: 2, height: 18, left: 3, position: "absolute", top: 3, width: 18 },
+  moduleLine: { height: 2, left: 7, position: "absolute", top: 9, width: 10 },
+  notificationDot: { borderRadius: 3, height: 5, position: "absolute", right: 1, top: 1, width: 5 },
+  moreFrame: { alignItems: "center", flexDirection: "row", gap: 3, justifyContent: "center" },
+  moreDot: { borderRadius: 3, height: 5, width: 5 },
   profileHead: { borderRadius: 6, borderWidth: 2, height: 10, left: 7, position: "absolute", top: 2, width: 10 },
   profileBody: { borderRadius: 10, borderWidth: 2, bottom: 2, height: 10, left: 3, position: "absolute", width: 18 },
 });
