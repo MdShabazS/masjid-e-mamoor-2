@@ -18,6 +18,10 @@ import {
 import { useAuth } from "../../src/auth/AuthProvider";
 import { Screen } from "../../src/components/Screen";
 import {
+  BrandedPageHeader,
+  StatusChip,
+} from "../../src/components/InstitutionalUI";
+import {
   getMyUnreadNotificationCount,
   listMyNotifications,
   markAllMyNotificationsRead,
@@ -141,16 +145,17 @@ export default function NotificationsScreen() {
 
       <View style={styles.headerRow}>
         <View style={styles.headerCopy}>
-          <Text style={styles.eyebrow}>PERSONAL UPDATES</Text>
-          <Text style={styles.title}>Notifications</Text>
-          <Text style={styles.intro}>
-            Review updates about committee work assigned to you.
-          </Text>
+          <BrandedPageHeader
+            eyebrow="Personal updates"
+            title="Notifications"
+            description="Review updates about committee work and actions relevant to you."
+          />
         </View>
 
         {unreadCount > 0 ? (
           <Pressable
             accessibilityRole="button"
+            accessibilityState={{ disabled: markAll.isPending }}
             disabled={markAll.isPending}
             onPress={() => markAll.mutate()}
             style={({ pressed }) => [
@@ -230,9 +235,7 @@ export default function NotificationsScreen() {
                   </View>
 
                   {isUnread ? (
-                    <View style={styles.unreadBadge}>
-                      <Text style={styles.unreadBadgeText}>Unread</Text>
-                    </View>
+                    <StatusChip label="Unread" tone="info" />
                   ) : null}
                 </View>
 
@@ -250,6 +253,7 @@ export default function NotificationsScreen() {
 
                 <Pressable
                   accessibilityRole="button"
+                  accessibilityState={{ disabled: opening }}
                   disabled={opening}
                   onPress={() =>
                     openNotification.mutate(notification)
@@ -283,6 +287,7 @@ function FilterButton({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ selected: active }}
       onPress={onPress}
       style={[
         styles.filterButton,
@@ -311,7 +316,14 @@ function StatePanel({
   onRetry?: () => void;
 }) {
   return (
-    <View style={styles.statePanel}>
+    <View
+      accessible
+      accessibilityLabel={copy}
+      accessibilityRole={
+        loading ? "progressbar" : onRetry ? "alert" : undefined
+      }
+      style={styles.statePanel}
+    >
       {loading ? (
         <ActivityIndicator color={colors.deepEmerald} />
       ) : null}
@@ -363,8 +375,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   headerRow: {
-    alignItems: "flex-end",
+    alignItems: "flex-start",
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
     justifyContent: "space-between",
   },
   headerCopy: {
@@ -404,6 +418,8 @@ const styles = StyleSheet.create({
   filterRow: {
     alignItems: "center",
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
     justifyContent: "space-between",
     marginTop: 24,
   },
