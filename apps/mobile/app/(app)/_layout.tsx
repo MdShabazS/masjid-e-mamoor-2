@@ -27,7 +27,21 @@ export default function AppLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.deepEmerald,
         tabBarInactiveTintColor: colors.secondary,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.sand },
+        tabBarHideOnKeyboard: true,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "700",
+          paddingBottom: 2,
+        },
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.sand,
+          borderTopWidth: 1,
+          elevation: 0,
+          paddingBottom: 4,
+          paddingTop: 6,
+          shadowOpacity: 0,
+        },
       }}
     >
       <Tabs.Screen name="index" options={{ tabBarAccessibilityLabel: "Home", tabBarIcon: ({ color }) => <TabIcon color={color} name="home" />, title: "Home" }} />

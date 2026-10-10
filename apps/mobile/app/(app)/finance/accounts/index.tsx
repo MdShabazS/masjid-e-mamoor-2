@@ -271,7 +271,7 @@ export default function FinanceAccountsScreen() {
 
               <View style={styles.optionGrid}>
                 {accountTypes.map((type) => (
-                  <Pressable
+                  <Pressable accessibilityRole="button"
                     key={type}
                     onPress={() =>
                       setAccountType(type)
@@ -295,7 +295,7 @@ export default function FinanceAccountsScreen() {
                 ))}
               </View>
 
-              <Pressable
+              <Pressable accessibilityRole="button"
                 disabled={
                   create.isPending ||
                   name.trim().length === 0
@@ -454,7 +454,7 @@ function FinanceAccountCard({
             style={styles.input}
           />
 
-          <Pressable
+          <Pressable accessibilityRole="button"
             disabled={renameDisabled}
             onPress={() => {
               setRenameName(
@@ -484,7 +484,7 @@ function FinanceAccountCard({
       {canManage && account.status !== "closed" ? (
         <View style={styles.buttonRow}>
           {account.status === "active" ? (
-            <Pressable
+            <Pressable accessibilityRole="button"
               disabled={pending}
               onPress={() =>
                 onChangeStatus("inactive")
@@ -499,7 +499,7 @@ function FinanceAccountCard({
               </Text>
             </Pressable>
           ) : (
-            <Pressable
+            <Pressable accessibilityRole="button"
               disabled={pending}
               onPress={() =>
                 onChangeStatus("active")
@@ -515,7 +515,7 @@ function FinanceAccountCard({
             </Pressable>
           )}
 
-          <Pressable
+          <Pressable accessibilityRole="button"
             disabled={pending}
             onPress={() =>
               onChangeStatus("closed")
@@ -649,7 +649,7 @@ function ErrorPanel({
       <Text style={styles.stateCopy}>
         Check your connection and try again.
       </Text>
-      <Pressable
+      <Pressable accessibilityRole="button"
         onPress={onRetry}
         style={styles.retryButton}
       >

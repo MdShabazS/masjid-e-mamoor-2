@@ -766,7 +766,7 @@ export default function FinanceAdjustmentsScreen() {
                     );
 
                   return (
-                    <Pressable
+                    <Pressable accessibilityRole="button"
                       key={transaction.id}
                       onPress={() =>
                         setSelectedTargetTransactionId(
@@ -881,7 +881,7 @@ export default function FinanceAdjustmentsScreen() {
                         financeAccount.id;
 
                       return (
-                        <Pressable
+                        <Pressable accessibilityRole="button"
                           key={financeAccount.id}
                           onPress={() =>
                             setCorrectionFinanceAccountId(
@@ -937,7 +937,7 @@ export default function FinanceAdjustmentsScreen() {
                       direction;
 
                     return (
-                      <Pressable
+                      <Pressable accessibilityRole="button"
                         key={direction}
                         onPress={() =>
                           setCorrectionDirection(

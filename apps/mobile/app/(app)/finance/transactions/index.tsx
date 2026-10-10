@@ -383,7 +383,7 @@ export default function FinanceTransactionsScreen() {
                 directionFilter === filter;
 
               return (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={filter}
                   onPress={() =>
                     setDirectionFilter(filter)
@@ -430,7 +430,7 @@ export default function FinanceTransactionsScreen() {
                 categoryFilter === filter;
 
               return (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={filter}
                   onPress={() =>
                     setCategoryFilter(filter)
