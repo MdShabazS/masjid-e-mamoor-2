@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { router } from "expo-router";
 
@@ -6,16 +6,34 @@ import { useAuth } from "../../auth/AuthProvider";
 import type { MobileCapabilities } from "../../modules/capabilities";
 import HomeScreen from "../../../app/(app)/index";
 
-jest.mock("@tanstack/react-query", () => ({ useQuery: jest.fn() }));
-jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
-jest.mock("../../auth/AuthProvider", () => ({ useAuth: jest.fn() }));
+jest.mock("@tanstack/react-query", () => ({
+  useMutation: jest.fn(),
+  useQuery: jest.fn(),
+  useQueryClient: jest.fn(),
+}));
+
+jest.mock("expo-router", () => ({
+  router: {
+    push: jest.fn(),
+  },
+}));
+
+jest.mock("../../auth/AuthProvider", () => ({
+  useAuth: jest.fn(),
+}));
+
 jest.mock("../../modules/capabilities", () => ({
   loadCapabilities: jest.fn(),
 }));
+
 jest.mock("../../modules/work", () => ({
+  claimOpenCommitteeTask: jest.fn(),
   committeeTaskListQueryKey: (accountId: string | undefined) => ["committee-tasks", accountId],
+  createCommitteeOperationId: () => "operation-test",
   listCommitteeTasks: jest.fn(),
+  startCommitteeTask: jest.fn(),
 }));
+
 jest.mock("../../modules/meetings", () => ({
   committeeMeetingListQueryKey: (accountId: string | undefined) => [
     "committee-meetings",
@@ -23,26 +41,66 @@ jest.mock("../../modules/meetings", () => ({
   ],
   listCommitteeMeetings: jest.fn(),
 }));
+
 jest.mock("../../modules/notifications", () => ({
   formatUnreadBadge: (count: number) => (count > 0 ? String(count) : null),
+
   getMyUnreadNotificationCount: jest.fn(),
+
+  listMyNotifications: jest.fn(),
+
+  markMyNotificationRead: jest.fn(),
+
+  notificationInvalidationKeys: (accountId: string | undefined) => [
+    ["notifications", accountId, "all"],
+    ["notifications", accountId, "unread"],
+    ["notifications", accountId, "unread-count"],
+  ],
+
+  notificationListQueryKey: (accountId: string | undefined, filter: string) => [
+    "notifications",
+    accountId,
+    filter,
+  ],
+
   notificationUnreadCountQueryKey: (accountId: string | undefined) => [
     "notifications",
     accountId,
     "unread-count",
   ],
+
+  safeNotificationTarget: (target: string | null | undefined) => target || "/notifications",
 }));
+
 jest.mock("react-native-keyboard-controller", () => {
   const ReactNative = jest.requireActual("react-native");
-  return { KeyboardAwareScrollView: ReactNative.ScrollView };
+
+  return {
+    KeyboardAwareScrollView: ReactNative.ScrollView,
+  };
 });
 
 const mockUseQuery = useQuery as jest.Mock;
+
+const mockUseMutation = useMutation as jest.Mock;
+
+const mockUseQueryClient = useQueryClient as jest.Mock;
+
 const mockUseAuth = useAuth as jest.Mock;
+
 const mockPush = router.push as jest.Mock;
+
 const capabilityRefetch = jest.fn();
+
 const taskRefetch = jest.fn();
+
 const meetingRefetch = jest.fn();
+
+const notificationRefetch = jest.fn();
+
+const unreadRefetch = jest.fn();
+
+const invalidateQueries = jest.fn();
 
 const baseCapabilities: MobileCapabilities = {
   canManageAccounts: false,
@@ -94,28 +152,69 @@ const account = {
 };
 
 let capabilityQuery = queryResult<MobileCapabilities>(baseCapabilities);
+
 let taskQuery = queryResult<unknown[]>([]);
+
 let meetingQuery = queryResult<unknown[]>([]);
-let notificationQuery = queryResult(0);
+
+let notificationListQuery = queryResult<unknown[]>([]);
+
+let notificationCountQuery = queryResult(0);
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockUseAuth.mockReturnValue({ account });
+
+  mockUseAuth.mockReturnValue({
+    account,
+  });
+
+  mockUseQueryClient.mockReturnValue({
+    invalidateQueries,
+  });
+
+  mockUseMutation.mockImplementation(() => ({
+    isPending: false,
+    mutate: jest.fn(),
+    variables: undefined,
+  }));
+
   capabilityQuery = queryResult(baseCapabilities, capabilityRefetch);
+
   taskQuery = queryResult([], taskRefetch);
+
   meetingQuery = queryResult([], meetingRefetch);
-  notificationQuery = queryResult(0);
+
+  notificationListQuery = queryResult([], notificationRefetch);
+
+  notificationCountQuery = queryResult(0, unreadRefetch);
+
   mockUseQuery.mockImplementation(({ queryKey }: { queryKey: unknown[] }) => {
-    if (queryKey[0] === "capabilities") return capabilityQuery;
-    if (queryKey[0] === "committee-tasks") return taskQuery;
-    if (queryKey[0] === "committee-meetings") return meetingQuery;
-    if (queryKey[0] === "notifications") return notificationQuery;
+    if (queryKey[0] === "capabilities") {
+      return capabilityQuery;
+    }
+
+    if (queryKey[0] === "committee-tasks") {
+      return taskQuery;
+    }
+
+    if (queryKey[0] === "committee-meetings") {
+      return meetingQuery;
+    }
+
+    if (queryKey[0] === "notifications" && queryKey[2] === "unread-count") {
+      return notificationCountQuery;
+    }
+
+    if (queryKey[0] === "notifications") {
+      return notificationListQuery;
+    }
+
     throw new Error(`Unexpected query: ${String(queryKey[0])}`);
   });
 });
 
 describe("Home dashboard", () => {
-  it("renders authorized sections and preserves dashboard navigation", async () => {
+  it("surfaces actionable tasks, meetings, notifications and authorized navigation", async () => {
     capabilityQuery = queryResult({
       ...baseCapabilities,
       canManageAccounts: true,
@@ -124,11 +223,12 @@ describe("Home dashboard", () => {
       canAssignCommitteeTasks: true,
       canReadCommitteeMeetings: true,
     });
+
     taskQuery = queryResult([
       {
         id: "task-1",
         title: "Prepare committee agenda",
-        description: null,
+        description: "Prepare the agenda before the monthly meeting.",
         priority: "high",
         status: "assigned",
         assignmentMode: "direct",
@@ -144,6 +244,7 @@ describe("Home dashboard", () => {
         assigneeIds: ["account-1"],
       },
     ]);
+
     meetingQuery = queryResult([
       {
         id: "meeting-1",
@@ -163,32 +264,85 @@ describe("Home dashboard", () => {
         participantIds: ["account-1"],
       },
     ]);
-    notificationQuery = queryResult(3);
+
+    notificationListQuery = queryResult([
+      {
+        id: "notification-1",
+        actorApplicationUserId: "creator",
+        kind: "meeting_updated",
+        title: "Meeting updated",
+        body: "Monthly committee meeting details were updated.",
+        targetPath: "/work/meetings/meeting-1",
+        sourceType: "committee_meeting",
+        sourceEntityId: "meeting-1",
+        sourceActivityId: null,
+        sourceMeetingActivityId: null,
+        metadata: {},
+        readAt: null,
+        createdAt: "2099-10-02T10:00:00Z",
+      },
+    ]);
+
+    notificationCountQuery = queryResult(3);
 
     const view = await render(<HomeScreen />);
 
-    expect(view.getByText("Account Administration")).toBeTruthy();
-    expect(view.getByText("Members")).toBeTruthy();
+    expect(view.getByText("Needs your attention")).toBeTruthy();
+
     expect(view.getByText("Prepare committee agenda")).toBeTruthy();
+
+    expect(
+      view.getByRole("button", {
+        name: "Accept & start",
+      }),
+    ).toBeTruthy();
+
     expect(view.getByText("Monthly committee meeting")).toBeTruthy();
 
+    expect(view.getByText("Meeting updated")).toBeTruthy();
+
+    expect(view.getByText("Account Administration")).toBeTruthy();
+
+    expect(view.getByText("Members")).toBeTruthy();
+
     await act(async () => fireEvent.press(view.getByText("Account Administration")));
+
     expect(mockPush).toHaveBeenCalledWith("/accounts");
 
-    await act(async () => fireEvent.press(view.getByText("Prepare committee agenda")));
+    await act(async () =>
+      fireEvent.press(
+        view.getByRole("button", {
+          name: "View task",
+        }),
+      ),
+    );
+
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/work/[id]",
-      params: { id: "task-1" },
+      params: {
+        id: "task-1",
+      },
     });
 
-    await act(async () => fireEvent.press(view.getByText("Monthly committee meeting")));
+    await act(async () =>
+      fireEvent.press(
+        view.getByRole("button", {
+          name: "View meeting",
+        }),
+      ),
+    );
+
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/work/meetings/[id]",
-      params: { id: "meeting-1" },
+      params: {
+        id: "meeting-1",
+      },
     });
 
     await act(async () => fireEvent.press(view.getByLabelText("Notifications, 3 unread")));
+
     expect(mockPush).toHaveBeenCalledWith("/notifications");
+
     await view.unmount();
   });
 
@@ -202,26 +356,38 @@ describe("Home dashboard", () => {
     const view = await render(<HomeScreen />);
 
     expect(view.getByText("My Profile")).toBeTruthy();
+
     expect(view.getByText("Referrals")).toBeTruthy();
+
     expect(view.getByText("Donations")).toBeTruthy();
+
     expect(view.queryByText("Account Administration")).toBeNull();
-    expect(view.queryByText("Work")).toBeNull();
-    expect(view.queryByText("Committee overview")).toBeNull();
+
+    expect(view.queryByText("All work")).toBeNull();
+
+    expect(view.queryByText("Meetings")).toBeNull();
+
+    expect(view.getByText("Nothing urgent right now")).toBeTruthy();
+
     await view.unmount();
   });
 
-  it("does not render cached task data without the task capability", async () => {
+  it("does not surface cached restricted task data", async () => {
     capabilityQuery = queryResult({
       ...baseCapabilities,
       canReadCommitteeMeetings: true,
     });
+
     taskQuery = queryResult([
       {
         id: "stale-task",
         title: "Stale restricted task",
         status: "assigned",
+        assignmentMode: "direct",
+        priority: "normal",
         dueDate: null,
         isOverdue: false,
+        assigneeIds: ["account-1"],
         updatedAt: "2099-10-01T10:00:00Z",
       },
     ]);
@@ -229,8 +395,11 @@ describe("Home dashboard", () => {
     const view = await render(<HomeScreen />);
 
     expect(view.queryByText("Stale restricted task")).toBeNull();
-    expect(view.queryByText("Active work")).toBeNull();
-    expect(view.getByText("Upcoming meetings")).toBeTruthy();
+
+    expect(view.queryByText("All work")).toBeNull();
+
+    expect(view.getByRole("button", { name: "Meetings" })).toBeTruthy();
+
     await view.unmount();
   });
 
@@ -239,22 +408,36 @@ describe("Home dashboard", () => {
       ...queryResult<MobileCapabilities>(undefined, capabilityRefetch),
       isLoading: true,
     };
+
     const loadingView = await render(<HomeScreen />);
-    expect(loadingView.getByLabelText("Preparing your workspace")).toBeTruthy();
+
+    expect(loadingView.getByLabelText("Preparing your dashboard")).toBeTruthy();
+
     await loadingView.unmount();
 
     capabilityQuery = {
       ...queryResult<MobileCapabilities>(undefined, capabilityRefetch),
       isError: true,
     };
+
     const errorView = await render(<HomeScreen />);
+
     expect(errorView.getByRole("alert")).toBeTruthy();
-    await act(async () => fireEvent.press(errorView.getByRole("button", { name: "Retry" })));
+
+    await act(async () =>
+      fireEvent.press(
+        errorView.getByRole("button", {
+          name: "Retry",
+        }),
+      ),
+    );
+
     expect(capabilityRefetch).toHaveBeenCalledTimes(1);
+
     await errorView.unmount();
   });
 
-  it("shows an honest empty state for authorized committee data", async () => {
+  it("shows a simple caught-up state when there is no pending activity", async () => {
     capabilityQuery = queryResult({
       ...baseCapabilities,
       canReadCommitteeTasks: true,
@@ -263,9 +446,14 @@ describe("Home dashboard", () => {
 
     const view = await render(<HomeScreen />);
 
-    expect(view.getByText("Nothing pending")).toBeTruthy();
-    expect(view.getByText("Active work")).toBeTruthy();
-    expect(view.getByText("Upcoming meetings")).toBeTruthy();
+    expect(view.getByText("Nothing urgent right now")).toBeTruthy();
+
+    expect(view.getByText("Tasks")).toBeTruthy();
+
+    expect(view.getByRole("button", { name: "Meetings" })).toBeTruthy();
+
+    expect(view.getAllByRole("button", { name: "Notifications" })).toHaveLength(2);
+
     await view.unmount();
   });
 });
