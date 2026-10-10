@@ -25,8 +25,37 @@ vi.mock(
 import {
   enforceMobileApiRateLimit,
   getMobileClientNetworkIdentifier,
-  getMobileRateLimitSubjectHash,
+  getMobileRateLimitActorId,
+  getMobileRateLimitActorSubjectHash,
+  getMobileRateLimitNetworkSubjectHash,
 } from "./mobile-rate-limit";
+
+function jwtFor(
+  sub: string,
+) {
+  const encode = (
+    value: unknown,
+  ) =>
+    Buffer.from(
+      JSON.stringify(value),
+      "utf8",
+    ).toString("base64url");
+
+  return [
+    encode({
+      alg: "HS256",
+      typ: "JWT",
+    }),
+    encode({
+      sub,
+      role: "authenticated",
+    }),
+    "signature",
+  ].join(".");
+}
+
+const actorId =
+  "00000000-0000-4000-8000-000000000111";
 
 afterEach(() => {
   rpcMock.mockReset();
@@ -37,15 +66,17 @@ describe(
   "mobile API distributed rate limiting",
   () => {
     it(
-      "uses the first forwarded client address without storing it raw",
+      "prefers Vercel client forwarding metadata and never returns a raw identifier as the stored subject",
       () => {
         const request =
           new Request(
             "https://example.test",
             {
               headers: {
+                "x-vercel-forwarded-for":
+                  "203.0.113.10",
                 "x-forwarded-for":
-                  "203.0.113.10, 10.0.0.1",
+                  "198.51.100.20",
               },
             },
           );
@@ -59,7 +90,7 @@ describe(
         );
 
         const hash =
-          getMobileRateLimitSubjectHash(
+          getMobileRateLimitNetworkSubjectHash(
             request,
           );
 
@@ -74,7 +105,148 @@ describe(
     );
 
     it(
-      "allows a request when the distributed counter allows it",
+      "derives a stable authenticated actor subject from the JWT sub claim without storing the bearer token",
+      () => {
+        const token =
+          jwtFor(actorId);
+
+        expect(
+          getMobileRateLimitActorId(
+            token,
+          ),
+        ).toBe(actorId);
+
+        const hash =
+          getMobileRateLimitActorSubjectHash(
+            token,
+          );
+
+        expect(hash).toMatch(
+          /^[0-9a-f]{64}$/,
+        );
+
+        expect(hash).not.toContain(
+          actorId,
+        );
+
+        expect(hash).not.toContain(
+          token,
+        );
+      },
+    );
+
+    it(
+      "rejects malformed or non-UUID JWT subjects for actor-scoped limiting",
+      () => {
+        expect(
+          getMobileRateLimitActorId(
+            "not-a-jwt",
+          ),
+        ).toBeNull();
+
+        expect(
+          getMobileRateLimitActorId(
+            jwtFor(
+              "attacker-controlled-string",
+            ),
+          ),
+        ).toBeNull();
+      },
+    );
+
+    it(
+      "applies both network and actor limits to a bearer-authenticated endpoint",
+      async () => {
+        vi.stubEnv(
+          "VITEST",
+          "",
+        );
+
+        rpcMock
+          .mockResolvedValueOnce({
+            data: [
+              {
+                allowed: true,
+                remaining: 49,
+                retry_after_seconds: 0,
+              },
+            ],
+            error: null,
+          })
+          .mockResolvedValueOnce({
+            data: [
+              {
+                allowed: true,
+                remaining: 9,
+                retry_after_seconds: 0,
+              },
+            ],
+            error: null,
+          });
+
+        const response =
+          await enforceMobileApiRateLimit(
+            new Request(
+              "https://example.test",
+              {
+                headers: {
+                  "x-vercel-forwarded-for":
+                    "203.0.113.11",
+                },
+              },
+            ),
+            "accounts.reset-password",
+            jwtFor(actorId),
+          );
+
+        expect(
+          response,
+        ).toBeNull();
+
+        expect(
+          rpcMock,
+        ).toHaveBeenCalledTimes(
+          2,
+        );
+
+        expect(
+          rpcMock,
+        ).toHaveBeenNthCalledWith(
+          1,
+          "consume_mobile_api_rate_limit",
+          expect.objectContaining({
+            p_bucket:
+              "network:accounts.reset-password",
+            p_limit: 50,
+            p_window_seconds: 600,
+            p_subject_hash:
+              expect.stringMatching(
+                /^[0-9a-f]{64}$/,
+              ),
+          }),
+        );
+
+        expect(
+          rpcMock,
+        ).toHaveBeenNthCalledWith(
+          2,
+          "consume_mobile_api_rate_limit",
+          expect.objectContaining({
+            p_bucket:
+              "actor:accounts.reset-password",
+            p_limit: 10,
+            p_window_seconds: 600,
+            p_subject_hash:
+              expect.stringMatching(
+                /^[0-9a-f]{64}$/,
+              ),
+          }),
+        );
+      },
+    );
+
+    it(
+      "uses only the network limiter for the public login endpoint",
       async () => {
         vi.stubEnv(
           "VITEST",
@@ -98,8 +270,8 @@ describe(
               "https://example.test",
               {
                 headers: {
-                  "x-forwarded-for":
-                    "203.0.113.11",
+                  "x-vercel-forwarded-for":
+                    "203.0.113.12",
                 },
               },
             ),
@@ -122,36 +294,43 @@ describe(
           "consume_mobile_api_rate_limit",
           expect.objectContaining({
             p_bucket:
-              "auth.login",
+              "network:auth.login",
             p_limit: 20,
             p_window_seconds: 300,
-            p_subject_hash:
-              expect.stringMatching(
-                /^[0-9a-f]{64}$/,
-              ),
           }),
         );
       },
     );
 
     it(
-      "returns no-store 429 with Retry-After after the limit is exhausted",
+      "returns 429 with Retry-After when the authenticated actor limit is exhausted",
       async () => {
         vi.stubEnv(
           "VITEST",
           "",
         );
 
-        rpcMock.mockResolvedValue({
-          data: [
-            {
-              allowed: false,
-              remaining: 0,
-              retry_after_seconds: 37,
-            },
-          ],
-          error: null,
-        });
+        rpcMock
+          .mockResolvedValueOnce({
+            data: [
+              {
+                allowed: true,
+                remaining: 49,
+                retry_after_seconds: 0,
+              },
+            ],
+            error: null,
+          })
+          .mockResolvedValueOnce({
+            data: [
+              {
+                allowed: false,
+                remaining: 0,
+                retry_after_seconds: 37,
+              },
+            ],
+            error: null,
+          });
 
         const response =
           await enforceMobileApiRateLimit(
@@ -159,23 +338,18 @@ describe(
               "https://example.test",
               {
                 headers: {
-                  "x-forwarded-for":
-                    "203.0.113.12",
+                  "x-vercel-forwarded-for":
+                    "203.0.113.13",
                 },
               },
             ),
             "accounts.reset-password",
+            jwtFor(actorId),
           );
 
         expect(
           response?.status,
         ).toBe(429);
-
-        expect(
-          response?.headers.get(
-            "Cache-Control",
-          ),
-        ).toBe("no-store");
 
         expect(
           response?.headers.get(
@@ -194,11 +368,69 @@ describe(
             "X-RateLimit-Remaining",
           ),
         ).toBe("0");
+
+        expect(
+          response?.headers.get(
+            "Cache-Control",
+          ),
+        ).toBe("no-store");
       },
     );
 
     it(
-      "fails closed when the limiter backend cannot be evaluated",
+      "stops at the network layer when the network limit is exhausted",
+      async () => {
+        vi.stubEnv(
+          "VITEST",
+          "",
+        );
+
+        rpcMock.mockResolvedValueOnce({
+          data: [
+            {
+              allowed: false,
+              remaining: 0,
+              retry_after_seconds: 22,
+            },
+          ],
+          error: null,
+        });
+
+        const response =
+          await enforceMobileApiRateLimit(
+            new Request(
+              "https://example.test",
+              {
+                headers: {
+                  "x-vercel-forwarded-for":
+                    "203.0.113.14",
+                },
+              },
+            ),
+            "accounts.create",
+            jwtFor(actorId),
+          );
+
+        expect(
+          response?.status,
+        ).toBe(429);
+
+        expect(
+          rpcMock,
+        ).toHaveBeenCalledTimes(
+          1,
+        );
+
+        expect(
+          response?.headers.get(
+            "X-RateLimit-Limit",
+          ),
+        ).toBe("100");
+      },
+    );
+
+    it(
+      "fails closed with no-store 503 when the distributed limiter backend cannot be evaluated",
       async () => {
         vi.stubEnv(
           "VITEST",
@@ -219,6 +451,7 @@ describe(
               "https://example.test",
             ),
             "accounts.list",
+            jwtFor(actorId),
           );
 
         expect(
@@ -234,39 +467,87 @@ describe(
     );
 
     it(
-      "wires every custom mobile API route through the limiter",
+      "wires all routes and passes bearer credentials to every authenticated limiter call",
       () => {
         const routes = {
           "src/app/api/mobile/accounts/change-role/route.ts":
-            "accounts.change-role",
+            {
+              bucket:
+                "accounts.change-role",
+              authenticated: true,
+            },
           "src/app/api/mobile/accounts/change-status/route.ts":
-            "accounts.change-status",
+            {
+              bucket:
+                "accounts.change-status",
+              authenticated: true,
+            },
           "src/app/api/mobile/accounts/change-username/route.ts":
-            "accounts.change-username",
+            {
+              bucket:
+                "accounts.change-username",
+              authenticated: true,
+            },
           "src/app/api/mobile/accounts/create/route.ts":
-            "accounts.create",
+            {
+              bucket:
+                "accounts.create",
+              authenticated: true,
+            },
           "src/app/api/mobile/accounts/reset-password/route.ts":
-            "accounts.reset-password",
+            {
+              bucket:
+                "accounts.reset-password",
+              authenticated: true,
+            },
           "src/app/api/mobile/accounts/route.ts":
-            "accounts.list",
+            {
+              bucket:
+                "accounts.list",
+              authenticated: true,
+            },
           "src/app/api/mobile/auth/change-password/route.ts":
-            "auth.change-password",
+            {
+              bucket:
+                "auth.change-password",
+              authenticated: true,
+            },
           "src/app/api/mobile/auth/login/route.ts":
-            "auth.login",
+            {
+              bucket:
+                "auth.login",
+              authenticated: false,
+            },
           "src/app/api/mobile/referrals/approve/route.ts":
-            "referrals.approve",
+            {
+              bucket:
+                "referrals.approve",
+              authenticated: true,
+            },
           "src/app/api/mobile/referrals/manage/route.ts":
-            "referrals.manage",
+            {
+              bucket:
+                "referrals.manage",
+              authenticated: true,
+            },
           "src/app/api/mobile/referrals/provision/route.ts":
-            "referrals.provision",
+            {
+              bucket:
+                "referrals.provision",
+              authenticated: true,
+            },
           "src/app/api/mobile/referrals/reject/route.ts":
-            "referrals.reject",
+            {
+              bucket:
+                "referrals.reject",
+              authenticated: true,
+            },
         } as const;
 
         for (
           const [
             relativePath,
-            bucket,
+            configuration,
           ] of Object.entries(
             routes,
           )
@@ -289,8 +570,23 @@ describe(
           expect(
             source,
           ).toContain(
-            `"${bucket}"`,
+            `"${configuration.bucket}"`,
           );
+
+          if (
+            configuration.authenticated
+          ) {
+            expect(
+              source,
+            ).toMatch(
+              new RegExp(
+                `enforceMobileApiRateLimit\\([\\s\\S]{0,250}"${configuration.bucket.replace(
+                  ".",
+                  "\\.",
+                )}"[\\s\\S]{0,120}accessToken`,
+              ),
+            );
+          }
         }
       },
     );

@@ -8,17 +8,19 @@ import {
 } from "@/lib/mobile-api";
 
 export async function GET(request: Request) {
+  const accessToken = getBearerToken(request);
+
   const rateLimitResponse =
     await enforceMobileApiRateLimit(
       request,
       "referrals.manage",
+      accessToken,
     );
 
   if (rateLimitResponse) {
     return rateLimitResponse;
   }
 
-  const accessToken = getBearerToken(request);
   if (!accessToken) return mobileError(401);
 
   try {

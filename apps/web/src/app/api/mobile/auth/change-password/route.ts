@@ -13,19 +13,22 @@ function safeError(status = 400) {
 }
 
 export async function POST(request: Request) {
+  const authorization = request.headers.get("authorization") ?? "";
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  const accessToken = match?.[1]?.trim() ?? null;
+
   const rateLimitResponse =
     await enforceMobileApiRateLimit(
       request,
       "auth.change-password",
+      accessToken,
     );
 
   if (rateLimitResponse) {
     return rateLimitResponse;
   }
 
-  const authorization = request.headers.get("authorization") ?? "";
-  const match = authorization.match(/^Bearer\s+(.+)$/i);
-  if (!match) return safeError(401);
+  if (!accessToken) return safeError(401);
 
   let body: unknown;
   try {
@@ -38,7 +41,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return safeError();
 
   try {
-    await changePasswordWithAccessToken(match[1], parsed.data.password);
+    await changePasswordWithAccessToken(accessToken, parsed.data.password);
     return NextResponse.json(
       { ok: true },
       { headers: noStoreHeaders },
