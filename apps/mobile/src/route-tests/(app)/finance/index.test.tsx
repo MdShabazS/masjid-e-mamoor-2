@@ -2,14 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { router } from "expo-router";
 
-import { useAuth } from "../../../src/auth/AuthProvider";
-import type { MobileCapabilities } from "../../../src/modules/capabilities";
-import FinanceHomeScreen from "./index";
+import { useAuth } from "../../../auth/AuthProvider";
+import type { MobileCapabilities } from "../../../modules/capabilities";
+import FinanceHomeScreen from "../../../../app/(app)/finance/index";
 
 jest.mock("@tanstack/react-query", () => ({ useQuery: jest.fn() }));
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
-jest.mock("../../../src/auth/AuthProvider", () => ({ useAuth: jest.fn() }));
-jest.mock("../../../src/modules/capabilities", () => ({ loadCapabilities: jest.fn() }));
+jest.mock("../../../auth/AuthProvider", () => ({ useAuth: jest.fn() }));
+jest.mock("../../../modules/capabilities", () => ({ loadCapabilities: jest.fn() }));
 jest.mock("react-native-keyboard-controller", () => {
   const ReactNative = jest.requireActual("react-native");
   return { KeyboardAwareScrollView: ReactNative.ScrollView };

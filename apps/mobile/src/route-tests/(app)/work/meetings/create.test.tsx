@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { router } from "expo-router";
 
-import { useAuth } from "../../../../src/auth/AuthProvider";
-import CreateCommitteeMeetingScreen from "./create";
+import { useAuth } from "../../../../auth/AuthProvider";
+import CreateCommitteeMeetingScreen from "../../../../../app/(app)/work/meetings/create";
 
 jest.mock("@tanstack/react-query", () => ({
   useMutation: jest.fn(),
@@ -11,9 +11,9 @@ jest.mock("@tanstack/react-query", () => ({
   useQueryClient: jest.fn(),
 }));
 jest.mock("expo-router", () => ({ router: { replace: jest.fn() } }));
-jest.mock("../../../../src/auth/AuthProvider", () => ({ useAuth: jest.fn() }));
-jest.mock("../../../../src/modules/capabilities", () => ({ loadCapabilities: jest.fn() }));
-jest.mock("../../../../src/modules/meetings", () => ({
+jest.mock("../../../../auth/AuthProvider", () => ({ useAuth: jest.fn() }));
+jest.mock("../../../../modules/capabilities", () => ({ loadCapabilities: jest.fn() }));
+jest.mock("../../../../modules/meetings", () => ({
   committeeMeetingListQueryKey: (accountId: string) => ["committee-meetings", accountId],
   committeeMeetingParticipantOptionsQueryKey: () => ["committee-meetings", "participant-options"],
   createCommitteeMeeting: jest.fn(),

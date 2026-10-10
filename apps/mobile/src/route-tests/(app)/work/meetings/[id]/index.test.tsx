@@ -3,11 +3,11 @@ import { act, fireEvent, render } from "@testing-library/react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Alert } from "react-native";
 
-import { useAuth } from "../../../../../src/auth/AuthProvider";
-import type { MobileCapabilities } from "../../../../../src/modules/capabilities";
-import type { CommitteeMeetingDetail } from "../../../../../src/modules/meetings";
-import type { CommitteeAssigneeOption } from "../../../../../src/modules/work";
-import CommitteeMeetingDetailScreen from "./index";
+import { useAuth } from "../../../../../auth/AuthProvider";
+import type { MobileCapabilities } from "../../../../../modules/capabilities";
+import type { CommitteeMeetingDetail } from "../../../../../modules/meetings";
+import type { CommitteeAssigneeOption } from "../../../../../modules/work";
+import CommitteeMeetingDetailScreen from "../../../../../../app/(app)/work/meetings/[id]/index";
 
 jest.mock("@tanstack/react-query", () => ({
   useMutation: jest.fn(),
@@ -18,9 +18,9 @@ jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
   useLocalSearchParams: jest.fn(),
 }));
-jest.mock("../../../../../src/auth/AuthProvider", () => ({ useAuth: jest.fn() }));
-jest.mock("../../../../../src/modules/capabilities", () => ({ loadCapabilities: jest.fn() }));
-jest.mock("../../../../../src/modules/meetings", () => ({
+jest.mock("../../../../../auth/AuthProvider", () => ({ useAuth: jest.fn() }));
+jest.mock("../../../../../modules/capabilities", () => ({ loadCapabilities: jest.fn() }));
+jest.mock("../../../../../modules/meetings", () => ({
   cancelCommitteeMeeting: jest.fn(),
   committeeMeetingAttendanceQueryKey: (id: string) => ["committee-meetings", "attendance", id],
   committeeMeetingDecisionsQueryKey: (id: string) => ["committee-meetings", "decisions", id],
@@ -36,7 +36,7 @@ jest.mock("../../../../../src/modules/meetings", () => ({
   listCommitteeMeetingDecisions: jest.fn(),
   recordCommitteeMeetingAttendance: jest.fn(),
 }));
-jest.mock("../../../../../src/modules/work", () => ({
+jest.mock("../../../../../modules/work", () => ({
   committeeAssigneeOptionsQueryKey: () => ["committee-tasks", "assignee-options"],
   committeeTaskListQueryKey: (accountId: string) => ["committee-tasks", accountId],
   createCommitteeMeetingFollowupTask: jest.fn(),

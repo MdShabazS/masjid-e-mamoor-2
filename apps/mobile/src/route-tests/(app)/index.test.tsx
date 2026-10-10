@@ -2,28 +2,28 @@ import { useQuery } from "@tanstack/react-query";
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { router } from "expo-router";
 
-import { useAuth } from "../../src/auth/AuthProvider";
-import type { MobileCapabilities } from "../../src/modules/capabilities";
-import HomeScreen from "./index";
+import { useAuth } from "../../auth/AuthProvider";
+import type { MobileCapabilities } from "../../modules/capabilities";
+import HomeScreen from "../../../app/(app)/index";
 
 jest.mock("@tanstack/react-query", () => ({ useQuery: jest.fn() }));
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
-jest.mock("../../src/auth/AuthProvider", () => ({ useAuth: jest.fn() }));
-jest.mock("../../src/modules/capabilities", () => ({
+jest.mock("../../auth/AuthProvider", () => ({ useAuth: jest.fn() }));
+jest.mock("../../modules/capabilities", () => ({
   loadCapabilities: jest.fn(),
 }));
-jest.mock("../../src/modules/work", () => ({
+jest.mock("../../modules/work", () => ({
   committeeTaskListQueryKey: (accountId: string | undefined) => ["committee-tasks", accountId],
   listCommitteeTasks: jest.fn(),
 }));
-jest.mock("../../src/modules/meetings", () => ({
+jest.mock("../../modules/meetings", () => ({
   committeeMeetingListQueryKey: (accountId: string | undefined) => [
     "committee-meetings",
     accountId,
   ],
   listCommitteeMeetings: jest.fn(),
 }));
-jest.mock("../../src/modules/notifications", () => ({
+jest.mock("../../modules/notifications", () => ({
   formatUnreadBadge: (count: number) => (count > 0 ? String(count) : null),
   getMyUnreadNotificationCount: jest.fn(),
   notificationUnreadCountQueryKey: (accountId: string | undefined) => [

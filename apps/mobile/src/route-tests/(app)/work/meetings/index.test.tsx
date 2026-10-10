@@ -2,16 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { act, fireEvent, render } from "@testing-library/react-native";
 import { router } from "expo-router";
 
-import { useAuth } from "../../../../src/auth/AuthProvider";
-import type { MobileCapabilities } from "../../../../src/modules/capabilities";
-import type { CommitteeMeetingSummary } from "../../../../src/modules/meetings";
-import CommitteeMeetingsScreen from "./index";
+import { useAuth } from "../../../../auth/AuthProvider";
+import type { MobileCapabilities } from "../../../../modules/capabilities";
+import type { CommitteeMeetingSummary } from "../../../../modules/meetings";
+import CommitteeMeetingsScreen from "../../../../../app/(app)/work/meetings/index";
 
 jest.mock("@tanstack/react-query", () => ({ useQuery: jest.fn() }));
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
-jest.mock("../../../../src/auth/AuthProvider", () => ({ useAuth: jest.fn() }));
-jest.mock("../../../../src/modules/capabilities", () => ({ loadCapabilities: jest.fn() }));
-jest.mock("../../../../src/modules/meetings", () => ({
+jest.mock("../../../../auth/AuthProvider", () => ({ useAuth: jest.fn() }));
+jest.mock("../../../../modules/capabilities", () => ({ loadCapabilities: jest.fn() }));
+jest.mock("../../../../modules/meetings", () => ({
   committeeMeetingListQueryKey: (accountId: string | undefined) => [
     "committee-meetings",
     accountId,

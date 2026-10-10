@@ -3,10 +3,10 @@ import { act, fireEvent, render } from "@testing-library/react-native";
 import { Alert } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
-import { useAuth } from "../../../../src/auth/AuthProvider";
-import type { MobileCapabilities } from "../../../../src/modules/capabilities";
-import type { CommitteeTaskDetail } from "../../../../src/modules/work";
-import CommitteeTaskDetailScreen from "./index";
+import { useAuth } from "../../../../auth/AuthProvider";
+import type { MobileCapabilities } from "../../../../modules/capabilities";
+import type { CommitteeTaskDetail } from "../../../../modules/work";
+import CommitteeTaskDetailScreen from "../../../../../app/(app)/work/[id]/index";
 
 jest.mock("@tanstack/react-query", () => ({
   useMutation: jest.fn(),
@@ -17,11 +17,11 @@ jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
   useLocalSearchParams: jest.fn(),
 }));
-jest.mock("../../../../src/auth/AuthProvider", () => ({ useAuth: jest.fn() }));
-jest.mock("../../../../src/modules/capabilities", () => ({
+jest.mock("../../../../auth/AuthProvider", () => ({ useAuth: jest.fn() }));
+jest.mock("../../../../modules/capabilities", () => ({
   loadCapabilities: jest.fn(),
 }));
-jest.mock("../../../../src/modules/work", () => ({
+jest.mock("../../../../modules/work", () => ({
   addCommitteeTaskProgress: jest.fn(),
   claimOpenCommitteeTask: jest.fn(),
   committeeTaskDetailQueryKey: (taskId: string) => ["committee-tasks", "detail", taskId],
