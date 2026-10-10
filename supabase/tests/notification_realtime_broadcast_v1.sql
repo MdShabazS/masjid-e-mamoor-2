@@ -316,15 +316,16 @@ begin
       and event = 'notification_created'
       and extension = 'broadcast'
       and private is true
-      and payload ->> 'operation' = 'INSERT'
-      and payload ->> 'table' = 'notifications'
-      and payload ->> 'schema' = 'public'
-      and payload -> 'record' ->> 'id' =
+      and payload ->> 'notification_id' =
         '97000000-0000-0000-0000-000000000001'
-      and payload -> 'record' ->> 'recipient_application_user_id' =
-        '96000000-0000-0000-0000-000000000001'
+      and payload ->> 'kind' = 'task_assigned'
+      and payload ->> 'source_type' = 'committee_task'
+      and payload ->> 'source_entity_id' =
+        '98000000-0000-0000-0000-000000000001'
+      and not payload ? 'recipient_application_user_id'
+      and not payload ? 'record'
   ) then
-    raise exception 'FAIL: Realtime Broadcast payload or private topic is incorrect';
+    raise exception 'FAIL: metadata-only Realtime Broadcast payload or private topic is incorrect';
   end if;
 
   select count(*)
@@ -400,7 +401,7 @@ begin
         'notifications:96000000-0000-0000-0000-000000000001'
       and event = 'notification_created'
       and extension = 'broadcast'
-      and payload -> 'record' ->> 'id' =
+      and payload ->> 'notification_id' =
         '97000000-0000-0000-0000-000000000001'
   ) then
     raise exception 'FAIL: authenticated user cannot receive own notification topic';
@@ -423,7 +424,7 @@ begin
         'notifications:96000000-0000-0000-0000-000000000001'
       and event = 'notification_created'
       and extension = 'broadcast'
-      and payload -> 'record' ->> 'id' =
+      and payload ->> 'notification_id' =
         '97000000-0000-0000-0000-000000000001'
   ) then
     raise exception 'FAIL: authenticated user can receive another notification topic';
@@ -454,7 +455,7 @@ begin
     from realtime.messages
     where event = 'notification_created'
       and extension = 'broadcast'
-      and payload -> 'record' ->> 'id' =
+      and payload ->> 'notification_id' =
         '97000000-0000-0000-0000-000000000001'
   ) then
     raise exception 'FAIL: anon can receive private notification broadcasts';

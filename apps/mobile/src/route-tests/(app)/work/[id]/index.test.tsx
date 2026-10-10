@@ -68,7 +68,7 @@ beforeEach(() => {
   mockUseQuery.mockImplementation(({ queryKey }: { queryKey: unknown[] }) =>
     queryKey[0] === "capabilities" ? capabilityQuery : taskQuery,
   );
-  mutations = [mutationState(), mutationState(), mutationState(), mutationState()];
+  mutations = [mutationState(), mutationState(), mutationState(), mutationState(), mutationState()];
   mutationOptions = [];
   mockUseMutation.mockImplementation((options) => {
     mutationOptions.push(options);

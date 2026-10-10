@@ -6,6 +6,7 @@ import {
   addCommitteeTaskProgress,
   startCommitteeTask,
   completeCommitteeTask,
+  declineCommitteeTaskAssignment,
   type CommitteeTaskDetail,
 } from "./work";
 import {
@@ -83,21 +84,21 @@ describe("committee Work presentation", () => {
     const capabilities = { canManageCommitteeTasks: true, canAssignCommitteeTasks: false };
     expect(
       taskActionVisibility({ accountId: "committee-1", capabilities, task: detail }),
-    ).toMatchObject({ canAddProgress: true, canStart: true, canComplete: false, canEdit: false });
+    ).toMatchObject({ canAddProgress: true, canStart: true, canComplete: false, canDecline: true, canEdit: false });
     expect(
       taskActionVisibility({
         accountId: "committee-1",
         capabilities,
         task: { ...detail, status: "in_progress" },
       }),
-    ).toMatchObject({ canStart: false, canComplete: true });
+    ).toMatchObject({ canStart: false, canComplete: true, canDecline: false });
     expect(
       taskActionVisibility({
         accountId: "committee-1",
         capabilities,
         task: { ...detail, status: "completed" },
       }),
-    ).toMatchObject({ canAddProgress: false, canStart: false, canComplete: false });
+    ).toMatchObject({ canAddProgress: false, canStart: false, canComplete: false, canDecline: false });
   });
 
   it("allows an eligible non-assigner to claim only an open volunteer task", () => {
@@ -248,6 +249,15 @@ describe("committee Work trusted mutations", () => {
       "start_committee_task",
       "complete_committee_task",
     ]);
+  });
+
+  it("declines a direct assignment through the trusted idempotent RPC", async () => {
+    await declineCommitteeTaskAssignment("task-1", "Scheduling conflict", "op-decline");
+    expect(rpc).toHaveBeenCalledWith("decline_committee_task_assignment", {
+      p_task_id: "task-1",
+      p_reason: "Scheduling conflict",
+      p_operation_id: "op-decline",
+    });
   });
 
   it("uses scoped query keys for invalidation", () => {

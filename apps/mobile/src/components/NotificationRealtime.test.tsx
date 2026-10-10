@@ -30,7 +30,7 @@ const mockRemoveChannel = supabase.removeChannel as jest.Mock;
 const mockAppStateRemove = jest.fn();
 
 describe("NotificationRealtime", () => {
-  let broadcastHandler: (() => void) | undefined;
+  let broadcastHandler: ((payload?: unknown) => void) | undefined;
   let subscribeHandler: ((status: string) => void) | undefined;
   let appStateHandler: ((state: string) => void) | undefined;
 
@@ -58,7 +58,7 @@ describe("NotificationRealtime", () => {
     mockChannel.mockReturnValue(channelObject);
 
     mockOn.mockImplementation((_type, _filter, handler) => {
-      broadcastHandler = handler as () => void;
+      broadcastHandler = handler as (payload?: unknown) => void;
       return channelObject;
     });
 
@@ -172,7 +172,7 @@ describe("NotificationRealtime", () => {
     expect(mockInvalidateQueries).not.toHaveBeenCalled();
 
     await act(async () => {
-      await jest.advanceTimersByTimeAsync(249);
+      await jest.advanceTimersByTimeAsync(149);
     });
 
     expect(mockInvalidateQueries).not.toHaveBeenCalled();
@@ -182,6 +182,22 @@ describe("NotificationRealtime", () => {
     });
 
     expect(mockInvalidateQueries).toHaveBeenCalledTimes(3);
+  });
+
+  it("invalidates only notification and affected task queries for task events", async () => {
+    jest.useFakeTimers();
+    await render(createElement(NotificationRealtime, { applicationUserId: "account-1" }));
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    await act(async () => {
+      broadcastHandler?.({ payload: { source_type: "committee_task", source_entity_id: "task-1" } });
+      broadcastHandler?.({ payload: { source_type: "committee_task", source_entity_id: "task-1" } });
+      await jest.advanceTimersByTimeAsync(150);
+    });
+    const keys = mockInvalidateQueries.mock.calls.map(([input]) => input.queryKey);
+    expect(keys).toContainEqual(["committee-tasks", "account-1"]);
+    expect(keys).toContainEqual(["committee-tasks", "detail", "task-1"]);
+    expect(keys).not.toContainEqual(["committee-meetings", "account-1"]);
+    expect(mockInvalidateQueries).toHaveBeenCalledTimes(5);
   });
 
   it("reconciles durable state whenever the channel reaches SUBSCRIBED", async () => {
@@ -208,10 +224,10 @@ describe("NotificationRealtime", () => {
     expect(mockInvalidateQueries).not.toHaveBeenCalled();
 
     await act(async () => {
-      await jest.advanceTimersByTimeAsync(250);
+      await jest.advanceTimersByTimeAsync(150);
     });
 
-    expect(mockInvalidateQueries).toHaveBeenCalledTimes(3);
+    expect(mockInvalidateQueries).toHaveBeenCalledTimes(10);
   });
 
   it("reconciles notification state when the app returns to foreground", async () => {
@@ -238,10 +254,10 @@ describe("NotificationRealtime", () => {
     expect(mockInvalidateQueries).not.toHaveBeenCalled();
 
     await act(async () => {
-      await jest.advanceTimersByTimeAsync(250);
+      await jest.advanceTimersByTimeAsync(150);
     });
 
-    expect(mockInvalidateQueries).toHaveBeenCalledTimes(3);
+    expect(mockInvalidateQueries).toHaveBeenCalledTimes(10);
   });
 
   it("removes lifecycle listeners, channel, and pending refresh work on unmount", async () => {

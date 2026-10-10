@@ -160,9 +160,11 @@ export function notificationKindLabel(kind: string) {
       task_progress: "Task progress",
       task_started: "Task started",
       task_completed: "Task completed",
+      task_declined: "Task declined",
       meeting_created: "Meeting created",
       meeting_updated: "Meeting updated",
       meeting_cancelled: "Meeting cancelled",
+      announcement: "Announcement",
     }[kind] ?? "Notification"
   );
 }

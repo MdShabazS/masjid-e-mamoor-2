@@ -3,9 +3,13 @@ import { AppState } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { supabase } from "../lib/supabase";
-import { notificationInvalidationKeys } from "../modules/notifications";
+import {
+  foregroundInvalidationKeys,
+  parseRealtimeNotification,
+  realtimeInvalidationKeys,
+} from "../modules/realtime";
 
-const REFRESH_DEBOUNCE_MS = 250;
+const REFRESH_DEBOUNCE_MS = 150;
 
 export function NotificationRealtime({
   applicationUserId,
@@ -20,8 +24,12 @@ export function NotificationRealtime({
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     let disposed = false;
 
-    const refreshNotifications = () => {
+    let pendingKeys: readonly (readonly unknown[])[] = [];
+
+    const scheduleRefresh = (keys: readonly (readonly unknown[])[]) => {
       if (disposed) return;
+
+      pendingKeys = deduplicateKeys([...pendingKeys, ...keys]);
 
       if (refreshTimer) {
         clearTimeout(refreshTimer);
@@ -30,12 +38,24 @@ export function NotificationRealtime({
       refreshTimer = setTimeout(() => {
         if (disposed) return;
 
+        const keysToRefresh = pendingKeys;
+        pendingKeys = [];
+
         void Promise.all(
-          notificationInvalidationKeys(applicationUserId).map((queryKey) =>
+          keysToRefresh.map((queryKey) =>
             queryClient.invalidateQueries({ queryKey }),
           ),
         );
       }, REFRESH_DEBOUNCE_MS);
+    };
+
+    const refreshFromEvent = (payload: unknown) => {
+      const event = parseRealtimeNotification(payload);
+      scheduleRefresh(realtimeInvalidationKeys(applicationUserId, event));
+    };
+
+    const refreshOnForeground = () => {
+      scheduleRefresh(foregroundInvalidationKeys(applicationUserId));
     };
 
     const channel = supabase
@@ -49,14 +69,14 @@ export function NotificationRealtime({
         {
           event: "notification_created",
         },
-        refreshNotifications,
+        refreshFromEvent,
       );
 
     const foregroundSubscription = AppState.addEventListener(
       "change",
       (state) => {
         if (state === "active") {
-          refreshNotifications();
+          refreshOnForeground();
         }
       },
     );
@@ -71,7 +91,7 @@ export function NotificationRealtime({
       if (!disposed) {
         channel.subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            refreshNotifications();
+            refreshOnForeground();
           }
         });
       }
@@ -90,4 +110,15 @@ export function NotificationRealtime({
   }, [applicationUserId, queryClient]);
 
   return null;
+}
+
+function deduplicateKeys(keys: readonly (readonly unknown[])[]) {
+  const seen = new Set<string>();
+
+  return keys.filter((key) => {
+    const serialized = JSON.stringify(key);
+    if (seen.has(serialized)) return false;
+    seen.add(serialized);
+    return true;
+  });
 }

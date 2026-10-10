@@ -8,6 +8,8 @@ import type { CommitteeMeetingSummary } from "./meetings";
 import type { CommitteeTaskSummary } from "./work";
 
 const baseCapabilities: MobileCapabilities = {
+  canReadNotifications: false,
+  canManageAnnouncements: false,
   canManageAccounts: false,
   canReadFinanceAccounts: false,
   canManageFinanceAccounts: false,
@@ -55,7 +57,7 @@ describe("dashboard presentation", () => {
       canAssignCommitteeTasks: true,
     });
 
-    expect(modules.map((module) => module.key)).toEqual(["profile", "accounts", "work"]);
+    expect(modules.map((module) => module.key)).toEqual(["accounts", "work", "profile"]);
     expect(modules.find((module) => module.key === "work")?.description).toBe(
       "Create, assign, and manage committee tasks",
     );

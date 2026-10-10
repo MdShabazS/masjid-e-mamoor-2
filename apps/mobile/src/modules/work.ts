@@ -261,6 +261,27 @@ export async function claimOpenCommitteeTask(
   return mapTask(data as DbRow);
 }
 
+export async function declineCommitteeTaskAssignment(
+  taskId: string,
+  reason: string,
+  operationId: string,
+) {
+  const { data, error } = await supabase.rpc(
+    "decline_committee_task_assignment",
+    {
+      p_task_id: taskId,
+      p_reason: reason.trim() || null,
+      p_operation_id: operationId,
+    },
+  );
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "task_decline_failed");
+  }
+
+  return mapTask(data as DbRow);
+}
+
 export async function createCommitteeMeetingFollowupTask(
   meetingId: string,
   decisionId: string | null,

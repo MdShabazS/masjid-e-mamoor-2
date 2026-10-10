@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 import { colors } from "./colors";
 
 export const spacing = {
@@ -13,10 +15,10 @@ export const spacing = {
 } as const;
 
 export const radii = {
-  subtle: 4,
-  control: 8,
-  panel: 8,
-  card: 8,
+  subtle: 6,
+  control: 12,
+  panel: 16,
+  card: 18,
   pill: 999,
 } as const;
 
@@ -32,18 +34,20 @@ export const borders = {
   strongColor: colors.borderStrong,
 } as const;
 
+const systemSans = Platform.select({ android: "sans-serif", default: "System" });
+
 export const typography = {
-  display: { fontSize: 30, fontWeight: "700" as const, lineHeight: 36 },
-  eyebrow: { fontSize: 11, fontWeight: "800" as const, letterSpacing: 0, lineHeight: 15 },
-  pageTitle: { fontSize: 28, fontWeight: "700" as const, lineHeight: 34 },
-  sectionTitle: { fontSize: 19, fontWeight: "700" as const, lineHeight: 25 },
-  cardTitle: { fontSize: 16, fontWeight: "700" as const, lineHeight: 22 },
-  body: { fontSize: 15, lineHeight: 22 },
-  bodySmall: { fontSize: 13, lineHeight: 19 },
-  label: { fontSize: 13, fontWeight: "700" as const, lineHeight: 18 },
-  caption: { fontSize: 12, lineHeight: 17 },
-  action: { fontSize: 14, fontWeight: "700" as const, lineHeight: 20 },
-  metric: { fontSize: 26, fontWeight: "700" as const, lineHeight: 32 },
+  display: { fontFamily: systemSans, fontSize: 30, fontWeight: "700" as const, lineHeight: 36 },
+  eyebrow: { fontFamily: systemSans, fontSize: 11, fontWeight: "800" as const, letterSpacing: 0, lineHeight: 15 },
+  pageTitle: { fontFamily: systemSans, fontSize: 28, fontWeight: "700" as const, lineHeight: 34 },
+  sectionTitle: { fontFamily: systemSans, fontSize: 19, fontWeight: "700" as const, lineHeight: 25 },
+  cardTitle: { fontFamily: systemSans, fontSize: 16, fontWeight: "700" as const, lineHeight: 22 },
+  body: { fontFamily: systemSans, fontSize: 15, lineHeight: 22 },
+  bodySmall: { fontFamily: systemSans, fontSize: 13, lineHeight: 19 },
+  label: { fontFamily: systemSans, fontSize: 13, fontWeight: "700" as const, lineHeight: 18 },
+  caption: { fontFamily: systemSans, fontSize: 12, lineHeight: 17 },
+  action: { fontFamily: systemSans, fontSize: 14, fontWeight: "700" as const, lineHeight: 20 },
+  metric: { fontFamily: systemSans, fontSize: 26, fontWeight: "700" as const, lineHeight: 32 },
 } as const;
 
 export const iconSizes = {

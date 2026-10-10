@@ -9,6 +9,8 @@ import {
 } from "./donation-presentation";
 
 export interface MobileCapabilities {
+  canReadNotifications: boolean;
+  canManageAnnouncements: boolean;
   canManageAccounts: boolean;
   canReadFinanceAccounts: boolean;
   canManageFinanceAccounts: boolean;
@@ -89,6 +91,8 @@ export async function loadCapabilities(
     committeeMeetingsRead,
     committeeMeetingsManage,
     committeeAttendanceRecord,
+    notificationsOwnRead,
+    notificationsAdminManage,
   ] = await Promise.all([
     supabase.rpc("can_use_member_admin_read_operations"),
     hasPermission("membership.members.update"),
@@ -121,6 +125,8 @@ export async function loadCapabilities(
     hasPermission("committee.meetings.read"),
     hasPermission("committee.meetings.manage"),
     hasPermission("committee.attendance.record"),
+    hasPermission("notifications.own.read"),
+    hasPermission("notifications.admin.manage"),
   ]);
 
   const canManageReferrals =
@@ -152,6 +158,8 @@ export async function loadCapabilities(
   );
 
   return {
+    canReadNotifications: notificationsOwnRead,
+    canManageAnnouncements: notificationsAdminManage,
     canManageAccounts:
       account.role === "system_admin" || account.role === "president",
     canReadFinanceAccounts: financeAccountsRead,
