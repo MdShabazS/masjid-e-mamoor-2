@@ -17,6 +17,10 @@ export default function WorkLayout() {
       <Stack.Screen name="create" options={{ title: "Create task" }} />
       <Stack.Screen name="[id]/index" options={{ title: "Task details" }} />
       <Stack.Screen name="[id]/edit" options={{ title: "Edit task" }} />
+      <Stack.Screen name="meetings/index" options={{ headerShown: false }} />
+      <Stack.Screen name="meetings/create" options={{ title: "Create meeting" }} />
+      <Stack.Screen name="meetings/[id]/index" options={{ title: "Meeting details" }} />
+      <Stack.Screen name="meetings/[id]/edit" options={{ title: "Edit meeting" }} />
     </Stack>
   );
 }

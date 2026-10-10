@@ -1,21 +1,26 @@
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../../../../src/auth/AuthProvider";
+import {
+  AppButton,
+  BrandedPageHeader,
+  Divider,
+  EmptyState,
+  ErrorState,
+  InformationCard,
+  ListRow,
+  LoadingState,
+  SectionHeader,
+  StatusChip,
+} from "../../../../src/components/InstitutionalUI";
 import { FormTextInput, Screen } from "../../../../src/components/Screen";
 import { loadCapabilities } from "../../../../src/modules/capabilities";
 import {
   addCommitteeTaskProgress,
+  claimOpenCommitteeTask,
   committeeTaskDetailQueryKey,
   committeeTaskListQueryKey,
   completeCommitteeTask,
@@ -28,18 +33,17 @@ import {
   taskActionVisibility,
   taskErrorMessage,
   taskPriorityLabels,
+  taskSourceContext,
   taskStatusLabels,
 } from "../../../../src/modules/work-presentation";
 import { colors } from "../../../../src/theme/colors";
-import { spacing } from "../../../../src/theme/tokens";
+import { borders, radii, spacing, typography } from "../../../../src/theme/tokens";
 
 export default function CommitteeTaskDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
-  const taskId = Array.isArray(params.id) ? params.id[0] : params.id ?? "";
-
+  const taskId = Array.isArray(params.id) ? params.id[0] : (params.id ?? "");
   const { account } = useAuth();
   const queryClient = useQueryClient();
-
   const [progressRemark, setProgressRemark] = useState("");
   const [completionNotes, setCompletionNotes] = useState("");
 
@@ -48,9 +52,7 @@ export default function CommitteeTaskDetailScreen() {
     queryFn: () => loadCapabilities(account!),
     enabled: Boolean(account),
   });
-
   const canRead = capabilities.data?.canReadCommitteeTasks === true;
-
   const task = useQuery({
     queryKey: committeeTaskDetailQueryKey(taskId),
     queryFn: () => getCommitteeTask(taskId),
@@ -69,49 +71,37 @@ export default function CommitteeTaskDetailScreen() {
   };
 
   const progress = useMutation({
-    mutationFn: ({
-      remark,
-      operationId,
-    }: {
-      remark: string;
-      operationId: string;
-    }) => addCommitteeTaskProgress(taskId, remark, operationId),
-
+    mutationFn: ({ remark, operationId }: { remark: string; operationId: string }) =>
+      addCommitteeTaskProgress(taskId, remark, operationId),
     onSuccess: async () => {
       setProgressRemark("");
       await refreshTaskData();
     },
-
     onError: (error) => {
       Alert.alert("Progress could not be added", taskErrorMessage(error));
     },
   });
-
-  const start = useMutation({
-    mutationFn: (operationId: string) =>
-      startCommitteeTask(taskId, operationId),
-
+  const claim = useMutation({
+    mutationFn: (operationId: string) => claimOpenCommitteeTask(taskId, operationId),
     onSuccess: refreshTaskData,
-
+    onError: (error) => {
+      Alert.alert("Task could not be claimed", taskErrorMessage(error));
+    },
+  });
+  const start = useMutation({
+    mutationFn: (operationId: string) => startCommitteeTask(taskId, operationId),
+    onSuccess: refreshTaskData,
     onError: (error) => {
       Alert.alert("Task could not be started", taskErrorMessage(error));
     },
   });
-
   const complete = useMutation({
-    mutationFn: ({
-      notes,
-      operationId,
-    }: {
-      notes: string;
-      operationId: string;
-    }) => completeCommitteeTask(taskId, notes, operationId),
-
+    mutationFn: ({ notes, operationId }: { notes: string; operationId: string }) =>
+      completeCommitteeTask(taskId, notes, operationId),
     onSuccess: async () => {
       setCompletionNotes("");
       await refreshTaskData();
     },
-
     onError: (error) => {
       Alert.alert("Task could not be completed", taskErrorMessage(error));
     },
@@ -120,7 +110,6 @@ export default function CommitteeTaskDetailScreen() {
   if (!account || capabilities.isLoading) {
     return <PageState loading copy="Loading committee task..." />;
   }
-
   if (capabilities.isError) {
     return (
       <PageState
@@ -129,17 +118,10 @@ export default function CommitteeTaskDetailScreen() {
       />
     );
   }
-
   if (!canRead) {
-    return (
-      <PageState copy="This committee task is not available for your account." />
-    );
+    return <PageState copy="This committee task is not available for your account." />;
   }
-
-  if (task.isLoading) {
-    return <PageState loading copy="Loading task..." />;
-  }
-
+  if (task.isLoading) return <PageState loading copy="Loading task..." />;
   if (task.isError || !task.data) {
     return (
       <PageState
@@ -152,57 +134,47 @@ export default function CommitteeTaskDetailScreen() {
   const actions = taskActionVisibility({
     accountId: account.id,
     capabilities: {
-      canManageCommitteeTasks:
-        capabilities.data?.canManageCommitteeTasks === true,
-      canAssignCommitteeTasks:
-        capabilities.data?.canAssignCommitteeTasks === true,
+      canManageCommitteeTasks: capabilities.data?.canManageCommitteeTasks === true,
+      canAssignCommitteeTasks: capabilities.data?.canAssignCommitteeTasks === true,
     },
     task: task.data,
   });
-
-  const activeAssignees = task.data.assignees.filter(
-    (assignee) => assignee.removedAt === null,
-  );
-
+  const activeAssignees = task.data.assignees.filter((assignee) => assignee.removedAt === null);
+  const sourceContext = taskSourceContext(task.data);
   const mutationPending =
-    progress.isPending || start.isPending || complete.isPending;
+    progress.isPending || claim.isPending || start.isPending || complete.isPending;
 
   const addProgress = () => {
     const remark = progressRemark.trim();
-
     if (!remark) {
       Alert.alert("Progress note required", "Enter a progress update first.");
       return;
     }
-
     if (mutationPending) return;
-
-    progress.mutate({
-      remark,
-      operationId: createCommitteeOperationId(),
-    });
+    progress.mutate({ remark, operationId: createCommitteeOperationId() });
   };
-
+  const confirmClaim = () => {
+    if (mutationPending) return;
+    Alert.alert("Claim volunteer task?", "You will become the active assignee for this task.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Claim task",
+        onPress: () => claim.mutate(createCommitteeOperationId()),
+      },
+    ]);
+  };
   const confirmStart = () => {
     if (mutationPending) return;
-
-    Alert.alert(
-      "Start task?",
-      "The task status will change to In progress.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Start task",
-          onPress: () =>
-            start.mutate(createCommitteeOperationId()),
-        },
-      ],
-    );
+    Alert.alert("Start task?", "The task status will change to In progress.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Start task",
+        onPress: () => start.mutate(createCommitteeOperationId()),
+      },
+    ]);
   };
-
   const confirmComplete = () => {
     if (mutationPending) return;
-
     Alert.alert(
       "Complete task?",
       "The task will be marked completed and can no longer be edited.",
@@ -236,208 +208,236 @@ export default function CommitteeTaskDetailScreen() {
         ),
       }}
     >
-      <View style={styles.headingRow}>
-        <View style={styles.headingCopy}>
-          <Text style={styles.eyebrow}>COMMITTEE TASK</Text>
-          <Text style={styles.title}>{task.data.title}</Text>
-        </View>
+      <BrandedPageHeader
+        description="Authoritative task details and progress history"
+        eyebrow="Committee task"
+        title={task.data.title}
+      />
 
-        {actions.canEdit ? (
-          <Pressable
-            accessibilityRole="button"
+      <View style={styles.chips}>
+        <StatusChip
+          label={task.data.isOverdue ? "Overdue" : taskStatusLabels[task.data.status]}
+          tone={
+            task.data.isOverdue
+              ? "warning"
+              : task.data.status === "completed"
+                ? "success"
+                : task.data.status === "open"
+                  ? "info"
+                  : "neutral"
+          }
+        />
+        <StatusChip label={`${taskPriorityLabels[task.data.priority]} priority`} />
+        {task.data.assignmentMode === "open" ? (
+          <StatusChip label="Volunteer task" tone="info" />
+        ) : null}
+      </View>
+
+      {actions.canEdit ? (
+        <View style={styles.headerAction}>
+          <AppButton
+            label="Edit task"
             onPress={() =>
               router.push({
                 pathname: "/work/[id]/edit",
                 params: { id: taskId },
               })
             }
-            style={styles.editButton}
-          >
-            <Text style={styles.editButtonText}>Edit</Text>
-          </Pressable>
-        ) : null}
-      </View>
-
-      <View style={styles.badgeRow}>
-        <Text style={styles.statusBadge}>
-          {taskStatusLabels[task.data.status]}
-        </Text>
-        <Text style={styles.priorityBadge}>
-          {taskPriorityLabels[task.data.priority]} priority
-        </Text>
-      </View>
-
-      {task.data.description ? (
-        <Text style={styles.description}>{task.data.description}</Text>
-      ) : (
-        <Text style={styles.muted}>No description provided.</Text>
-      )}
-
-      <SectionTitle title="Task details" />
-
-      <View style={styles.card}>
-        <DetailRow
-          label="Due date"
-          value={formatTaskDate(task.data.dueDate)}
-        />
-        <DetailRow
-          label="Created"
-          value={formatTimestamp(task.data.createdAt)}
-        />
-        <DetailRow
-          label="Updated"
-          value={formatTimestamp(task.data.updatedAt)}
-        />
-        {task.data.completedAt ? (
-          <DetailRow
-            label="Completed"
-            value={formatTimestamp(task.data.completedAt)}
+            variant="secondary"
           />
-        ) : null}
+        </View>
+      ) : null}
+
+      <View style={styles.section}>
+        <SectionHeader title="Overview" />
+        <InformationCard emphasis>
+          <Text style={task.data.description ? styles.description : styles.muted}>
+            {task.data.description || "No description provided."}
+          </Text>
+          {sourceContext ? (
+            <View style={styles.sourceContext}>
+              <Text style={styles.sourceLabel}>SOURCE</Text>
+              <Text style={styles.sourceValue}>{sourceContext}</Text>
+            </View>
+          ) : null}
+        </InformationCard>
       </View>
 
-      <SectionTitle title="Assignees" />
+      <View style={styles.section}>
+        <SectionHeader title="Task details" />
+        <InformationCard style={styles.listCard}>
+          <DetailRow label="Due date" value={formatTaskDate(task.data.dueDate)} />
+          <Divider />
+          <DetailRow label="Created" value={formatTimestamp(task.data.createdAt)} />
+          <Divider />
+          <DetailRow label="Updated" value={formatTimestamp(task.data.updatedAt)} />
+          {task.data.completedAt ? (
+            <>
+              <Divider />
+              <DetailRow label="Completed" value={formatTimestamp(task.data.completedAt)} />
+            </>
+          ) : null}
+        </InformationCard>
+      </View>
 
-      {activeAssignees.length === 0 ? (
-        <Text style={styles.muted}>No active assignees.</Text>
-      ) : (
-        activeAssignees.map((assignee) => (
-          <View key={assignee.id} style={styles.assigneeCard}>
-            <Text style={styles.assigneeName}>{assignee.displayName}</Text>
-            <Text style={styles.assigneeRole}>{assignee.roleLabel}</Text>
-          </View>
-        ))
-      )}
+      <View style={styles.section}>
+        <SectionHeader
+          description={
+            task.data.status === "open"
+              ? "This volunteer task has not been claimed."
+              : "Active users responsible for this task"
+          }
+          title="Assignees"
+        />
+        {activeAssignees.length === 0 ? (
+          <InformationCard>
+            <ListRow
+              subtitle="An eligible Committee Member may claim this task."
+              title="No active assignee"
+            />
+          </InformationCard>
+        ) : (
+          <InformationCard style={styles.listCard}>
+            {activeAssignees.map((assignee, index) => (
+              <View key={assignee.id}>
+                {index > 0 ? <Divider /> : null}
+                <ListRow subtitle={assignee.roleLabel} title={assignee.displayName} />
+              </View>
+            ))}
+          </InformationCard>
+        )}
+      </View>
+
+      {actions.canClaim ? (
+        <ActionSection
+          description="Volunteer for this open task. Only one eligible claimant can succeed."
+          title="Claim task"
+        >
+          <AppButton
+            disabled={mutationPending}
+            label="Claim task"
+            loading={claim.isPending}
+            onPress={confirmClaim}
+          />
+        </ActionSection>
+      ) : null}
 
       {actions.canStart ? (
-        <>
-          <SectionTitle title="Begin work" />
-          <Text style={styles.help}>
-            Start the task when work has actually begun.
-          </Text>
-
-          <PrimaryButton
+        <ActionSection
+          description="Start the task when work has actually begun."
+          title="Begin work"
+        >
+          <AppButton
             disabled={mutationPending}
-            label={start.isPending ? "Starting..." : "Start task"}
+            label="Start task"
+            loading={start.isPending}
             onPress={confirmStart}
           />
-        </>
+        </ActionSection>
       ) : null}
 
       {actions.canAddProgress ? (
-        <>
-          <SectionTitle title="Progress update" />
-          <Text style={styles.help}>
-            Record a concise update so authorized users can follow progress.
-          </Text>
-
+        <ActionSection
+          description="Record a concise update for authorized users."
+          title="Progress update"
+        >
           <FormTextInput
             maxLength={5000}
             multiline
             onChangeText={setProgressRemark}
             placeholder="Add progress note"
-            placeholderTextColor="#93A099"
+            placeholderTextColor={colors.textMuted}
             style={[styles.input, styles.multiline]}
             textAlignVertical="top"
             value={progressRemark}
           />
-
-          <PrimaryButton
+          <AppButton
             disabled={mutationPending || !progressRemark.trim()}
-            label={progress.isPending ? "Adding..." : "Add progress"}
+            label="Add progress"
+            loading={progress.isPending}
             onPress={addProgress}
           />
-        </>
+        </ActionSection>
       ) : null}
 
       {actions.canComplete ? (
-        <>
-          <SectionTitle title="Complete task" />
-          <Text style={styles.help}>
-            Completion notes are optional. Once completed, the task becomes
-            immutable.
-          </Text>
-
+        <ActionSection
+          description="Completion notes are optional. Completed tasks become immutable."
+          title="Complete task"
+        >
           <FormTextInput
             maxLength={5000}
             multiline
             onChangeText={setCompletionNotes}
             placeholder="Completion notes (optional)"
-            placeholderTextColor="#93A099"
+            placeholderTextColor={colors.textMuted}
             style={[styles.input, styles.multiline]}
             textAlignVertical="top"
             value={completionNotes}
           />
-
-          <PrimaryButton
+          <AppButton
             disabled={mutationPending}
-            label={complete.isPending ? "Completing..." : "Complete task"}
+            label="Complete task"
+            loading={complete.isPending}
             onPress={confirmComplete}
           />
-        </>
+        </ActionSection>
       ) : null}
 
-      <SectionTitle title="Activity" />
-
-      {task.data.activity.length === 0 ? (
-        <Text style={styles.muted}>No activity recorded yet.</Text>
-      ) : (
-        task.data.activity.map((activity) => (
-          <View key={activity.id} style={styles.activityCard}>
-            <Text style={styles.activityTitle}>
-              {activityLabel(activity.activityType)}
-            </Text>
-
-            {activity.remark ? (
-              <Text style={styles.activityRemark}>{activity.remark}</Text>
-            ) : null}
-
-            <Text style={styles.activityDate}>
-              {formatTimestamp(activity.createdAt)}
-            </Text>
-          </View>
-        ))
-      )}
+      <View style={styles.section}>
+        <SectionHeader description="Permanent progress and state-change history" title="Activity" />
+        {task.data.activity.length === 0 ? (
+          <EmptyState
+            description="Progress and state changes will appear here."
+            title="No activity recorded"
+          />
+        ) : (
+          <InformationCard style={styles.activityCard}>
+            {task.data.activity.map((activity, index) => (
+              <View key={activity.id}>
+                {index > 0 ? <Divider /> : null}
+                <View style={styles.activityRow}>
+                  <View style={styles.activityMarker} />
+                  <View style={styles.activityCopy}>
+                    <Text style={styles.activityTitle}>{activityLabel(activity.activityType)}</Text>
+                    {activity.remark ? (
+                      <Text style={styles.activityRemark}>{activity.remark}</Text>
+                    ) : null}
+                    <Text style={styles.activityDate}>{formatTimestamp(activity.createdAt)}</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </InformationCard>
+        )}
+      </View>
     </Screen>
   );
 }
 
-function SectionTitle({ title }: { title: string }) {
-  return <Text style={styles.sectionTitle}>{title}</Text>;
+function ActionSection({
+  children,
+  description,
+  title,
+}: {
+  children: React.ReactNode;
+  description: string;
+  title: string;
+}) {
+  return (
+    <View style={styles.section}>
+      <SectionHeader description={description} title={title} />
+      <InformationCard style={styles.actionCard}>{children}</InformationCard>
+    </View>
+  );
 }
 
-function DetailRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue}>{value}</Text>
     </View>
-  );
-}
-
-function PrimaryButton({
-  disabled,
-  label,
-  onPress,
-}: {
-  disabled: boolean;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      disabled={disabled}
-      onPress={onPress}
-      style={[styles.primaryButton, disabled && styles.disabled]}
-    >
-      <Text style={styles.primaryButtonText}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -452,256 +452,111 @@ function PageState({
 }) {
   return (
     <Screen contentContainerStyle={styles.pageState}>
-      {loading ? <ActivityIndicator color={colors.deepEmerald} /> : null}
-      <Text style={styles.stateCopy}>{copy}</Text>
-
-      {onRetry ? (
-        <Pressable onPress={onRetry} style={styles.retryButton}>
-          <Text style={styles.retryText}>Retry</Text>
-        </Pressable>
+      {loading ? <LoadingState label={copy} /> : null}
+      {!loading && onRetry ? (
+        <ErrorState
+          action={<AppButton label="Retry" onPress={onRetry} variant="secondary" />}
+          description={copy}
+          title="Task unavailable"
+        />
       ) : null}
+      {!loading && !onRetry ? <EmptyState description={copy} title="Task unavailable" /> : null}
     </Screen>
   );
 }
 
 function formatTimestamp(value: string) {
   const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "Unavailable"
-    : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? "Unavailable" : date.toLocaleString();
 }
 
 function activityLabel(type: string) {
-  switch (type) {
-    case "task_created":
-      return "Task created";
-    case "task_updated":
-      return "Task updated";
-    case "assignment_added":
-      return "Assignee added";
-    case "assignment_removed":
-      return "Assignee removed";
-    case "progress_added":
-      return "Progress added";
-    case "status_changed":
-      return "Status changed";
-    case "task_completed":
-      return "Task completed";
-    default:
-      return "Task activity";
-  }
+  return (
+    {
+      task_created: "Task created",
+      task_updated: "Task updated",
+      assignment_added: "Assignee added",
+      assignment_removed: "Assignee removed",
+      progress_added: "Progress added",
+      status_changed: "Status changed",
+      task_completed: "Task completed",
+    }[type] ?? "Task activity"
+  );
 }
 
 const styles = StyleSheet.create({
   content: {
-    padding: 20,
-    paddingBottom: 44,
+    flexGrow: 1,
+    padding: spacing.xl,
+    paddingBottom: spacing.section,
   },
-  headingRow: {
-    alignItems: "flex-start",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  headingCopy: {
-    flex: 1,
-    paddingRight: 14,
-  },
-  eyebrow: {
-    color: colors.gold,
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: "700",
-    lineHeight: 35,
-    marginTop: 8,
-  },
-  editButton: {
-    borderColor: colors.deepEmerald,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  editButtonText: {
-    color: colors.deepEmerald,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  badgeRow: {
+  chips: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginTop: 14,
+    gap: spacing.sm,
+    marginTop: spacing.lg,
   },
-  statusBadge: {
-    backgroundColor: colors.sand,
-    borderRadius: 999,
-    color: colors.deepEmerald,
-    fontSize: 11,
-    fontWeight: "700",
-    overflow: "hidden",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  headerAction: { marginTop: spacing.lg },
+  section: { gap: spacing.md, marginTop: spacing.section },
+  description: { color: colors.text, ...typography.body },
+  muted: { color: colors.secondary, ...typography.body },
+  sourceContext: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.control,
+    marginTop: spacing.lg,
+    padding: spacing.md,
   },
-  priorityBadge: {
-    backgroundColor: colors.surface,
-    borderColor: colors.sand,
-    borderRadius: 999,
-    borderWidth: 1,
-    color: colors.secondary,
-    fontSize: 11,
-    fontWeight: "700",
-    overflow: "hidden",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  description: {
-    color: colors.text,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 20,
-  },
-  sectionTitle: {
-    color: colors.text,
-    fontSize: 19,
-    fontWeight: "700",
-    marginTop: spacing.section,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.sand,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginTop: 12,
-    paddingHorizontal: 16,
-  },
+  sourceLabel: { color: colors.deepEmerald, ...typography.eyebrow },
+  sourceValue: { color: colors.text, marginTop: spacing.xs, ...typography.bodySmall },
+  listCard: { paddingBottom: 0, paddingTop: 0 },
   detailRow: {
-    alignItems: "center",
-    borderBottomColor: colors.sand,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    alignItems: "flex-start",
     flexDirection: "row",
+    gap: spacing.lg,
     justifyContent: "space-between",
-    minHeight: 48,
+    minHeight: 52,
+    paddingVertical: spacing.md,
   },
-  detailLabel: {
-    color: colors.secondary,
-    fontSize: 13,
-  },
+  detailLabel: { color: colors.secondary, flexShrink: 0, ...typography.bodySmall },
   detailValue: {
     color: colors.text,
     flex: 1,
-    fontSize: 13,
-    fontWeight: "700",
-    marginLeft: 18,
     textAlign: "right",
+    ...typography.label,
   },
-  assigneeCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.sand,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 10,
-    padding: 14,
-  },
-  assigneeName: {
-    color: colors.text,
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  assigneeRole: {
-    color: colors.secondary,
-    fontSize: 12,
-    marginTop: 4,
-  },
-  help: {
-    color: colors.secondary,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 8,
-  },
+  actionCard: { gap: spacing.md },
   input: {
     backgroundColor: colors.surface,
-    borderColor: "#D9D3C6",
-    borderRadius: 10,
-    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.control,
+    borderWidth: borders.width,
     color: colors.text,
     fontSize: 16,
-    marginTop: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    minHeight: 52,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
-  multiline: {
-    minHeight: 100,
+  multiline: { minHeight: 112 },
+  activityCard: { paddingBottom: 0, paddingTop: 0 },
+  activityRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+    paddingVertical: spacing.lg,
   },
-  primaryButton: {
-    alignItems: "center",
-    backgroundColor: colors.deepEmerald,
-    borderRadius: 10,
-    justifyContent: "center",
-    marginTop: 12,
-    minHeight: 48,
+  activityMarker: {
+    backgroundColor: colors.gold,
+    borderRadius: 3,
+    height: 6,
+    marginTop: 7,
+    width: 6,
   },
-  primaryButtonText: {
-    color: colors.surface,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  disabled: {
-    opacity: 0.55,
-  },
-  activityCard: {
-    borderLeftColor: colors.gold,
-    borderLeftWidth: 2,
-    marginTop: 12,
-    paddingLeft: 14,
-    paddingVertical: 4,
-  },
-  activityTitle: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  activityRemark: {
-    color: colors.text,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 5,
-  },
-  activityDate: {
-    color: colors.secondary,
-    fontSize: 12,
-    marginTop: 5,
-  },
-  muted: {
-    color: colors.secondary,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 10,
-  },
+  activityCopy: { flex: 1 },
+  activityTitle: { color: colors.text, ...typography.cardTitle },
+  activityRemark: { color: colors.text, marginTop: spacing.xs, ...typography.bodySmall },
+  activityDate: { color: colors.textMuted, marginTop: spacing.xs, ...typography.caption },
   pageState: {
-    alignItems: "center",
     flex: 1,
     justifyContent: "center",
-    padding: 24,
-  },
-  stateCopy: {
-    color: colors.secondary,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 8,
-    textAlign: "center",
-  },
-  retryButton: {
-    marginTop: 10,
-    padding: 8,
-  },
-  retryText: {
-    color: colors.deepEmerald,
-    fontSize: 13,
-    fontWeight: "700",
+    padding: spacing.xl,
   },
 });

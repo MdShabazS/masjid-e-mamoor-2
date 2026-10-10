@@ -1,13 +1,44 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { StatusBar } from "expo-status-bar";
+import { StyleSheet, Text, View } from "react-native";
+
 import { useAuth } from "../../src/auth/AuthProvider";
-import { colors, roleLabels } from "../../src/theme/colors";
-import { loadCapabilities } from "../../src/modules/capabilities";
-import { visibleWorkspaceModules } from "../../src/modules/presentation";
+import {
+  AppButton,
+  BrandedPageHeader,
+  Divider,
+  EmptyState,
+  ErrorState,
+  InformationCard,
+  ListRow,
+  LoadingState,
+  MetricCard,
+  SectionHeader,
+  StatusChip,
+} from "../../src/components/InstitutionalUI";
 import { NotificationBell } from "../../src/components/NotificationBell";
+import { Screen } from "../../src/components/Screen";
+import { loadCapabilities, type MobileCapabilities } from "../../src/modules/capabilities";
+import {
+  activeDashboardTasks,
+  dashboardWorkspaceModules,
+  formatDashboardMeetingDate,
+  upcomingDashboardMeetings,
+} from "../../src/modules/dashboard-presentation";
+import {
+  committeeMeetingListQueryKey,
+  listCommitteeMeetings,
+  type CommitteeMeetingSummary,
+} from "../../src/modules/meetings";
+import {
+  committeeTaskListQueryKey,
+  listCommitteeTasks,
+  type CommitteeTaskSummary,
+} from "../../src/modules/work";
+import { formatTaskDate, taskStatusLabels } from "../../src/modules/work-presentation";
+import { colors, roleLabels } from "../../src/theme/colors";
+import { radii, spacing, typography } from "../../src/theme/tokens";
 
 export default function HomeScreen() {
   const { account } = useAuth();
@@ -16,136 +47,315 @@ export default function HomeScreen() {
     queryFn: () => loadCapabilities(account!),
     enabled: Boolean(account),
   });
+  const canReadTasks = capabilities.data?.canReadCommitteeTasks === true;
+  const canReadMeetings = capabilities.data?.canReadCommitteeMeetings === true;
+  const tasks = useQuery({
+    queryKey: committeeTaskListQueryKey(account?.id),
+    queryFn: listCommitteeTasks,
+    enabled: canReadTasks,
+  });
+  const meetings = useQuery({
+    queryKey: committeeMeetingListQueryKey(account?.id),
+    queryFn: listCommitteeMeetings,
+    enabled: canReadMeetings,
+  });
+
   if (!account) return null;
-  const visibleModules = capabilities.data ? visibleWorkspaceModules(capabilities.data) : ["profile"];
+
+  const accountName = account.memberProfile?.displayName || account.username || "Account";
 
   return (
-    <SafeAreaView style={styles.page}>
+    <Screen contentContainerStyle={styles.content} scroll>
       <StatusBar style="dark" />
-      <View style={styles.content}>
-        <View style={styles.brandRow}>
-          <View style={styles.brandIdentity}>
-            <View style={styles.mark} />
-            <Text style={styles.brand}>MASJID E MAMOOR 2</Text>
-          </View>
-          <NotificationBell />
-        </View>
+      <BrandedPageHeader
+        action={<NotificationBell />}
+        description="A clear view of your authorized Masjid operations."
+        eyebrow="Masjid E Mamoor 2"
+        title="Management overview"
+      />
+
+      <View style={styles.welcomePanel}>
+        <View style={styles.welcomeAccent} />
         <Text style={styles.greeting}>Assalamu Alaikum</Text>
-        <Text style={styles.title}>Masjid E Mamoor 2</Text>
-        <Text style={styles.subtitle}>Management Overview</Text>
-        <View style={styles.welcomePanel}>
-          <Text style={styles.panelLabel}>SIGNED-IN ACCOUNT</Text>
-          <Text style={styles.username}>{account.username ?? "Account"}</Text>
-          <Text style={styles.role}>{roleLabels[account.role]}</Text>
+        <Text style={styles.accountName}>{accountName}</Text>
+        <View style={styles.roleContext}>
+          <Text style={styles.roleLabel}>{roleLabels[account.role]}</Text>
+          <Text style={styles.roleSeparator}>•</Text>
+          <Text style={styles.accountStatus}>Active account</Text>
         </View>
-        <Text style={styles.sectionTitle}>Your workspace</Text>
-        <Pressable onPress={() => router.push("/profile")} style={styles.module}>
-          <View>
-            <Text style={styles.moduleTitle}>My Profile</Text>
-            <Text style={styles.moduleCopy}>Identity and account security</Text>
-          </View>
-          <Text style={styles.arrow}>›</Text>
-        </Pressable>
-        {visibleModules.includes("accounts") ? (
-          <Pressable onPress={() => router.push("/accounts")} style={styles.module}>
-            <View style={styles.moduleText}>
-              <Text style={styles.moduleTitle}>Account Administration</Text>
-              <Text style={styles.moduleCopy}>
-                Manage authorized accounts, roles, and access
-              </Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
-          </Pressable>
-        ) : null}
-        {visibleModules.includes("members") ? (
-          <Pressable onPress={() => router.push("/community/members")} style={styles.module}>
-            <View>
-              <Text style={styles.moduleTitle}>Members</Text>
-              <Text style={styles.moduleCopy}>Authorized member directory</Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
-          </Pressable>
-        ) : null}
-        {visibleModules.includes("referrals") ? (
-          <Pressable onPress={() => router.push("/community/referrals")} style={styles.module}>
-            <View>
-              <Text style={styles.moduleTitle}>Referrals</Text>
-              <Text style={styles.moduleCopy}>
-                {capabilities.data?.canManageReferrals
-                  ? "Review and manage onboarding"
-                  : "Create and track referrals"}
-              </Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
-          </Pressable>
-        ) : null}
-        {visibleModules.includes("donations") ? (
-          <Pressable onPress={() => router.push("/donations")} style={styles.module}>
-            <View style={styles.moduleText}>
-              <Text style={styles.moduleTitle}>Donations</Text>
-              <Text style={styles.moduleCopy}>
-                {capabilities.data?.canManageDonations
-                  ? "Donation records and authorized management workflows"
-                  : "View obligations, submit payments, and review donation history"}
-              </Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
-          </Pressable>
-        ) : null}
-        {visibleModules.includes("finance") ? (
-          <Pressable
-            onPress={() => router.push("/finance")}
-            style={styles.module}
-          >
-            <View style={styles.moduleText}>
-              <Text style={styles.moduleTitle}>
-                Finance
-              </Text>
-              <Text style={styles.moduleCopy}>
-                {capabilities.data?.canManageFinanceAccounts
-                  ? "Finance accounts, balances, and account administration"
-                  : "Review Finance accounts and balances"}
-              </Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
-          </Pressable>
-        ) : null}
-        {visibleModules.includes("work") ? (
-          <Pressable onPress={() => router.push("/work")} style={styles.module}>
-            <View style={styles.moduleText}>
-              <Text style={styles.moduleTitle}>Work</Text>
-              <Text style={styles.moduleCopy}>
-                {capabilities.data?.canAssignCommitteeTasks
-                  ? "Create, assign, and manage committee tasks"
-                  : "Review and update your assigned committee tasks"}
-              </Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
-          </Pressable>
-        ) : null}
       </View>
-    </SafeAreaView>
+
+      {capabilities.isLoading ? (
+        <View style={styles.section}>
+          <LoadingState label="Preparing your workspace" />
+        </View>
+      ) : null}
+
+      {capabilities.isError ? (
+        <View style={styles.section}>
+          <ErrorState
+            action={
+              <AppButton
+                label="Retry"
+                onPress={() => void capabilities.refetch()}
+                variant="secondary"
+              />
+            }
+            description="Your authorized workspace could not be loaded. Check your connection and try again."
+            title="Workspace unavailable"
+          />
+        </View>
+      ) : null}
+
+      {capabilities.data ? (
+        <>
+          <WorkspaceSection capabilities={capabilities.data} />
+          {canReadTasks || canReadMeetings ? (
+            <CommitteeOverview
+              canReadMeetings={canReadMeetings}
+              canReadTasks={canReadTasks}
+              meetings={meetings}
+              tasks={tasks}
+            />
+          ) : null}
+        </>
+      ) : null}
+    </Screen>
+  );
+}
+
+function WorkspaceSection({ capabilities }: { capabilities: MobileCapabilities }) {
+  const modules = dashboardWorkspaceModules(capabilities);
+
+  return (
+    <View style={styles.section}>
+      <SectionHeader description="Tools available to this account" title="Your workspace" />
+      <InformationCard style={styles.workspaceCard}>
+        {modules.map((module, index) => (
+          <View key={module.key}>
+            {index > 0 ? <Divider /> : null}
+            <ListRow
+              onPress={() => router.push(module.href)}
+              subtitle={module.description}
+              title={module.title}
+            />
+          </View>
+        ))}
+      </InformationCard>
+    </View>
+  );
+}
+
+function CommitteeOverview({
+  canReadMeetings,
+  canReadTasks,
+  meetings,
+  tasks,
+}: {
+  canReadMeetings: boolean;
+  canReadTasks: boolean;
+  meetings: UseQueryResult<CommitteeMeetingSummary[], Error>;
+  tasks: UseQueryResult<CommitteeTaskSummary[], Error>;
+}) {
+  const activeTasks = activeDashboardTasks(canReadTasks ? (tasks.data ?? []) : []);
+  const upcomingMeetings = upcomingDashboardMeetings(canReadMeetings ? (meetings.data ?? []) : []);
+  const loading = (canReadTasks && tasks.isLoading) || (canReadMeetings && meetings.isLoading);
+  const failed = (canReadTasks && tasks.isError) || (canReadMeetings && meetings.isError);
+
+  return (
+    <View style={styles.section}>
+      <SectionHeader
+        description="Authorized committee activity requiring attention"
+        title="Committee overview"
+      />
+
+      {loading ? <LoadingState label="Loading committee overview" /> : null}
+
+      {failed && !loading ? (
+        <ErrorState
+          action={
+            <AppButton
+              label="Retry"
+              onPress={() => {
+                if (canReadTasks) void tasks.refetch();
+                if (canReadMeetings) void meetings.refetch();
+              }}
+              variant="secondary"
+            />
+          }
+          description="Committee activity could not be refreshed. Your workspace links remain available."
+          title="Committee overview unavailable"
+        />
+      ) : null}
+
+      {!loading && !failed ? (
+        <>
+          <View style={styles.metricsRow}>
+            {canReadTasks ? (
+              <MetricCard
+                helper="Visible to this account"
+                label="Active work"
+                style={styles.metricCard}
+                tone={activeTasks.some((task) => task.isOverdue) ? "warning" : "neutral"}
+                value={activeTasks.length}
+              />
+            ) : null}
+            {canReadMeetings ? (
+              <MetricCard
+                helper="Scheduled ahead"
+                label="Upcoming meetings"
+                style={styles.metricCard}
+                value={upcomingMeetings.length}
+              />
+            ) : null}
+          </View>
+
+          {activeTasks.length === 0 && upcomingMeetings.length === 0 ? (
+            <EmptyState
+              description="No active committee work or upcoming meetings are currently visible to this account."
+              title="Nothing pending"
+            />
+          ) : null}
+
+          {activeTasks.length > 0 ? (
+            <View style={styles.previewSection}>
+              <SectionHeader
+                description="Highest-priority items from your authorized task list"
+                title="Active work"
+              />
+              <InformationCard style={styles.previewCard}>
+                {activeTasks.slice(0, 3).map((task, index) => (
+                  <View key={task.id}>
+                    {index > 0 ? <Divider /> : null}
+                    <ListRow
+                      meta={`Due: ${formatTaskDate(task.dueDate)}`}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/work/[id]",
+                          params: { id: task.id },
+                        })
+                      }
+                      subtitle={task.isOverdue ? "Overdue" : taskStatusLabels[task.status]}
+                      title={task.title}
+                      trailing={
+                        <StatusChip
+                          label={task.isOverdue ? "Overdue" : taskStatusLabels[task.status]}
+                          tone={task.isOverdue ? "warning" : "info"}
+                        />
+                      }
+                    />
+                  </View>
+                ))}
+              </InformationCard>
+            </View>
+          ) : null}
+
+          {upcomingMeetings.length > 0 ? (
+            <View style={styles.previewSection}>
+              <SectionHeader
+                description="The next scheduled meetings visible to this account"
+                title="Upcoming meetings"
+              />
+              <InformationCard style={styles.previewCard}>
+                {upcomingMeetings.slice(0, 2).map((meeting, index) => (
+                  <View key={meeting.id}>
+                    {index > 0 ? <Divider /> : null}
+                    <ListRow
+                      meta={meeting.location ?? "Location not specified"}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/work/meetings/[id]",
+                          params: { id: meeting.id },
+                        })
+                      }
+                      subtitle={formatDashboardMeetingDate(meeting.scheduledStart)}
+                      title={meeting.title}
+                      trailing={<StatusChip label="Scheduled" tone="success" />}
+                    />
+                  </View>
+                ))}
+              </InformationCard>
+            </View>
+          ) : null}
+        </>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { backgroundColor: colors.ivory, flex: 1 },
-  content: { padding: 24 },
-  brandRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
-  brandIdentity: { alignItems: "center", flexDirection: "row", gap: 10 },
-  mark: { backgroundColor: colors.gold, borderRadius: 5, height: 18, transform: [{ rotate: "45deg" }], width: 18 },
-  brand: { color: colors.deepEmerald, fontSize: 12, fontWeight: "800", letterSpacing: 1.2 },
-  greeting: { color: colors.deepEmerald, fontSize: 16, fontWeight: "700", marginTop: 48 },
-  title: { color: colors.text, fontSize: 30, fontWeight: "700", marginTop: 8 },
-  subtitle: { color: colors.secondary, fontSize: 16, marginTop: 5 },
-  welcomePanel: { backgroundColor: colors.deepEmerald, borderRadius: 16, marginTop: 24, padding: 20 },
-  panelLabel: { color: colors.gold, fontSize: 11, fontWeight: "800", letterSpacing: 1.1 },
-  username: { color: colors.surface, fontSize: 22, fontWeight: "700", marginTop: 10 },
-  role: { color: "#C8D7D0", fontSize: 14, marginTop: 4 },
-  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: "700", marginTop: 30 },
-  module: { alignItems: "center", backgroundColor: colors.surface, borderRadius: 14, flexDirection: "row", justifyContent: "space-between", marginTop: 12, padding: 18 },
-  moduleText: { flex: 1, paddingRight: 12 },
-  moduleTitle: { color: colors.text, fontSize: 16, fontWeight: "700" },
-  moduleCopy: { color: colors.secondary, fontSize: 13, marginTop: 5 },
-  arrow: { color: colors.gold, fontSize: 30, fontWeight: "300" },
+  content: {
+    flexGrow: 1,
+    padding: spacing.xl,
+    paddingBottom: spacing.section,
+  },
+  welcomePanel: {
+    backgroundColor: colors.darkEmerald,
+    borderRadius: radii.card,
+    marginTop: spacing.xxl,
+    overflow: "hidden",
+    padding: spacing.xl,
+    position: "relative",
+  },
+  welcomeAccent: {
+    backgroundColor: colors.gold,
+    height: 3,
+    left: spacing.xl,
+    position: "absolute",
+    top: 0,
+    width: 52,
+  },
+  greeting: {
+    color: colors.goldMuted,
+    ...typography.label,
+  },
+  accountName: {
+    color: colors.surface,
+    marginTop: spacing.sm,
+    ...typography.pageTitle,
+  },
+  roleContext: {
+    alignItems: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  roleLabel: {
+    color: colors.surface,
+    ...typography.bodySmall,
+  },
+  roleSeparator: {
+    color: colors.gold,
+    ...typography.bodySmall,
+  },
+  accountStatus: {
+    color: colors.goldMuted,
+    ...typography.bodySmall,
+  },
+  section: {
+    gap: spacing.lg,
+    marginTop: spacing.section,
+  },
+  workspaceCard: {
+    paddingBottom: 0,
+    paddingTop: 0,
+  },
+  metricsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.md,
+  },
+  metricCard: {
+    flexBasis: 150,
+    flexGrow: 1,
+  },
+  previewSection: {
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  previewCard: {
+    paddingBottom: 0,
+    paddingTop: 0,
+  },
 });

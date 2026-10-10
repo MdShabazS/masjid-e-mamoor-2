@@ -107,5 +107,5 @@ export function Screen({
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.ivory, flex: 1 },
   fill: { flex: 1 },
-  content: { paddingBottom: spacing.xxl },
+  content: { paddingBottom: spacing.section },
 });

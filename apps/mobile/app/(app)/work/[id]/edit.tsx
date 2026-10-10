@@ -1,16 +1,18 @@
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-} from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../../../../src/auth/AuthProvider";
 import { CommitteeTaskForm } from "../../../../src/components/CommitteeTaskForm";
+import {
+  AppButton,
+  BrandedPageHeader,
+  EmptyState,
+  ErrorState,
+  InformationCard,
+  LoadingState,
+} from "../../../../src/components/InstitutionalUI";
 import { Screen } from "../../../../src/components/Screen";
 import { loadCapabilities } from "../../../../src/modules/capabilities";
 import {
@@ -23,19 +25,14 @@ import {
   updateCommitteeTask,
   type CommitteeTaskDraft,
 } from "../../../../src/modules/work";
-import {
-  isValidTaskDraft,
-  taskErrorMessage,
-} from "../../../../src/modules/work-presentation";
-import { colors } from "../../../../src/theme/colors";
+import { isValidTaskDraft, taskErrorMessage } from "../../../../src/modules/work-presentation";
+import { spacing } from "../../../../src/theme/tokens";
 
 export default function EditCommitteeTaskScreen() {
   const params = useLocalSearchParams<{ id: string }>();
-  const taskId = Array.isArray(params.id) ? params.id[0] : params.id ?? "";
-
+  const taskId = Array.isArray(params.id) ? params.id[0] : (params.id ?? "");
   const { account } = useAuth();
   const queryClient = useQueryClient();
-
   const [draftState, setDraftState] = useState<{
     taskId: string;
     draft: CommitteeTaskDraft;
@@ -46,31 +43,25 @@ export default function EditCommitteeTaskScreen() {
     queryFn: () => loadCapabilities(account!),
     enabled: Boolean(account),
   });
-
-  const canAssign =
-    capabilities.data?.canAssignCommitteeTasks === true;
-
+  const canAssign = capabilities.data?.canAssignCommitteeTasks === true;
   const task = useQuery({
     queryKey: committeeTaskDetailQueryKey(taskId),
     queryFn: () => getCommitteeTask(taskId),
     enabled: Boolean(account && taskId && canAssign),
   });
-
   const assignees = useQuery({
     queryKey: committeeAssigneeOptionsQueryKey(),
     queryFn: listCommitteeAssigneeOptions,
     enabled: canAssign,
   });
-
   const update = useMutation({
     mutationFn: ({
-      taskDraft,
       operationId,
+      taskDraft,
     }: {
-      taskDraft: CommitteeTaskDraft;
       operationId: string;
+      taskDraft: CommitteeTaskDraft;
     }) => updateCommitteeTask(taskId, taskDraft, operationId),
-
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
@@ -83,13 +74,8 @@ export default function EditCommitteeTaskScreen() {
           queryKey: committeeAssigneeOptionsQueryKey(),
         }),
       ]);
-
-      router.replace({
-        pathname: "/work/[id]",
-        params: { id: taskId },
-      });
+      router.replace({ pathname: "/work/[id]", params: { id: taskId } });
     },
-
     onError: (error) => {
       Alert.alert("Task could not be updated", taskErrorMessage(error));
     },
@@ -98,7 +84,6 @@ export default function EditCommitteeTaskScreen() {
   if (!account || capabilities.isLoading) {
     return <PageState loading copy="Loading task editor..." />;
   }
-
   if (capabilities.isError) {
     return (
       <PageState
@@ -107,17 +92,12 @@ export default function EditCommitteeTaskScreen() {
       />
     );
   }
-
   if (!canAssign) {
-    return (
-      <PageState copy="Task editing is not available for this account." />
-    );
+    return <PageState copy="Task editing is not available for this account." />;
   }
-
   if (task.isLoading || assignees.isLoading) {
     return <PageState loading copy="Loading task details..." />;
   }
-
   if (task.isError || !task.data) {
     return (
       <PageState
@@ -126,7 +106,6 @@ export default function EditCommitteeTaskScreen() {
       />
     );
   }
-
   if (assignees.isError) {
     return (
       <PageState
@@ -135,10 +114,12 @@ export default function EditCommitteeTaskScreen() {
       />
     );
   }
-
   if (task.data.status === "completed") {
+    return <PageState copy="Completed tasks can no longer be edited." />;
+  }
+  if (task.data.status === "open") {
     return (
-      <PageState copy="Completed tasks can no longer be edited." />
+      <PageState copy="Open volunteer tasks must be claimed before their assignment can be edited." />
     );
   }
 
@@ -151,19 +132,10 @@ export default function EditCommitteeTaskScreen() {
       .filter((assignee) => assignee.removedAt === null)
       .map((assignee) => assignee.applicationUserId),
   };
-
-  const draft =
-    draftState?.taskId === task.data.id ? draftState.draft : serverDraft;
-
-  const valid = isValidTaskDraft({
-    title: draft.title,
-    dueDate: draft.dueDate,
-    assigneeIds: draft.assigneeIds,
-  });
-
+  const draft = draftState?.taskId === task.data.id ? draftState.draft : serverDraft;
+  const valid = isValidTaskDraft(draft);
   const submit = () => {
     if (update.isPending) return;
-
     if (!valid) {
       Alert.alert(
         "Check task details",
@@ -171,22 +143,17 @@ export default function EditCommitteeTaskScreen() {
       );
       return;
     }
-
-    Alert.alert(
-      "Save task changes?",
-      "The task details and active assignees will be updated.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Save changes",
-          onPress: () =>
-            update.mutate({
-              taskDraft: draft,
-              operationId: createCommitteeOperationId(),
-            }),
-        },
-      ],
-    );
+    Alert.alert("Save task changes?", "The task details and active assignees will be updated.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Save changes",
+        onPress: () =>
+          update.mutate({
+            taskDraft: draft,
+            operationId: createCommitteeOperationId(),
+          }),
+      },
+    ]);
   };
 
   return (
@@ -196,28 +163,31 @@ export default function EditCommitteeTaskScreen() {
       keyboardAware
       scroll
     >
-      <Text style={styles.eyebrow}>COMMITTEE OPERATIONS</Text>
-      <Text style={styles.title}>Edit task</Text>
-      <Text style={styles.intro}>
-        Update the task definition or change its active assignees.
-      </Text>
-
-      {assignees.data?.length === 0 ? (
-        <Text style={styles.notice}>
-          No eligible active users are currently available for assignment.
-        </Text>
-      ) : null}
-
-      <CommitteeTaskForm
-        draft={draft}
-        options={assignees.data ?? []}
-        pending={update.isPending}
-        submitLabel="Save changes"
-        onChange={(nextDraft) =>
-          setDraftState({ taskId: task.data.id, draft: nextDraft })
-        }
-        onSubmit={submit}
+      <BrandedPageHeader
+        description="Update the task definition or its active assignees."
+        eyebrow="Committee operations"
+        title="Edit task"
       />
+      {assignees.data?.length === 0 ? (
+        <View style={styles.section}>
+          <EmptyState
+            description="No eligible active users are currently available for assignment."
+            title="No assignees available"
+          />
+        </View>
+      ) : null}
+      <View style={styles.section}>
+        <InformationCard>
+          <CommitteeTaskForm
+            draft={draft}
+            options={assignees.data ?? []}
+            pending={update.isPending}
+            submitLabel="Save changes"
+            onChange={(nextDraft) => setDraftState({ taskId: task.data.id, draft: nextDraft })}
+            onSubmit={submit}
+          />
+        </InformationCard>
+      </View>
     </Screen>
   );
 }
@@ -233,13 +203,16 @@ function PageState({
 }) {
   return (
     <Screen contentContainerStyle={styles.pageState}>
-      {loading ? <ActivityIndicator color={colors.deepEmerald} /> : null}
-      <Text style={styles.stateCopy}>{copy}</Text>
-
-      {onRetry ? (
-        <Pressable onPress={onRetry} style={styles.retryButton}>
-          <Text style={styles.retryText}>Retry</Text>
-        </Pressable>
+      {loading ? <LoadingState label={copy} /> : null}
+      {!loading && onRetry ? (
+        <ErrorState
+          action={<AppButton label="Retry" onPress={onRetry} variant="secondary" />}
+          description={copy}
+          title="Task editor unavailable"
+        />
+      ) : null}
+      {!loading && !onRetry ? (
+        <EmptyState description={copy} title="Task editor unavailable" />
       ) : null}
     </Screen>
   );
@@ -247,56 +220,14 @@ function PageState({
 
 const styles = StyleSheet.create({
   content: {
-    padding: 20,
-    paddingBottom: 44,
+    flexGrow: 1,
+    padding: spacing.xl,
+    paddingBottom: spacing.section,
   },
-  eyebrow: {
-    color: colors.gold,
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: "700",
-    marginTop: 8,
-  },
-  intro: {
-    color: colors.secondary,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 6,
-  },
-  notice: {
-    backgroundColor: colors.sand,
-    borderRadius: 10,
-    color: colors.secondary,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 20,
-    padding: 14,
-  },
+  section: { marginTop: spacing.section },
   pageState: {
-    alignItems: "center",
     flex: 1,
     justifyContent: "center",
-    padding: 24,
-  },
-  stateCopy: {
-    color: colors.secondary,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 8,
-    textAlign: "center",
-  },
-  retryButton: {
-    marginTop: 10,
-    padding: 8,
-  },
-  retryText: {
-    color: colors.deepEmerald,
-    fontSize: 13,
-    fontWeight: "700",
+    padding: spacing.xl,
   },
 });

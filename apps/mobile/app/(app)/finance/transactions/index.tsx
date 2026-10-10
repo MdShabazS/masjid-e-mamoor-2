@@ -11,6 +11,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuth } from "../../../../src/auth/AuthProvider";
+import { FinancePageHeader } from "../../../../src/components/FinanceUI";
 import { Screen } from "../../../../src/components/Screen";
 import { loadCapabilities } from "../../../../src/modules/capabilities";
 import {
@@ -308,19 +309,10 @@ export default function FinanceTransactionsScreen() {
           />
         }
       >
-        <Text style={styles.eyebrow}>
-          FINANCE
-        </Text>
-
-        <Text style={styles.title}>
-          Transactions
-        </Text>
-
-        <Text style={styles.intro}>
-          Read-only authoritative Finance ledger.
-          Transactions are created only by
-          validated server workflows.
-        </Text>
+        <FinancePageHeader
+          title="Transaction ledger"
+          description="Read-only authoritative Finance ledger. Transactions are created only by validated server workflows."
+        />
 
         <View style={styles.summaryGrid}>
           <View style={styles.summaryCard}>
@@ -472,6 +464,11 @@ export default function FinanceTransactionsScreen() {
 
               <View style={styles.accountFilters}>
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected:
+                      selectedFinanceAccountId === null,
+                  }}
                   onPress={() =>
                     setSelectedFinanceAccountId(
                       null,
@@ -505,6 +502,8 @@ export default function FinanceTransactionsScreen() {
                     return (
                       <Pressable
                         key={financeAccount.id}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected }}
                         onPress={() =>
                           setSelectedFinanceAccountId(
                             financeAccount.id,
@@ -554,6 +553,7 @@ export default function FinanceTransactionsScreen() {
           </View>
 
           <Pressable
+            accessibilityRole="button"
             onPress={() =>
               transactions.refetch()
             }
@@ -565,7 +565,12 @@ export default function FinanceTransactionsScreen() {
         </View>
 
         {transactions.isLoading ? (
-          <View style={styles.statePanel}>
+          <View
+            accessible
+            accessibilityLabel="Loading Finance transactions..."
+            accessibilityRole="progressbar"
+            style={styles.statePanel}
+          >
             <ActivityIndicator
               color={colors.deepEmerald}
             />
@@ -577,13 +582,18 @@ export default function FinanceTransactionsScreen() {
         ) : null}
 
         {transactions.isError ? (
-          <View style={styles.statePanel}>
+          <View
+            accessible
+            accessibilityRole="alert"
+            style={styles.statePanel}
+          >
             <Text style={styles.errorCopy}>
               Finance transactions could not be
               loaded.
             </Text>
 
             <Pressable
+              accessibilityRole="button"
               onPress={() =>
                 transactions.refetch()
               }
@@ -995,11 +1005,13 @@ const styles = StyleSheet.create({
   cardTopRow: {
     alignItems: "flex-start",
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     justifyContent: "space-between",
   },
   cardTopCopy: {
     flex: 1,
+    minWidth: "60%",
   },
   transactionTitle: {
     color: colors.text,
@@ -1013,8 +1025,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   amount: {
+    flexShrink: 1,
     fontSize: 16,
     fontWeight: "800",
+    textAlign: "right",
   },
   inflowAmount: {
     color: colors.deepEmerald,

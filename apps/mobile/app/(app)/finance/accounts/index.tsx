@@ -18,6 +18,10 @@ import {
 } from "@masjid-e-mamoor/validation";
 
 import { useAuth } from "../../../../src/auth/AuthProvider";
+import {
+  FinancePageHeader,
+  FinanceStatusChip,
+} from "../../../../src/components/FinanceUI";
 import { FormTextInput, Screen } from "../../../../src/components/Screen";
 import { loadCapabilities } from "../../../../src/modules/capabilities";
 import {
@@ -194,18 +198,10 @@ export default function FinanceAccountsScreen() {
         ),
       }}
     >
-      <Text style={styles.eyebrow}>
-        FINANCE
-      </Text>
-
-      <Text style={styles.title}>
-        Finance accounts
-      </Text>
-
-      <Text style={styles.intro}>
-        Ledger-backed balances and authorized Finance
-        account lifecycle controls.
-      </Text>
+      <FinancePageHeader
+        title="Finance accounts"
+        description="Ledger-backed balances and authorized Finance account lifecycle controls."
+      />
 
       {accounts.isLoading ? (
         <LoadingPanel />
@@ -342,10 +338,9 @@ export default function FinanceAccountsScreen() {
                 No Finance accounts yet
               </Text>
               <Text style={styles.stateCopy}>
-                An authorized President or Finance user
-                must create the first Finance account
-                before verified donation money can be
-                posted.
+                An authorized Finance account manager
+                must create the first account before
+                verified donation money can be posted.
               </Text>
             </View>
           ) : (
@@ -429,13 +424,10 @@ function FinanceAccountCard({
           </Text>
         </View>
 
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>
-            {financeAccountStatusLabel(
-              account.status,
-            )}
-          </Text>
-        </View>
+        <FinanceStatusChip
+          label={financeAccountStatusLabel(account.status)}
+          status={account.status}
+        />
       </View>
 
       <View style={styles.balancePanel}>

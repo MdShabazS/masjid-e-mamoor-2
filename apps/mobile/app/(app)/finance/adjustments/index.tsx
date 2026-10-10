@@ -17,6 +17,10 @@ import {
 } from "@tanstack/react-query";
 
 import { useAuth } from "../../../../src/auth/AuthProvider";
+import {
+  FinancePageHeader,
+  FinanceStatusChip,
+} from "../../../../src/components/FinanceUI";
 import { Screen } from "../../../../src/components/Screen";
 import {
   formatIsoDateInput,
@@ -596,20 +600,10 @@ export default function FinanceAdjustmentsScreen() {
           />
         }
       >
-        <Text style={styles.eyebrow}>
-          FINANCE
-        </Text>
-
-        <Text style={styles.title}>
-          Corrections & reversals
-        </Text>
-
-        <Text style={styles.intro}>
-          Correct Finance history through
-          append-only ledger effects. Existing
-          transactions are never edited or
-          deleted.
-        </Text>
+        <FinancePageHeader
+          title="Corrections & reversals"
+          description="Correct Finance history through append-only ledger effects. Existing transactions remain unchanged."
+        />
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryCard}>
@@ -675,6 +669,8 @@ export default function FinanceAdjustmentsScreen() {
                     return (
                       <Pressable
                         key={type}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected }}
                         onPress={() =>
                           changeAdjustmentType(
                             type,
@@ -1037,6 +1033,14 @@ export default function FinanceAdjustmentsScreen() {
             ) : null}
 
             <Pressable
+              accessibilityRole="button"
+              accessibilityState={{
+            disabled:
+              submitAdjustment.isPending ||
+              (adjustmentType === "correction"
+                ? !correctionDraftValid
+                : !reversalDraftValid),
+          }}
               disabled={
                 submitAdjustment.isPending ||
                 (adjustmentType ===
@@ -1084,6 +1088,7 @@ export default function FinanceAdjustmentsScreen() {
           </View>
 
           <Pressable
+            accessibilityRole="button"
             onPress={() =>
               adjustments.refetch()
             }
@@ -1095,7 +1100,12 @@ export default function FinanceAdjustmentsScreen() {
         </View>
 
         {adjustments.isLoading ? (
-          <View style={styles.statePanel}>
+          <View
+            accessible
+            accessibilityLabel="Loading Finance adjustments..."
+            accessibilityRole="progressbar"
+            style={styles.statePanel}
+          >
             <ActivityIndicator
               color={colors.deepEmerald}
             />
@@ -1107,13 +1117,18 @@ export default function FinanceAdjustmentsScreen() {
         ) : null}
 
         {adjustments.isError ? (
-          <View style={styles.statePanel}>
+          <View
+            accessible
+            accessibilityRole="alert"
+            style={styles.statePanel}
+          >
             <Text style={styles.errorCopy}>
               Finance adjustments could not be
               loaded.
             </Text>
 
             <Pressable
+              accessibilityRole="button"
               onPress={() =>
                 adjustments.refetch()
               }
@@ -1191,21 +1206,12 @@ export default function FinanceAdjustmentsScreen() {
                     </Text>
                   </View>
 
-                  <Text
-                    style={[
-                      styles.statusBadge,
-                      adjustment.status ===
-                        "applied" &&
-                        styles.statusApplied,
-                      adjustment.status ===
-                        "rejected" &&
-                        styles.statusRejected,
-                    ]}
-                  >
-                    {financeAdjustmentStatusLabel(
+                  <FinanceStatusChip
+                    label={financeAdjustmentStatusLabel(
                       adjustment.status,
                     )}
-                  </Text>
+                    status={adjustment.status}
+                  />
                 </View>
 
                 {target ? (
@@ -1345,6 +1351,10 @@ export default function FinanceAdjustmentsScreen() {
                       style={styles.actionRow}
                     >
                       <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{
+                          disabled: decideAdjustment.isPending,
+                        }}
                         disabled={
                           decideAdjustment.isPending
                         }
@@ -1369,6 +1379,10 @@ export default function FinanceAdjustmentsScreen() {
                       </Pressable>
 
                       <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{
+                          disabled: decideAdjustment.isPending,
+                        }}
                         disabled={
                           decideAdjustment.isPending
                         }
@@ -1436,6 +1450,12 @@ export default function FinanceAdjustmentsScreen() {
                         />
 
                         <Pressable
+                          accessibilityRole="button"
+                          accessibilityState={{
+                            disabled:
+                              !rejectionReason.trim() ||
+                              decideAdjustment.isPending,
+                          }}
                           disabled={
                             !rejectionReason.trim() ||
                             decideAdjustment.isPending
@@ -1784,11 +1804,13 @@ const styles = StyleSheet.create({
   cardTopRow: {
     alignItems: "flex-start",
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     justifyContent: "space-between",
   },
   cardTopCopy: {
     flex: 1,
+    minWidth: "60%",
   },
   adjustmentTitle: {
     color: colors.text,

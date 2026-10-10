@@ -17,6 +17,10 @@ import {
 } from "@tanstack/react-query";
 
 import { useAuth } from "../../../../src/auth/AuthProvider";
+import {
+  FinancePageHeader,
+  FinanceStatusChip,
+} from "../../../../src/components/FinanceUI";
 import { Screen } from "../../../../src/components/Screen";
 import {
   formatIsoDateInput,
@@ -360,18 +364,10 @@ export default function FinanceExpensesScreen() {
           />
         }
       >
-        <Text style={styles.eyebrow}>
-          FINANCE
-        </Text>
-
-        <Text style={styles.title}>
-          Expenses
-        </Text>
-
-        <Text style={styles.intro}>
-          Submit operational expenses and review
-          their approval and posting lifecycle.
-        </Text>
+        <FinancePageHeader
+          title="Expenses"
+          description="Submit operational expenses and review their maker/checker approval and posting lifecycle."
+        />
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryCard}>
@@ -451,6 +447,8 @@ export default function FinanceExpensesScreen() {
                   return (
                     <Pressable
                       key={financeAccount.id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
                       onPress={() =>
                         setDraft((current) => ({
                           ...current,
@@ -584,6 +582,13 @@ export default function FinanceExpensesScreen() {
             ) : null}
 
             <Pressable
+              accessibilityRole="button"
+              accessibilityState={{
+                disabled:
+                  !draftIsValid ||
+                  submitExpense.isPending ||
+                  activeAccounts.length === 0,
+              }}
               disabled={
                 !draftIsValid ||
                 submitExpense.isPending ||
@@ -623,6 +628,7 @@ export default function FinanceExpensesScreen() {
           </View>
 
           <Pressable
+            accessibilityRole="button"
             onPress={() => expenses.refetch()}
           >
             <Text style={styles.refreshAction}>
@@ -632,10 +638,16 @@ export default function FinanceExpensesScreen() {
         </View>
 
         {expenses.isLoading ? (
-          <View style={styles.statePanel}>
+          <View
+            accessible
+            accessibilityLabel="Loading Finance expenses..."
+            accessibilityRole="progressbar"
+            style={styles.statePanel}
+          >
             <ActivityIndicator
               color={colors.deepEmerald}
             />
+
             <Text style={styles.stateCopy}>
               Loading expenses...
             </Text>
@@ -643,18 +655,21 @@ export default function FinanceExpensesScreen() {
         ) : null}
 
         {expenses.isError ? (
-          <View style={styles.statePanel}>
+          <View
+            accessible
+            accessibilityRole="alert"
+            style={styles.statePanel}
+          >
             <Text style={styles.errorCopy}>
               Finance expenses could not be loaded.
             </Text>
 
             <Pressable
+              accessibilityRole="button"
               onPress={() => expenses.refetch()}
               style={styles.secondaryButton}
             >
-              <Text
-                style={styles.secondaryButtonText}
-              >
+              <Text style={styles.secondaryButtonText}>
                 Try again
               </Text>
             </Pressable>
@@ -718,23 +733,14 @@ export default function FinanceExpensesScreen() {
                 </View>
 
                 <View style={styles.statusRow}>
-                  <Text
-                    style={[
-                      styles.statusBadge,
-                      expense.status ===
-                        "posted" &&
-                        styles.statusPosted,
-                      expense.status ===
-                        "rejected" &&
-                        styles.statusRejected,
-                    ]}
-                  >
-                    {financeExpenseStatusLabel(
-                      expense.status,
-                    )}
-                  </Text>
+                    <FinanceStatusChip
+                      label={financeExpenseStatusLabel(
+                        expense.status,
+                      )}
+                      status={expense.status}
+                    />
 
-                  <Text style={styles.meta}>
+                    <Text style={styles.meta}>
                     {accountNames.get(
                       expense.financeAccountId,
                     ) ??
@@ -799,6 +805,10 @@ export default function FinanceExpensesScreen() {
                       style={styles.actionRow}
                     >
                       <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{
+                          disabled: decideExpense.isPending,
+                        }}
                         disabled={
                           decideExpense.isPending
                         }
@@ -821,6 +831,10 @@ export default function FinanceExpensesScreen() {
                       </Pressable>
 
                       <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{
+                          disabled: decideExpense.isPending,
+                        }}
                         disabled={
                           decideExpense.isPending
                         }
@@ -888,6 +902,12 @@ export default function FinanceExpensesScreen() {
                         />
 
                         <Pressable
+                          accessibilityRole="button"
+                          accessibilityState={{
+                            disabled:
+                              !rejectionReason.trim() ||
+                              decideExpense.isPending,
+                          }}
                           disabled={
                             !rejectionReason.trim() ||
                             decideExpense.isPending
@@ -1118,11 +1138,13 @@ const styles = StyleSheet.create({
   cardTopRow: {
     alignItems: "flex-start",
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     justifyContent: "space-between",
   },
   cardTopCopy: {
     flex: 1,
+    minWidth: "60%",
   },
   expenseDescription: {
     color: colors.text,
@@ -1131,8 +1153,10 @@ const styles = StyleSheet.create({
   },
   expenseAmount: {
     color: colors.deepEmerald,
+    flexShrink: 1,
     fontSize: 16,
     fontWeight: "800",
+    textAlign: "right",
   },
   meta: {
     color: colors.secondary,

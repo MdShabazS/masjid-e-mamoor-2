@@ -15,6 +15,10 @@ import {
 } from "@tanstack/react-query";
 
 import { useAuth } from "../../../../src/auth/AuthProvider";
+import {
+  FinancePageHeader,
+  FinanceStatusChip,
+} from "../../../../src/components/FinanceUI";
 import { Screen } from "../../../../src/components/Screen";
 import { isValidIsoDate } from "../../../../src/lib/date-input";
 import { loadCapabilities } from "../../../../src/modules/capabilities";
@@ -450,22 +454,10 @@ export default function FinanceReconciliationScreen() {
       scroll
       contentContainerStyle={styles.content}
     >
-      <Text style={styles.eyebrow}>
-        FINANCE
-      </Text>
-
-      <Text style={styles.title}>
-        Reconciliation
-      </Text>
-
-      <Text style={styles.intro}>
-        Compare authoritative Finance balances
-        with bank statements, UPI statements,
-        cash counts, receipts, and other external
-        evidence. Discrepancies are recorded and
-        investigated; reconciliation never silently
-        repairs the ledger.
-      </Text>
+      <FinancePageHeader
+        title="Reconciliation"
+        description="Compare authoritative Finance balances with external evidence. Discrepancies are recorded and investigated; reconciliation never silently repairs the ledger."
+      />
 
       {!canManage ? (
         <View style={styles.notice}>
@@ -495,6 +487,11 @@ export default function FinanceReconciliationScreen() {
           <View style={styles.choiceRow}>
             {reconciliationTypes.map((type) => (
               <Pressable
+                accessibilityRole="button"
+                accessibilityState={{
+                  selected:
+                    reconciliationType === type,
+                }}
                 key={type}
                 onPress={() =>
                   setReconciliationType(type)
@@ -563,6 +560,7 @@ export default function FinanceReconciliationScreen() {
           </Text>
 
           <Pressable
+            accessibilityRole="button"
             onPress={refreshHistory}
             style={styles.inlineButton}
           >
@@ -574,10 +572,14 @@ export default function FinanceReconciliationScreen() {
 
         {reconciliations.isLoading ? (
           <ActivityIndicator
+            accessible
+            accessibilityLabel="Loading reconciliation history..."
+            accessibilityRole="progressbar"
             color={colors.deepEmerald}
           />
         ) : reconciliations.isError ? (
-          <Text style={styles.errorText}>
+          <Text
+            accessibilityRole="alert" style={styles.errorText}>
             Reconciliation history could not load.
           </Text>
         ) : reconciliations.data?.length ? (
@@ -656,16 +658,25 @@ export default function FinanceReconciliationScreen() {
 
           {items.isLoading ? (
             <ActivityIndicator
+              accessible
+              accessibilityLabel="Loading reconciliation accounts..."
+              accessibilityRole="progressbar"
               color={colors.deepEmerald}
             />
           ) : items.isError ? (
-            <Text style={styles.errorText}>
+            <Text
+              accessibilityRole="alert" style={styles.errorText}>
               Reconciliation accounts could not load.
             </Text>
           ) : items.data?.length ? (
             <View style={styles.cardList}>
               {items.data.map((item) => (
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected:
+                      selectedItemId === item.id,
+                  }}
                   key={item.id}
                   onPress={() => selectItem(item)}
                   style={[
@@ -685,11 +696,12 @@ export default function FinanceReconciliationScreen() {
                       </Text>
                     </View>
 
-                    <Text style={styles.statusText}>
-                      {financeReconciliationDiscrepancyStatusLabel(
-                        item.discrepancyStatus,
-                      )}
-                    </Text>
+                    <FinanceStatusChip
+                    label={financeReconciliationDiscrepancyStatusLabel(
+                      item.discrepancyStatus,
+                    )}
+                    status={item.discrepancyStatus}
+                  />
                   </View>
 
                   <DetailRow
@@ -780,6 +792,11 @@ export default function FinanceReconciliationScreen() {
               <View style={styles.choiceWrap}>
                 {evidenceTypes.map((type) => (
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{
+                      selected:
+                        evidenceType === type,
+                    }}
                     key={type}
                     onPress={() =>
                       setEvidenceType(type)
@@ -924,6 +941,8 @@ function ReconciliationCard({
 }) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
       onPress={onPress}
       style={[
         styles.itemCard,
@@ -945,11 +964,12 @@ function ReconciliationCard({
           </Text>
         </View>
 
-        <Text style={styles.statusText}>
-          {financeReconciliationStatusLabel(
+        <FinanceStatusChip
+          label={financeReconciliationStatusLabel(
             reconciliation.status,
           )}
-        </Text>
+          status={reconciliation.status}
+        />
       </View>
 
       {reconciliation.periodMonth ? (
@@ -1034,6 +1054,8 @@ function PrimaryButton({
 }) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
       style={[
@@ -1195,14 +1217,16 @@ const styles = StyleSheet.create({
     borderColor: colors.deepEmerald,
     borderWidth: 2,
   },
-  itemTopRow: {
+    itemTopRow: {
     alignItems: "flex-start",
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
     justifyContent: "space-between",
   },
   flex: {
     flex: 1,
+    minWidth: "60%",
   },
   itemTitle: {
     color: colors.text,

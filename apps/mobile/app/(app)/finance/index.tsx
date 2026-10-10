@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import {
   ActivityIndicator,
@@ -6,11 +7,12 @@ import {
   Text,
   View,
 } from "react-native";
-import { useQuery } from "@tanstack/react-query";
 
 import { useAuth } from "../../../src/auth/AuthProvider";
+import { FinancePageHeader } from "../../../src/components/FinanceUI";
 import { Screen } from "../../../src/components/Screen";
 import { loadCapabilities } from "../../../src/modules/capabilities";
+import { financeWorkspaceModules } from "../../../src/modules/finance-presentation";
 import { colors } from "../../../src/theme/colors";
 
 export default function FinanceHomeScreen() {
@@ -30,40 +32,81 @@ export default function FinanceHomeScreen() {
         edges={["left", "right", "bottom"]}
         contentContainerStyle={styles.centerState}
       >
-        <ActivityIndicator color={colors.deepEmerald} />
-        <Text style={styles.stateCopy}>
-          Loading Finance access...
-        </Text>
+        <View
+          accessible
+          accessibilityLabel="Loading Finance workspace..."
+          accessibilityRole="progressbar"
+          style={styles.loadingState}
+        >
+          <ActivityIndicator color={colors.deepEmerald} />
+          <Text style={styles.stateCopy}>
+            Loading Finance workspace...
+          </Text>
+        </View>
       </Screen>
     );
   }
 
-  const access = capabilities.data;
-
-  if (
-    capabilities.isError ||
-    !access ||
-    (!access.canReadFinanceAccounts &&
-      !access.canReadFinanceMonthlyReports &&
-      !access.canReadFinanceReconciliation &&
-      !access.canReadFinanceTransactions &&
-      !access.canCreateFinanceTransfers &&
-      !access.canApproveFinanceTransfers &&
-      !access.canCreateFinanceExpenses &&
-      !access.canApproveFinanceExpenses &&
-      !access.canCreateFinanceCorrections &&
-      !access.canCreateFinanceReversals)
-  ) {
+  if (capabilities.isError) {
     return (
       <Screen
         edges={["left", "right", "bottom"]}
         contentContainerStyle={styles.centerState}
       >
-        <Text style={styles.eyebrow}>FINANCE</Text>
-        <Text style={styles.title}>Finance</Text>
-        <Text style={styles.stateCopy}>
-          Finance access is not available for your account.
-        </Text>
+        <View
+          accessible
+          accessibilityRole="alert"
+          style={styles.statePanel}
+        >
+          <Text style={styles.stateTitle}>
+            Finance workspace could not load
+          </Text>
+
+          <Text style={styles.stateCopy}>
+            Check your connection and try again.
+          </Text>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void capabilities.refetch()}
+            style={({ pressed }) => [
+              styles.retryButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.retryButtonText}>
+              Retry
+            </Text>
+          </Pressable>
+        </View>
+      </Screen>
+    );
+  }
+
+  const access = capabilities.data;
+  const modules = access
+    ? financeWorkspaceModules(access)
+    : [];
+
+  if (!access || modules.length === 0) {
+    return (
+      <Screen
+        edges={["left", "right", "bottom"]}
+        contentContainerStyle={styles.centerState}
+      >
+        <View style={styles.statePanel}>
+          <Text style={styles.eyebrow}>
+            FINANCE
+          </Text>
+
+          <Text style={styles.stateTitle}>
+            Finance unavailable
+          </Text>
+
+          <Text style={styles.stateCopy}>
+            Finance access is not available for your account.
+          </Text>
+        </View>
       </Screen>
     );
   }
@@ -74,175 +117,54 @@ export default function FinanceHomeScreen() {
       scroll
       contentContainerStyle={styles.content}
     >
-      <Text style={styles.eyebrow}>FINANCE</Text>
+      <FinancePageHeader
+        title="Finance workspace"
+        description="Review authorized financial records, operational workflows, reconciliation, and monthly reports."
+      />
 
-      <Text style={styles.title}>
-        Finance workspace
-      </Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionEyebrow}>
+          AUTHORIZED WORKSPACE
+        </Text>
 
-      <Text style={styles.intro}>
-        Review authorized Finance records and monthly
-        financial report packs.
-      </Text>
+        <Text style={styles.sectionTitle}>
+          Financial operations
+        </Text>
+
+        <Text style={styles.sectionCopy}>
+          Only the Finance areas available through your current
+          capabilities are shown here.
+        </Text>
+      </View>
 
       <View style={styles.grid}>
-        {access.canReadFinanceAccounts ? (
+        {modules.map((module) => (
           <Pressable
-            onPress={() =>
-              router.push("/finance/accounts")
-            }
-            style={styles.card}
+            key={module.key}
+            accessibilityRole="button"
+            onPress={() => router.push(module.href)}
+            style={({ pressed }) => [
+              styles.card,
+              pressed && styles.cardPressed,
+            ]}
           >
-            <Text style={styles.cardTitle}>
-              Finance accounts
-            </Text>
-            <Text style={styles.cardCopy}>
-              Review ledger-backed account balances and
-              account lifecycle information.
-            </Text>
-            <Text style={styles.cardAction}>
-              Open accounts →
-            </Text>
+            <View style={styles.cardAccent} />
+
+            <View style={styles.cardBody}>
+              <Text style={styles.cardTitle}>
+                {module.title}
+              </Text>
+
+              <Text style={styles.cardCopy}>
+                {module.description}
+              </Text>
+
+              <Text style={styles.cardAction}>
+                Open {module.title.toLowerCase()} →
+              </Text>
+            </View>
           </Pressable>
-        ) : null}
-
-        {access.canReadFinanceTransactions ? (
-          <Pressable
-            onPress={() =>
-              router.push("/finance/transactions")
-            }
-            style={styles.card}
-          >
-            <Text style={styles.cardTitle}>
-              Finance transactions
-            </Text>
-
-            <Text style={styles.cardCopy}>
-              Review the read-only authoritative
-              Finance ledger across all accounts.
-            </Text>
-
-            <Text style={styles.cardAction}>
-              Open transactions →
-            </Text>
-          </Pressable>
-        ) : null}
-
-        {access.canReadFinanceTransactions ||
-        access.canCreateFinanceTransfers ||
-        access.canApproveFinanceTransfers ? (
-          <Pressable
-            onPress={() =>
-              router.push("/finance/transfers")
-            }
-            style={styles.card}
-          >
-            <Text style={styles.cardTitle}>
-              Internal transfers
-            </Text>
-
-            <Text style={styles.cardCopy}>
-              Move funds between Masjid Finance
-              accounts using maker/checker approval.
-            </Text>
-
-            <Text style={styles.cardAction}>
-              Open transfers →
-            </Text>
-          </Pressable>
-        ) : null}
-
-        {access.canReadFinanceTransactions ||
-        access.canCreateFinanceExpenses ||
-        access.canApproveFinanceExpenses ? (
-          <Pressable
-            onPress={() =>
-              router.push("/finance/expenses")
-            }
-            style={styles.card}
-          >
-            <Text style={styles.cardTitle}>
-              Finance expenses
-            </Text>
-
-            <Text style={styles.cardCopy}>
-              Submit expenses and review their
-              approval and posting lifecycle.
-            </Text>
-
-            <Text style={styles.cardAction}>
-              Open expenses →
-            </Text>
-          </Pressable>
-        ) : null}
-
-        {access.canReadFinanceTransactions ||
-        access.canCreateFinanceCorrections ||
-        access.canCreateFinanceReversals ? (
-          <Pressable
-            onPress={() =>
-              router.push("/finance/adjustments")
-            }
-            style={styles.card}
-          >
-            <Text style={styles.cardTitle}>
-              Corrections & reversals
-            </Text>
-
-            <Text style={styles.cardCopy}>
-              Review and submit append-only
-              Finance corrections and reversals
-              with maker/checker control.
-            </Text>
-
-            <Text style={styles.cardAction}>
-              Open adjustments →
-            </Text>
-          </Pressable>
-        ) : null}
-
-        {access.canReadFinanceReconciliation ? (
-          <Pressable
-            onPress={() =>
-              router.push("/finance/reconciliation")
-            }
-            style={styles.card}
-          >
-            <Text style={styles.cardTitle}>
-              Reconciliation
-            </Text>
-
-            <Text style={styles.cardCopy}>
-              Compare authoritative Finance balances
-              with external statements, cash counts,
-              evidence, and investigated discrepancies.
-            </Text>
-
-            <Text style={styles.cardAction}>
-              Open reconciliation →
-            </Text>
-          </Pressable>
-        ) : null}
-
-        {access.canReadFinanceMonthlyReports ? (
-          <Pressable
-            onPress={() =>
-              router.push("/finance/reports")
-            }
-            style={styles.card}
-          >
-            <Text style={styles.cardTitle}>
-              Monthly reports
-            </Text>
-            <Text style={styles.cardCopy}>
-              Review immutable monthly Finance summaries
-              and available PDF report packs.
-            </Text>
-            <Text style={styles.cardAction}>
-              Open reports →
-            </Text>
-          </Pressable>
-        ) : null}
+        ))}
       </View>
     </Screen>
   );
@@ -259,57 +181,112 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
   },
+  statePanel: {
+    alignItems: "center",
+    maxWidth: 420,
+    width: "100%",
+  },
+  loadingState: {
+    alignItems: "center",
+  },
   eyebrow: {
     color: colors.gold,
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1.2,
+    textTransform: "uppercase",
   },
-  title: {
+  stateTitle: {
     color: colors.text,
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: "700",
     marginTop: 8,
+    textAlign: "center",
   },
-  intro: {
+  stateCopy: {
     color: colors.secondary,
     fontSize: 14,
     lineHeight: 21,
-    marginTop: 7,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  retryButton: {
+    alignItems: "center",
+    backgroundColor: colors.deepEmerald,
+    borderRadius: 12,
+    justifyContent: "center",
+    marginTop: 18,
+    minHeight: 46,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+  },
+  retryButtonText: {
+    color: colors.surface,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  pressed: {
+    opacity: 0.82,
+  },
+  section: {
+    marginTop: 24,
+  },
+  sectionEyebrow: {
+    color: colors.gold,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.1,
+  },
+  sectionTitle: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: "700",
+    marginTop: 5,
+  },
+  sectionCopy: {
+    color: colors.secondary,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 5,
   },
   grid: {
     gap: 12,
-    marginTop: 24,
+    marginTop: 16,
   },
   card: {
     backgroundColor: colors.surface,
     borderColor: colors.sand,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
+    flexDirection: "row",
+    overflow: "hidden",
+  },
+  cardPressed: {
+    opacity: 0.82,
+  },
+  cardAccent: {
+    backgroundColor: colors.deepEmerald,
+    width: 4,
+  },
+  cardBody: {
+    flex: 1,
     padding: 18,
   },
   cardTitle: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
   },
   cardCopy: {
     color: colors.secondary,
     fontSize: 13,
     lineHeight: 19,
-    marginTop: 7,
+    marginTop: 6,
   },
   cardAction: {
     color: colors.deepEmerald,
     fontSize: 13,
     fontWeight: "700",
-    marginTop: 14,
-  },
-  stateCopy: {
-    color: colors.secondary,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 8,
-    textAlign: "center",
+    marginTop: 13,
   },
 });

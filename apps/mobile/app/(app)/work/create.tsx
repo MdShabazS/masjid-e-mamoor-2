@@ -1,16 +1,19 @@
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-} from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../../../src/auth/AuthProvider";
 import { CommitteeTaskForm } from "../../../src/components/CommitteeTaskForm";
+import {
+  AppButton,
+  BrandedPageHeader,
+  EmptyState,
+  ErrorState,
+  InformationCard,
+  LoadingState,
+  SectionHeader,
+} from "../../../src/components/InstitutionalUI";
 import { Screen } from "../../../src/components/Screen";
 import { loadCapabilities } from "../../../src/modules/capabilities";
 import {
@@ -18,14 +21,19 @@ import {
   committeeTaskListQueryKey,
   createCommitteeOperationId,
   createCommitteeTask,
+  createOpenCommitteeTask,
   listCommitteeAssigneeOptions,
   type CommitteeTaskDraft,
 } from "../../../src/modules/work";
 import {
+  isValidOpenTaskDraft,
   isValidTaskDraft,
   taskErrorMessage,
 } from "../../../src/modules/work-presentation";
 import { colors } from "../../../src/theme/colors";
+import { borders, radii, spacing, touchTargets, typography } from "../../../src/theme/tokens";
+
+type AssignmentMode = "direct" | "open";
 
 const initialDraft: CommitteeTaskDraft = {
   title: "",
@@ -39,42 +47,46 @@ export default function CreateCommitteeTaskScreen() {
   const { account } = useAuth();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<CommitteeTaskDraft>(initialDraft);
+  const [assignmentMode, setAssignmentMode] = useState<AssignmentMode>("direct");
 
   const capabilities = useQuery({
     queryKey: ["capabilities", account?.id],
     queryFn: () => loadCapabilities(account!),
     enabled: Boolean(account),
   });
-
-  const canAssign =
-    capabilities.data?.canAssignCommitteeTasks === true;
-
+  const canAssign = capabilities.data?.canAssignCommitteeTasks === true;
   const assignees = useQuery({
     queryKey: committeeAssigneeOptionsQueryKey(),
     queryFn: listCommitteeAssigneeOptions,
-    enabled: canAssign,
+    enabled: canAssign && assignmentMode === "direct",
   });
-
   const create = useMutation({
     mutationFn: ({
-      taskDraft,
+      mode,
       operationId,
+      taskDraft,
     }: {
-      taskDraft: CommitteeTaskDraft;
+      mode: AssignmentMode;
       operationId: string;
-    }) => createCommitteeTask(taskDraft, operationId),
-
+      taskDraft: CommitteeTaskDraft;
+    }) =>
+      mode === "open"
+        ? createOpenCommitteeTask(
+            {
+              title: taskDraft.title,
+              description: taskDraft.description,
+              priority: taskDraft.priority,
+              dueDate: taskDraft.dueDate,
+            },
+            operationId,
+          )
+        : createCommitteeTask(taskDraft, operationId),
     onSuccess: async (task) => {
       await queryClient.invalidateQueries({
         queryKey: committeeTaskListQueryKey(account?.id),
       });
-
-      router.replace({
-        pathname: "/work/[id]",
-        params: { id: task.id },
-      });
+      router.replace({ pathname: "/work/[id]", params: { id: task.id } });
     },
-
     onError: (error) => {
       Alert.alert("Task could not be created", taskErrorMessage(error));
     },
@@ -83,27 +95,18 @@ export default function CreateCommitteeTaskScreen() {
   if (!account || capabilities.isLoading) {
     return <PageState loading copy="Loading task creation..." />;
   }
-
   if (capabilities.isError) {
     return (
-      <PageState
-        copy="Task creation could not load."
-        onRetry={() => void capabilities.refetch()}
-      />
+      <PageState copy="Task creation could not load." onRetry={() => void capabilities.refetch()} />
     );
   }
-
   if (!canAssign) {
-    return (
-      <PageState copy="Task creation is not available for this account." />
-    );
+    return <PageState copy="Task creation is not available for this account." />;
   }
-
-  if (assignees.isLoading) {
+  if (assignmentMode === "direct" && assignees.isLoading) {
     return <PageState loading copy="Loading eligible assignees..." />;
   }
-
-  if (assignees.isError) {
+  if (assignmentMode === "direct" && assignees.isError) {
     return (
       <PageState
         copy="Eligible assignees could not load."
@@ -112,25 +115,21 @@ export default function CreateCommitteeTaskScreen() {
     );
   }
 
-  const valid = isValidTaskDraft({
-    title: draft.title,
-    dueDate: draft.dueDate,
-    assigneeIds: draft.assigneeIds,
-  });
-
+  const valid = assignmentMode === "open" ? isValidOpenTaskDraft(draft) : isValidTaskDraft(draft);
   const submit = () => {
     if (create.isPending) return;
-
     if (!valid) {
       Alert.alert(
         "Check task details",
-        "Enter a task title, choose at least one assignee, and use YYYY-MM-DD for the due date if provided.",
+        assignmentMode === "direct"
+          ? "Enter a task title, choose at least one assignee, and use YYYY-MM-DD for the due date if provided."
+          : "Enter a task title and use YYYY-MM-DD for the due date if provided.",
       );
       return;
     }
-
     create.mutate({
-      taskDraft: draft,
+      mode: assignmentMode,
+      taskDraft: assignmentMode === "open" ? { ...draft, assigneeIds: [] } : draft,
       operationId: createCommitteeOperationId(),
     });
   };
@@ -142,27 +141,63 @@ export default function CreateCommitteeTaskScreen() {
       keyboardAware
       scroll
     >
-      <Text style={styles.eyebrow}>COMMITTEE OPERATIONS</Text>
-      <Text style={styles.title}>Create task</Text>
-      <Text style={styles.intro}>
-        Define the work, choose eligible assignees, and set an optional due
-        date.
-      </Text>
+      <BrandedPageHeader
+        description="Define authorized committee work and its assignment model."
+        eyebrow="Committee operations"
+        title="Create task"
+      />
 
-      {assignees.data?.length === 0 ? (
-        <Text style={styles.notice}>
-          No eligible active users are currently available for assignment.
+      <View style={styles.section}>
+        <SectionHeader
+          description="Choose direct responsibility or an eligible volunteer opportunity."
+          title="Assignment model"
+        />
+        <View style={styles.segmentRow}>
+          {(["direct", "open"] as AssignmentMode[]).map((mode) => (
+            <Pressable
+              key={mode}
+              accessibilityRole="button"
+              accessibilityState={{ selected: assignmentMode === mode }}
+              onPress={() => setAssignmentMode(mode)}
+              style={[styles.segment, assignmentMode === mode && styles.segmentSelected]}
+            >
+              <Text
+                style={[styles.segmentText, assignmentMode === mode && styles.segmentTextSelected]}
+              >
+                {mode === "direct" ? "Direct assignment" : "Open volunteer"}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.modeHelp}>
+          {assignmentMode === "direct"
+            ? "Selected active users receive the task directly."
+            : "The task starts unassigned and one eligible Committee Member may claim it."}
         </Text>
+      </View>
+
+      {assignmentMode === "direct" && assignees.data?.length === 0 ? (
+        <View style={styles.section}>
+          <EmptyState
+            description="No eligible active users are currently available for direct assignment."
+            title="No assignees available"
+          />
+        </View>
       ) : null}
 
-      <CommitteeTaskForm
-        draft={draft}
-        options={assignees.data ?? []}
-        pending={create.isPending}
-        submitLabel="Create task"
-        onChange={setDraft}
-        onSubmit={submit}
-      />
+      <View style={styles.section}>
+        <InformationCard>
+          <CommitteeTaskForm
+            draft={draft}
+            options={assignees.data ?? []}
+            pending={create.isPending}
+            showAssignees={assignmentMode === "direct"}
+            submitLabel={assignmentMode === "direct" ? "Create assigned task" : "Create open task"}
+            onChange={setDraft}
+            onSubmit={submit}
+          />
+        </InformationCard>
+      </View>
     </Screen>
   );
 }
@@ -178,13 +213,16 @@ function PageState({
 }) {
   return (
     <Screen contentContainerStyle={styles.pageState}>
-      {loading ? <ActivityIndicator color={colors.deepEmerald} /> : null}
-      <Text style={styles.stateCopy}>{copy}</Text>
-
-      {onRetry ? (
-        <Pressable onPress={onRetry} style={styles.retryButton}>
-          <Text style={styles.retryText}>Retry</Text>
-        </Pressable>
+      {loading ? <LoadingState label={copy} /> : null}
+      {!loading && onRetry ? (
+        <ErrorState
+          action={<AppButton label="Retry" onPress={onRetry} variant="secondary" />}
+          description={copy}
+          title="Task creation unavailable"
+        />
+      ) : null}
+      {!loading && !onRetry ? (
+        <EmptyState description={copy} title="Task creation unavailable" />
       ) : null}
     </Screen>
   );
@@ -192,56 +230,34 @@ function PageState({
 
 const styles = StyleSheet.create({
   content: {
-    padding: 20,
-    paddingBottom: 44,
+    flexGrow: 1,
+    padding: spacing.xl,
+    paddingBottom: spacing.section,
   },
-  eyebrow: {
-    color: colors.gold,
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: "700",
-    marginTop: 8,
-  },
-  intro: {
-    color: colors.secondary,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 6,
-  },
-  notice: {
-    backgroundColor: colors.sand,
-    borderRadius: 10,
-    color: colors.secondary,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 20,
-    padding: 14,
-  },
-  pageState: {
+  section: { gap: spacing.md, marginTop: spacing.section },
+  segmentRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  segment: {
     alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radii.control,
+    borderWidth: borders.width,
+    flexBasis: 140,
+    flexGrow: 1,
+    justifyContent: "center",
+    minHeight: touchTargets.comfortable,
+    paddingHorizontal: spacing.md,
+  },
+  segmentSelected: {
+    backgroundColor: colors.deepEmerald,
+    borderColor: colors.deepEmerald,
+  },
+  segmentText: { color: colors.secondary, textAlign: "center", ...typography.label },
+  segmentTextSelected: { color: colors.surface },
+  modeHelp: { color: colors.secondary, ...typography.bodySmall },
+  pageState: {
     flex: 1,
     justifyContent: "center",
-    padding: 24,
-  },
-  stateCopy: {
-    color: colors.secondary,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 8,
-    textAlign: "center",
-  },
-  retryButton: {
-    marginTop: 10,
-    padding: 8,
-  },
-  retryText: {
-    color: colors.deepEmerald,
-    fontSize: 13,
-    fontWeight: "700",
+    padding: spacing.xl,
   },
 });

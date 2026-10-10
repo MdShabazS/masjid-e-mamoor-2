@@ -15,6 +15,8 @@ import {
 } from "@tanstack/react-query";
 
 import { useAuth } from "../../../../src/auth/AuthProvider";
+import { FinancePageHeader } from "../../../../src/components/FinanceUI";
+import { StatusChip } from "../../../../src/components/InstitutionalUI";
 import {
   FormTextInput,
   Screen,
@@ -128,16 +130,10 @@ export default function FinanceMonthlyReportsScreen() {
         ),
       }}
     >
-      <Text style={styles.eyebrow}>FINANCE</Text>
-
-      <Text style={styles.title}>
-        Monthly reports
-      </Text>
-
-      <Text style={styles.intro}>
-        Immutable monthly Finance summaries and generated
-        PDF report packs.
-      </Text>
+      <FinancePageHeader
+        title="Monthly reports"
+        description="Immutable monthly Finance snapshots, revision history and generated PDF report packs."
+      />
 
       {reports.isLoading ? <LoadingPanel /> : null}
 
@@ -189,6 +185,12 @@ export default function FinanceMonthlyReportsScreen() {
               />
 
               <Pressable
+                accessibilityRole="button"
+                accessibilityState={{
+                  disabled:
+                    generate.isPending ||
+                    reportMonth.trim().length === 0,
+                }}
                 disabled={
                   generate.isPending ||
                   reportMonth.trim().length === 0
@@ -287,13 +289,18 @@ function ReportCard({
           </Text>
         </View>
 
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>
-            {financeMonthlyReportStatusLabel(
-              report.status,
-            )}
-          </Text>
-        </View>
+        <StatusChip
+          label={financeMonthlyReportStatusLabel(
+            report.status,
+          )}
+          tone={
+            report.status === "ready"
+              ? "success"
+              : report.status === "failed"
+                ? "danger"
+                : "warning"
+          }
+        />
       </View>
 
       <View style={styles.moneyGrid}>
@@ -342,6 +349,10 @@ function ReportCard({
 
       {report.status === "ready" ? (
         <Pressable
+          accessibilityRole="button"
+          accessibilityState={{
+            disabled: openingPdf,
+          }}
           disabled={openingPdf}
           onPress={onOpen}
           style={[
@@ -421,7 +432,12 @@ function Summary({
 
 function LoadingPanel() {
   return (
-    <View style={styles.statePanel}>
+    <View
+      accessible
+      accessibilityLabel="Loading monthly Finance reports..."
+      accessibilityRole="progressbar"
+      style={styles.statePanel}
+    >
       <ActivityIndicator color={colors.deepEmerald} />
       <Text style={styles.stateCopy}>
         Loading monthly reports...
@@ -454,7 +470,11 @@ function ErrorPanel({
   onRetry: () => void;
 }) {
   return (
-    <View style={styles.statePanel}>
+    <View
+      accessible
+      accessibilityRole="alert"
+      style={styles.statePanel}
+    >
       <Text style={styles.stateTitle}>
         Monthly reports could not load
       </Text>
@@ -462,6 +482,7 @@ function ErrorPanel({
         Check your connection and try again.
       </Text>
       <Pressable
+        accessibilityRole="button"
         onPress={onRetry}
         style={styles.retryButton}
       >
@@ -623,11 +644,13 @@ const styles = StyleSheet.create({
   reportHeader: {
     alignItems: "flex-start",
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
     justifyContent: "space-between",
   },
   reportHeaderCopy: {
     flex: 1,
-    paddingRight: 12,
+    minWidth: "60%",
   },
   reportMonth: {
     color: colors.text,

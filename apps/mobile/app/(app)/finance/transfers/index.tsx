@@ -17,6 +17,10 @@ import {
 } from "@tanstack/react-query";
 
 import { useAuth } from "../../../../src/auth/AuthProvider";
+import {
+  FinancePageHeader,
+  FinanceStatusChip,
+} from "../../../../src/components/FinanceUI";
 import { Screen } from "../../../../src/components/Screen";
 import {
   formatIsoDateInput,
@@ -417,19 +421,10 @@ export default function FinanceTransfersScreen() {
           />
         }
       >
-        <Text style={styles.eyebrow}>
-          FINANCE
-        </Text>
-
-        <Text style={styles.title}>
-          Transfers
-        </Text>
-
-        <Text style={styles.intro}>
-          Move Masjid funds between Finance
-          accounts without changing overall
-          Masjid funds.
-        </Text>
+        <FinancePageHeader
+          title="Internal transfers"
+          description="Move funds between Finance accounts using the existing maker/checker workflow without changing overall Masjid funds."
+        />
 
         <View style={styles.summaryRow}>
           <View style={styles.summaryCard}>
@@ -503,6 +498,8 @@ export default function FinanceTransfersScreen() {
                   return (
                     <Pressable
                       key={financeAccount.id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
                       onPress={() =>
                         setDraft((current) => ({
                           ...current,
@@ -571,6 +568,8 @@ export default function FinanceTransfersScreen() {
                   return (
                     <Pressable
                       key={financeAccount.id}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
                       onPress={() =>
                         setDraft((current) => ({
                           ...current,
@@ -701,6 +700,13 @@ export default function FinanceTransfersScreen() {
             ) : null}
 
             <Pressable
+              accessibilityRole="button"
+              accessibilityState={{
+                disabled:
+                  !draftIsValid ||
+                  submitTransfer.isPending ||
+                  activeAccounts.length < 2,
+              }}
               disabled={
                 !draftIsValid ||
                 submitTransfer.isPending ||
@@ -740,6 +746,7 @@ export default function FinanceTransfersScreen() {
           </View>
 
           <Pressable
+            accessibilityRole="button"
             onPress={() => transfers.refetch()}
           >
             <Text style={styles.refreshAction}>
@@ -749,7 +756,12 @@ export default function FinanceTransfersScreen() {
         </View>
 
         {transfers.isLoading ? (
-          <View style={styles.statePanel}>
+          <View
+            accessible
+            accessibilityLabel="Loading Finance transfers..."
+            accessibilityRole="progressbar"
+            style={styles.statePanel}
+          >
             <ActivityIndicator
               color={colors.deepEmerald}
             />
@@ -760,13 +772,18 @@ export default function FinanceTransfersScreen() {
         ) : null}
 
         {transfers.isError ? (
-          <View style={styles.statePanel}>
+          <View
+            accessible
+            accessibilityRole="alert"
+            style={styles.statePanel}
+          >
             <Text style={styles.errorCopy}>
               Finance transfers could not be
               loaded.
             </Text>
 
             <Pressable
+              accessibilityRole="button"
               onPress={() => transfers.refetch()}
               style={styles.secondaryButton}
             >
@@ -854,22 +871,13 @@ export default function FinanceTransfersScreen() {
                 </View>
 
                 <View style={styles.statusRow}>
-                  <Text
-                    style={[
-                      styles.statusBadge,
-                      transfer.status ===
-                        "approved" &&
-                        styles.statusApproved,
-                      transfer.status ===
-                        "rejected" &&
-                        styles.statusRejected,
-                    ]}
-                  >
-                    {financeTransferStatusLabel(
-                      transfer.status,
-                    )}
-                  </Text>
-                </View>
+                    <FinanceStatusChip
+                      label={financeTransferStatusLabel(
+                        transfer.status,
+                      )}
+                      status={transfer.status}
+                    />
+                  </View>
 
                 <Text style={styles.detail}>
                   Reason: {transfer.reason}
@@ -949,6 +957,10 @@ export default function FinanceTransfersScreen() {
                       style={styles.actionRow}
                     >
                       <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{
+                          disabled: decideTransfer.isPending,
+                        }}
                         disabled={
                           decideTransfer.isPending
                         }
@@ -971,6 +983,10 @@ export default function FinanceTransfersScreen() {
                       </Pressable>
 
                       <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{
+                          disabled: decideTransfer.isPending,
+                        }}
                         disabled={
                           decideTransfer.isPending
                         }
@@ -1038,6 +1054,12 @@ export default function FinanceTransfersScreen() {
                         />
 
                         <Pressable
+                          accessibilityRole="button"
+                          accessibilityState={{
+                            disabled:
+                              !rejectionReason.trim() ||
+                              decideTransfer.isPending,
+                          }}
                           disabled={
                             !rejectionReason.trim() ||
                             decideTransfer.isPending
@@ -1287,11 +1309,13 @@ const styles = StyleSheet.create({
   cardTopRow: {
     alignItems: "flex-start",
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     justifyContent: "space-between",
   },
   cardTopCopy: {
     flex: 1,
+    minWidth: "60%",
   },
   transferRoute: {
     color: colors.text,
@@ -1300,8 +1324,10 @@ const styles = StyleSheet.create({
   },
   transferAmount: {
     color: colors.deepEmerald,
+    flexShrink: 1,
     fontSize: 16,
     fontWeight: "800",
+    textAlign: "right",
   },
   meta: {
     color: colors.secondary,
