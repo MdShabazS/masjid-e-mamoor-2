@@ -1,0 +1,9 @@
+# Payment QR replacement and request snapshot check
+
+**Date:** 24 October 2026 (India time). **Environment:** isolated local Supabase stack and local Next.js HTTP route, with issued synthetic President, Treasurer, Member and Data Entry sessions. No masjid payee, donation or production service was used.
+
+The existing `backend/scripts/phase5_qr_lifecycle.mjs` fixture still expected Data Entry to upload a QR, although the current policy gives activation to the President alone. The fixture now checks Data Entry denial and uses the President for the HTTP upload, retry and conflict cases. It also creates one synthetic, consent-gated monthly request immediately after the first QR activation. After two replacement uploads, it checks that the request still points to its original version and SHA-256 digest while the original version is retired but retained.
+
+The first run hit the production upload limit of five attempts per actor per hour: four direct-handler attempts left one HTTP attempt, so the HTTP retry correctly returned 429. The fixture now removes only that actor's disposable rate bucket between the direct-handler and HTTP sections. The production limiter was not changed. The rerun passed role denial, exact image bytes and digest, same-operation retry, conflicting-byte rejection, replacement, private President/Treasurer readback, live role-change denial, frozen request snapshot and zero finance effects. The local reset left zero Auth users, QR versions, monthly requests, donors and Storage objects (`0|0|0|0|0`). All 131 Node tests, lint, typecheck and formatting checks passed.
+
+**Still open for launch:** repeat on hosted staging and a real Android device; validate the scanned payee against the official bank record; test recipient-specific private QR delivery and its consent/opt-out rules; prove safe pending-object cleanup and private Storage backup/restore. This local synthetic check does not approve a real-money payment destination.

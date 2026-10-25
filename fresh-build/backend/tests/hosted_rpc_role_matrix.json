@@ -1,0 +1,867 @@
+{
+  "project_id": "necattvpncnsrfcrwpjn",
+  "guarded_rpc_count": 65,
+  "cases": [
+    {
+      "rpc": "activate_payment_qr",
+      "args": [
+        "p_account_id",
+        "p_asset_path",
+        "p_sha256_hex",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president"
+      ]
+    },
+    {
+      "rpc": "active_payment_qr_for_staff",
+      "args": [
+        "p_account_id"
+      ],
+      "roles": [
+        "president",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "admin_register_identity",
+      "args": [
+        "p_user_id",
+        "p_username",
+        "p_role"
+      ],
+      "roles": [
+        "system_admin"
+      ]
+    },
+    {
+      "rpc": "admin_require_password_reset",
+      "args": [
+        "p_target_id"
+      ],
+      "roles": [
+        "system_admin"
+      ]
+    },
+    {
+      "rpc": "admin_set_account_state",
+      "args": [
+        "p_target_id",
+        "p_role",
+        "p_active"
+      ],
+      "roles": [
+        "system_admin"
+      ]
+    },
+    {
+      "rpc": "archive_community_post",
+      "args": [
+        "p_id",
+        "p_expected_revision",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "cancel_committee_meeting",
+      "args": [
+        "p_meeting_id",
+        "p_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "cancel_work_task",
+      "args": [
+        "p_task_id",
+        "p_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary"
+      ]
+    },
+    {
+      "rpc": "correct_account_beneficiary",
+      "args": [
+        "p_account_id",
+        "p_upi_id",
+        "p_bank_account_number",
+        "p_ifsc",
+        "p_evidence_reference",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president"
+      ]
+    },
+    {
+      "rpc": "correct_finance_posting",
+      "args": [
+        "p_original_effect_id",
+        "p_replacement_account_id",
+        "p_replacement_amount_paise",
+        "p_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "create_committee_meeting",
+      "args": [
+        "p_title",
+        "p_description",
+        "p_date",
+        "p_starts_at",
+        "p_location",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "create_community_post",
+      "args": [
+        "p_title",
+        "p_body",
+        "p_audience",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "create_finance_account",
+      "args": [
+        "p_name",
+        "p_kind",
+        "p_upi_id",
+        "p_bank_account_number",
+        "p_ifsc",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president"
+      ]
+    },
+    {
+      "rpc": "create_work_task",
+      "args": [
+        "p_title",
+        "p_description",
+        "p_date",
+        "p_location",
+        "p_mode",
+        "p_total",
+        "p_invited",
+        "p_volunteer",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary"
+      ]
+    },
+    {
+      "rpc": "deactivate_finance_account",
+      "args": [
+        "p_account_id",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president"
+      ]
+    },
+    {
+      "rpc": "decide_expense_request",
+      "args": [
+        "p_id",
+        "p_decision",
+        "p_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "decide_one_time_donation",
+      "args": [
+        "p_id",
+        "p_decision",
+        "p_actual_paise",
+        "p_account_id",
+        "p_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "finance_receipt_state",
+      "args": [
+        "p_code"
+      ],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "get_monthly_donor_contact",
+      "args": [
+        "p_donor_id"
+      ],
+      "roles": [
+        "president",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "invite_committee_meeting",
+      "args": [
+        "p_meeting_id",
+        "p_member_id",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "invite_work_task_member",
+      "args": [
+        "p_task_id",
+        "p_member_id",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary"
+      ]
+    },
+    {
+      "rpc": "join_work_task",
+      "args": [
+        "p_task_id",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "leave_work_task",
+      "args": [
+        "p_task_id",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "list_account_beneficiary_versions",
+      "args": [
+        "p_account_id"
+      ],
+      "roles": [
+        "president",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_actionable_expenses",
+      "args": [],
+      "roles": [
+        "president",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_active_masjid_accounts",
+      "args": [],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_correctable_finance_effects",
+      "args": [
+        "p_account_id"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_finance_account_history",
+      "args": [
+        "p_account_id",
+        "p_before_at",
+        "p_before_id",
+        "p_limit"
+      ],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_finance_accounts",
+      "args": [],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_finance_reconciliations",
+      "args": [
+        "p_account_id",
+        "p_before_at",
+        "p_before_id",
+        "p_limit"
+      ],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_finance_report_balances",
+      "args": [
+        "p_run_id"
+      ],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_finance_report_lines",
+      "args": [
+        "p_run_id"
+      ],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_hafiz_prayer_marks",
+      "args": [
+        "p_start",
+        "p_end_exclusive"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_managed_community_posts",
+      "args": [
+        "p_limit"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "list_member_community_posts",
+      "args": [
+        "p_limit"
+      ],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "list_monthly_donors",
+      "args": [],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "list_my_member_inbox",
+      "args": [
+        "p_limit"
+      ],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "list_pending_finance_openings",
+      "args": [],
+      "roles": [
+        "president",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_pending_monthly_claims",
+      "args": [],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_pending_one_time_donations",
+      "args": [],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_visible_committee_meetings",
+      "args": [],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "list_visible_work_tasks",
+      "args": [],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "list_work_task_participants",
+      "args": [
+        "p_task_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary"
+      ]
+    },
+    {
+      "rpc": "mark_my_member_notification_read",
+      "args": [
+        "p_id"
+      ],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "my_verified_task_count",
+      "args": [],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "payment_qr_account_eligible",
+      "args": [
+        "p_account_id"
+      ],
+      "roles": [
+        "president"
+      ]
+    },
+    {
+      "rpc": "post_expense_payment",
+      "args": [
+        "p_id",
+        "p_account_id",
+        "p_amount_paise",
+        "p_method",
+        "p_date",
+        "p_proof",
+        "p_operation_id"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "post_finance_transfer",
+      "args": [
+        "p_from_account_id",
+        "p_to_account_id",
+        "p_amount_paise",
+        "p_evidence_reference",
+        "p_operation_id"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "publish_community_post",
+      "args": [
+        "p_id",
+        "p_publish_at",
+        "p_expire_at",
+        "p_expected_revision",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "reconcile_finance_account",
+      "args": [
+        "p_account_id",
+        "p_observed_balance_paise"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "record_finance_reconciliation",
+      "args": [
+        "p_account_id",
+        "p_observed_balance_paise",
+        "p_evidence_reference",
+        "p_explanation",
+        "p_operation_id"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "record_hafiz_prayer",
+      "args": [
+        "p_date",
+        "p_slot",
+        "p_mark",
+        "p_attested_after_prayer",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "reject_monthly_claim",
+      "args": [
+        "p_claim_id",
+        "p_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "request_finance_report",
+      "args": [
+        "p_kind",
+        "p_start",
+        "p_end_exclusive",
+        "p_include_proofs",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "respond_committee_meeting",
+      "args": [
+        "p_meeting_id",
+        "p_response",
+        "p_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "resubmit_rejected_monthly_claim",
+      "args": [
+        "p_claim_id",
+        "p_transaction_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "review_work_task_completion",
+      "args": [
+        "p_task_id",
+        "p_member_id",
+        "p_decision",
+        "p_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary"
+      ]
+    },
+    {
+      "rpc": "revise_community_post",
+      "args": [
+        "p_id",
+        "p_title",
+        "p_body",
+        "p_audience",
+        "p_expected_revision",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "submit_account_opening",
+      "args": [
+        "p_account_id",
+        "p_amount_paise",
+        "p_evidence_reference",
+        "p_operation_id"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "submit_expense_request",
+      "args": [
+        "p_title",
+        "p_description",
+        "p_category",
+        "p_amount_paise",
+        "p_bill",
+        "p_missing_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member"
+      ]
+    },
+    {
+      "rpc": "submit_monthly_claim",
+      "args": [
+        "p_donor_id",
+        "p_period_date",
+        "p_transaction_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "submit_one_time_donation",
+      "args": [
+        "p_name",
+        "p_kind",
+        "p_referrer_id",
+        "p_date",
+        "p_method",
+        "p_amount_paise",
+        "p_evidence",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "submit_work_task_completion",
+      "args": [
+        "p_task_id",
+        "p_note",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "verify_account_opening",
+      "args": [
+        "p_opening_id",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president"
+      ]
+    },
+    {
+      "rpc": "verify_monthly_claim",
+      "args": [
+        "p_claim_id",
+        "p_account_id",
+        "p_actual_amount_paise",
+        "p_operation_id"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    }
+  ]
+}

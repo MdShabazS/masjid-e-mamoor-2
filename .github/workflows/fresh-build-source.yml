@@ -1,0 +1,92 @@
+name: Fresh build source checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  source-checks:
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_SECRET_CANARIES: mem2-server-key-canary-20261025-a4d19c,mem2-meta-secret-canary-20261025-b8e70d,mem2-cron-secret-canary-20261025-c3f562
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Clean locked install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: fresh-build
+      - name: Block critical dependency advisories
+        run: npm audit --audit-level=critical
+        working-directory: fresh-build
+      - name: Detect new high dependency advisories
+        working-directory: fresh-build
+        shell: bash
+        run: |
+          audit_file=$(mktemp)
+          trap 'rm -f "$audit_file"' EXIT
+          status=0
+          npm audit --json > "$audit_file" || status=$?
+          if [ "$status" -gt 1 ]; then
+            echo "npm audit failed with exit status $status"
+            exit "$status"
+          fi
+          python3 scripts/check_dependency_audit.py "$audit_file"
+      - name: Domain and handler tests
+        run: npm test
+        working-directory: fresh-build
+      - name: Environment template check
+        run: npm run check:env
+        working-directory: fresh-build
+      - name: Lint
+        run: npm run lint
+        working-directory: fresh-build
+      - name: Format check
+        run: npm run format:check
+        working-directory: fresh-build
+      - name: Source typecheck
+        run: npm run typecheck
+        working-directory: fresh-build
+      - name: Web production build
+        run: npm run build:web
+        working-directory: fresh-build
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: mem2-server-key-canary-20261025-a4d19c
+          META_APP_SECRET: mem2-meta-secret-canary-20261025-b8e70d
+          QUEUE_CRON_SECRET: mem2-cron-secret-canary-20261025-c3f562
+      - name: Unconfigured web smoke
+        run: npm run smoke:web
+        working-directory: fresh-build
+      - name: Android bundle export
+        run: npm run export:android
+        working-directory: fresh-build
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: mem2-server-key-canary-20261025-a4d19c
+          META_APP_SECRET: mem2-meta-secret-canary-20261025-b8e70d
+          QUEUE_CRON_SECRET: mem2-cron-secret-canary-20261025-c3f562
+      - name: Scan public bundles for server-only canaries
+        run: npm run check:bundle
+        working-directory: fresh-build
+      - name: Backup preflight tests
+        run: python3 -m unittest discover -s backend/backup -v
+        working-directory: fresh-build
+      - name: Release manifest guard tests
+        run: python3 -m unittest discover -s scripts -p 'test_*.py' -v
+        working-directory: fresh-build
+      - name: Database harness syntax
+        run: |
+          bash -n fresh-build/backend/scripts/run_fresh_db_checks.sh
+          python3 fresh-build/backend/scripts/db_fixture_preflight.py
+          python3 -m unittest discover -s fresh-build/backend/scripts -p 'test_*.py' -v
+          for fixture in fresh-build/backend/tests/*.sql; do
+            python3 fresh-build/backend/scripts/connector_fixture_sql.py "$fixture" > /dev/null
+          done
+      - name: Source archive and clean restore
+        shell: bash
+        run: |
+          archive=$(python3 scripts/backup_project_source.py | tail -n 2 | head -n 1)
+          python3 scripts/verify_project_source_backup.py "$archive"

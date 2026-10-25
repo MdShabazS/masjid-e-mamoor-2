@@ -1,0 +1,1 @@
+-- Intentionally empty: no real users or financial state in seed.

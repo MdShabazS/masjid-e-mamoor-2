@@ -1,0 +1,38 @@
+{
+  "name": "masjid-e-mamoor-fresh-build",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "eslint 'apps/**/*.{js,jsx,mjs}' 'backend/**/*.js' 'packages/**/*.js' 'scripts/*.{js,mjs}'",
+    "typecheck": "tsc -p tsconfig.check.json --pretty false",
+    "format:check": "prettier --check 'apps/**/*.{js,jsx,mjs}' 'backend/**/*.js' 'packages/**/*.js' 'scripts/*.{js,mjs}' package.json eslint.config.mjs",
+    "format": "prettier --write 'apps/**/*.{js,jsx,mjs}' 'backend/**/*.js' 'packages/**/*.js' 'scripts/*.{js,mjs}' package.json eslint.config.mjs",
+    "test": "node --test packages/**/*.test.js backend/identity/*.test.js backend/api/*.test.js backend/whatsapp/*.test.js backend/jobs/*.test.js backend/ops/*.test.js backend/qr/*.test.js backend/reports/*.test.js backend/backup/*.test.js backend/receipts/*.test.js apps/web/lib/*.test.js",
+    "build:web": "npm run build --workspace=@masjid/fresh-web",
+    "smoke:web": "node scripts/smoke_web.mjs",
+    "export:android": "npm run export:android --workspace=masjid-e-mamoor-android-fresh",
+    "test:backup": "python3 -m unittest discover -s backend/backup -v",
+    "check:shell": "bash -n backend/scripts/run_fresh_db_checks.sh",
+    "check:env": "python3 scripts/check_env_templates.py && python3 -m unittest discover -s scripts -p 'test_check_*.py' -v",
+    "check:bundle": "python3 scripts/check_public_bundle.py --root apps/web/.next/static --root apps/android/dist"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "sharp": "0.35.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "@types/react": "19.3.0",
+    "eslint": "10.12.0",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3"
+  }
+}

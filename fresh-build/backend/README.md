@@ -1,0 +1,26 @@
+# Fresh backend
+
+This backend uses its own Supabase `config.toml` and 20 ordered migrations in
+`supabase/migrations/`. The older root `supabase/` tree is reference material
+and must never be applied to this project. The initial
+`001_monthly_contributions.sql` is a historical reference copy; the ordered
+migration tree is the executable source.
+
+The isolated hosted development project and a separate disposable local stack
+have applied all 20 migrations. The 12 rollback-only SQL fixtures pass through
+real PostgreSQL roles. Eight distinct issued sessions passed 48 direct API
+role/read checks and 288 wrong-role calls across 65 guarded RPCs locally and on
+hosted development. Local expiry, role change and deactivation, and hosted
+President/Treasurer finance and independent-session task races also pass. These are development checks;
+staging, production, signed-in client journeys and recovery remain open.
+
+For exact local start, fixture, reset, source backup and environment custody
+instructions, see `../docs/PHASE_0_LOCAL_OPERATIONS_2026-10-17.md`. For
+observed database and money results, see
+`../docs/PHASE_3_DATABASE_EXECUTION_2026-10-16.md` and
+`../docs/PHASE_4_EXECUTION_2026-10-17.md`.
+
+Owner-dependent donor enrollment remains server-only and inactive until an
+approved consent version exists. No public report/PDF or message dispatch is
+enabled merely by applying these migrations. The source archive is not a
+database or private-object backup.

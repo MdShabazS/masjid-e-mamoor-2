@@ -1,0 +1,7 @@
+# Node runtime gate — 25 October 2026
+
+The root package advertised Node `>=20`, while the locked `@supabase/supabase-js` packages in the web and Android workspaces and `@supabase/storage-js` require Node `>=22.0.0`. [Supabase announced the end of Node 20 support](https://supabase.com/changelog?types=deprecation) for its JavaScript clients on 30 June 2026. A Node 20 installer could therefore accept the root project while warning about an unsupported dependency.
+
+The root, web and Android package manifests and matching lockfile entries now specify Node `>=22.0.0`. The root `.npmrc` enables npm's `engine-strict` install check. The tested local runtime is Node `v24.15.0`; no Node 20 executable was available to exercise the rejection path directly.
+
+Verification on Node 24: offline `npm ci --dry-run --ignore-scripts`, 151 Node tests, lint, typecheck, formatting, production web build and Android bundle export passed. This does not replace a committed clean checkout, hosted CI, native signed Android release or staging deployment with a recorded Node version.

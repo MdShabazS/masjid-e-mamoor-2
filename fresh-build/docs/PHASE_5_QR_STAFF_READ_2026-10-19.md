@@ -1,0 +1,13 @@
+# Phase 5 private QR staff review — 19 October 2026
+
+The President and Treasurer can select an account in the web finance screen and load its current payment QR. The image is served through a signed-in server route from the private Storage bucket, with no direct browser Storage permission or public URL. The route checks the current Auth user, account and password gate, live app role, shared read rate limit, current active QR record and its registered digest. It fully decodes and hashes the downloaded image, checks byte count, then checks that the same QR version remains active before returning bytes with `private, no-store` and `nosniff`. The browser revokes temporary image URLs on account changes and unmount.
+
+Migration 20, `20261018203552_payment_qr_staff_read.sql`, adds the narrow actor-guarded lookup for President and Treasurer. It joins the active QR to its verified asset record, requires an active account, and grants execution only to authenticated users. The server repeats authorization before using its Storage secret. The hosted isolated development project applied the migration and confirmed authenticated execution is granted, anonymous execution is denied, and Auth users, QR versions, verified assets and QR Storage objects remain zero. The advisor baseline is unchanged: 49 no-policy RLS notices, 64 unindexed foreign keys and three unused indexes; the new function is included in the 86 total/68 authenticated guarded definer inventory.
+
+The disposable local stack applied all 20 migrations and passed all 12 rollback-only SQL fixtures, including President/Treasurer allow and Data Entry/Member deny cases. Issued synthetic Auth sessions passed real Storage upload and private review, current-version replacement, anonymous/Member denial, digest verification and zero finance effects. The script reset the stack; final counts for users, accounts, QR versions, verified assets, QR objects and finance effects were all zero. The full Node suite passed 90 tests; lint, typecheck, formatting, web build and unconfigured HTTP smoke passed.
+
+The working-source archive `backups/masjid-project-working-source-2026-10-18T204808Z.tar.gz` passed checksum, 852-file digest and clean-restore verification. This is a source backup; QR Storage and database restore remain separate release gates.
+
+Remaining gates: this used generated images, so a real QR payee and account still need independent operator validation and approval. A signed-in browser journey against hosted Storage is untested. Donor/request-specific private QR delivery, stale staged-object cleanup, Storage backup/restore and a real-data release decision remain open.
+
+Reference: [Supabase private asset access](https://supabase.com/docs/guides/storage/serving/downloads).

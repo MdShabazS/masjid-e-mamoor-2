@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Masjid E Mamoor 2",
+    "slug": "masjid-e-mamoor-2-fresh",
+    "scheme": "mem2",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "org.masjidemamoor.app.fresh",
+      "versionCode": 1
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Select the masjid payment QR image.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ]
+  }
+}
