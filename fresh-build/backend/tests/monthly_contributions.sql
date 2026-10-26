@@ -1,4 +1,4 @@
--- Run with psql against a fresh development database after 001_monthly_contributions.sql.
+-- Run with psql against a disposable database after the ordered fresh migrations.
 -- This transaction leaves no test users or money behind.
 begin;
 

@@ -7,3 +7,4 @@ __pycache__/
 *.sha256
 database.dump
 inventory.json
+/output/

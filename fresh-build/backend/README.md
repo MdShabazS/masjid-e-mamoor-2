@@ -2,9 +2,8 @@
 
 This backend uses its own Supabase `config.toml` and 31 ordered migrations in
 `supabase/migrations/`. The older root `supabase/` tree is preserved in Git history
-and must never be applied to this project. The initial
-`001_monthly_contributions.sql` is a historical reference copy; the ordered
-migration tree is the executable source.
+and must never be applied to this project. The ordered migration tree is the
+only executable schema source; the initial prototype is retained in Git history.
 
 The isolated hosted development project has applied all 31 migrations. Its
 expanded monthly-contribution rollback fixture passed after migration 31;

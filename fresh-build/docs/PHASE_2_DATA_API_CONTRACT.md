@@ -42,7 +42,7 @@ No second factor is assumed for v1. No general self-registration. Internal Auth 
 | `content_revision`, `release_manifest`, `report_run`, `file_object` | Schedule/audience/version; signed APK version/hash/URL; report cutoff/hash/revision; object visibility and content digest. | Public approved content/release, private reports/files with per-object checks. |
 | `operation`, `audit`, `outbox`, `inbox`, `delivery`, `backup_run`, `restore_run` | Unique operation+payload hash, unique provider event and send purpose; bounded attempts; immutable audit; backup manifest hash and restore actor/outcome. | Workers/server only; operator failure dashboards are redacted. |
 
-Physical schema names and indexes are frozen in Phase 3 after role matrix sign-off. The draft `001_monthly_contributions.sql` lacks several of these families and must not be applied as a complete product schema.
+Physical schema names and indexes are frozen in Phase 3 after role matrix sign-off. The removed `001_monthly_contributions.sql` prototype lacked several of these families and was never the complete product schema; it remains in Git history.
 
 ## Command/query registry
 

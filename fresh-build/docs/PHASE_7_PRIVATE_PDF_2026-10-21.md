@@ -5,7 +5,7 @@
 - Added a default-off, private PDF route for an existing finance report ID. It requires a live bearer session, active identity, allowed report-reader role, rate limit and a second role check before release.
 - The route fetches only immutable period/cutoff metadata with a server-only service role. Migration `20261021060845_report_metadata_service_read.sql` grants the service role SELECT on the six required columns; browser roles have no table grant. Report lines and balances still come from actor-scoped RPCs.
 - The renderer reuses the exact-paise CSV reconciliation and transfer-pair checks. It prints period, cutoff, account balances, itemized effects and optional proof references. It bounds input/output, pages the PDF, sends a SHA-256 digest and private/no-store headers. The browser checks that digest before downloading.
-- A synthetic one-page PDF is saved at `output/pdf/phase7-synthetic-report.pdf`. This contains no real personal or finance data.
+- A synthetic one-page PDF was saved at `output/pdf/phase7-synthetic-report.pdf` for the test. Its generated copy was removed from the active repository; the historical artifact remains in Git history and contains no real personal or finance data.
 
 ## Verification
 

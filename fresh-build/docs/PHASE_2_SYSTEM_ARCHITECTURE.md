@@ -1,6 +1,6 @@
 # Phase 2 — system architecture and trust boundaries
 
-**Prepared:** 15 October 2026. **Status:** first architecture draft. This is a target for the fresh build, not a deployed system. Phase 1 owner-dependent decisions remain gated in `PHASE_1_AUDIT.md`. Existing `backend/001_monthly_contributions.sql` and direct-RPC clients are an unexecuted prototype to reconcile, not an automatically approved migration.
+**Prepared:** 15 October 2026. **Status:** first architecture draft. This is a target for the fresh build, not a deployed system. Phase 1 owner-dependent decisions remain gated in `PHASE_1_AUDIT.md`. The removed `backend/001_monthly_contributions.sql` prototype and its original direct-RPC clients remain in Git history; they were never automatically approved migrations.
 
 ## Scope and design laws
 

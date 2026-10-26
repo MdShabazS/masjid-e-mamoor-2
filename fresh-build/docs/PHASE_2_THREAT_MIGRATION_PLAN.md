@@ -24,7 +24,7 @@
 
 ## Fresh migration and deployment sequence
 
-1. **Inventory and freeze prototype:** Preserve `backend/001_monthly_contributions.sql` and tests as an unexecuted design reference. Inventory its public tables/RPCs and gaps against the new contract. Do not apply legacy `../../supabase/migrations` to the fresh project.
+1. **Inventory and freeze prototype:** The unexecuted `backend/001_monthly_contributions.sql` prototype is retained in Git history. Inventory its public tables/RPCs and gaps against the new contract. Do not apply the legacy root migrations to the fresh project.
 2. **Create isolated development project:** Record CLI/server/Postgres versions and actual Data API exposure mode. Current Supabase changelog says new `public` tables are not automatically exposed by default on new projects; do not assume table/REST availability. Explicitly test intended routes and grants. See [breaking-change notice](https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically).
    The [October 2026 breaking-change feed](https://supabase.com/changelog?types=breaking-change) also announces upcoming removal of older TLS ciphers and a Postgres minor release affecting some extension indexes/legacy pgcrypto data. This fresh project should use current supported clients, inventory extensions and record versions; it has no legacy ciphertext to migrate by assumption.
 3. **Foundation migrations:** private schemas, extension placement, roles/actor/profile/credential gate, schema version, operation/audit tables. Revoke default function execution and direct DML before adding functions; explicit API exposure only for named surfaces. Keep identity provisioning bootstrap server-only.

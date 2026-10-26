@@ -1,11 +1,11 @@
 # Historical requirements and design records
 
-These documents record the earlier implementation and the requirements used to
-design `fresh-build/`. Some describe the removed root app and older role or
-finance rules. They are reference material, not evidence that the new app is
-implemented or ready for real-money use.
+The three documents here preserve the earlier requirements baseline, decision
+register and acceptance criteria used to design `fresh-build/`. They are
+reference material. Later explicit masjid decisions and the fresh-build records
+take precedence when rules differ.
 
 For current work, use [`../fresh-build/tasks.md`](../fresh-build/tasks.md),
 the fresh-build decision records, and the latest explicit masjid decisions.
-The superseded root app and migration source remains recoverable from Git
-history and the verified local pre-cleanup backup.
+Superseded app, migration and design files remain recoverable from Git history
+and the verified local pre-cleanup backup.
