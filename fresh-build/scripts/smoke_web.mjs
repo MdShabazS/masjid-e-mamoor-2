@@ -54,7 +54,7 @@ try {
     await new Promise((resolveWait) => setTimeout(resolveWait, 100));
   }
   if (!ready) throw new Error('Web process did not become ready');
-  for (const path of ['/', '/announcements', '/login']) {
+  for (const path of ['/', '/announcements', '/login', '/finance/receipt-handoff']) {
     const response = await fetch(base + path);
     if (response.status !== 200 || !response.headers.get('content-type')?.includes('text/html'))
       throw new Error(`Unexpected public page: ${path} ${response.status}`);
@@ -103,7 +103,7 @@ try {
   if (qrRead.status !== 503 || (await qrRead.json()).error.code !== 'SERVICE_UNAVAILABLE')
     throw new Error('Unconfigured private QR read did not fail closed');
   console.log(
-    'Public pages 200; identity, jobs, management, receipt, WhatsApp and private QR/report routes fail closed without configuration',
+    'Page HTML 200; identity, jobs, management, receipt, WhatsApp and private QR/report routes fail closed without configuration',
   );
 } finally {
   if (server.exitCode === null && server.signalCode === null) {

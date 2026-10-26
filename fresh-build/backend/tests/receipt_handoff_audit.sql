@@ -5,15 +5,18 @@ select id,'00000000-0000-0000-0000-000000000000'::uuid,'authenticated','authenti
 from (values
  ('f1000000-0000-0000-0000-000000000001'::uuid,'handoff-treasurer@example.invalid'),
  ('f1000000-0000-0000-0000-000000000002'::uuid,'handoff-committee@example.invalid'),
- ('f1000000-0000-0000-0000-000000000003'::uuid,'handoff-member@example.invalid')) fixture(id,email);
+ ('f1000000-0000-0000-0000-000000000003'::uuid,'handoff-member@example.invalid'),
+ ('f1000000-0000-0000-0000-000000000004'::uuid,'handoff-president@example.invalid')) fixture(id,email);
 insert into public.app_users(id,role) values
  ('f1000000-0000-0000-0000-000000000001','treasurer'),
  ('f1000000-0000-0000-0000-000000000002','committee_member'),
- ('f1000000-0000-0000-0000-000000000003','member');
+ ('f1000000-0000-0000-0000-000000000003','member'),
+ ('f1000000-0000-0000-0000-000000000004','president');
 insert into app_private.username_aliases(user_id,username,must_change_password) values
  ('f1000000-0000-0000-0000-000000000001','handofftreasurer',false),
  ('f1000000-0000-0000-0000-000000000002','handoffcommittee',false),
- ('f1000000-0000-0000-0000-000000000003','handoffmember',false);
+ ('f1000000-0000-0000-0000-000000000003','handoffmember',false),
+ ('f1000000-0000-0000-0000-000000000004','handoffpresident',false);
 insert into auth.sessions(id,user_id)
 select id,id from public.app_users where id::text like 'f1000000-0000-0000-0000-%';
 insert into public.masjid_accounts(id,name,kind)
@@ -40,13 +43,17 @@ do $$ begin
   or has_table_privilege('authenticated','public.receipt_handoff_events','SELECT')
   or has_table_privilege('authenticated','app_private.receipt_handoff_policy','SELECT')
   or has_function_privilege('anon',
-   'public.record_manual_receipt_handoff(uuid,text,text,text,text,text)','EXECUTE') then
+   'public.record_manual_receipt_handoff(uuid,text,text,text,text,text)','EXECUTE')
+  or has_function_privilege('anon',
+   'public.manual_receipt_handoff_enabled()','EXECUTE') then
    raise exception 'receipt handoff exposed before approval'; end if;
 end $$;
 select set_config('request.jwt.claims',
  '{"sub":"f1000000-0000-0000-0000-000000000001","session_id":"f1000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 set local role authenticated;
 do $$ begin
+ if public.manual_receipt_handoff_enabled() then
+  raise exception 'unapproved handoff shown as enabled'; end if;
  begin
   perform public.record_manual_receipt_handoff('f5000000-0000-0000-0000-000000000001',
    'f4000000-0000-0000-0000-000000000001','donation:f3000000','in_person',
@@ -63,6 +70,10 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 do $$ begin
  begin
+  perform public.manual_receipt_handoff_enabled();
+  raise exception 'member handoff capability was visible';
+ exception when insufficient_privilege then null; end;
+ begin
   perform public.record_manual_receipt_handoff('f5000000-0000-0000-0000-000000000001',
    'f4000000-0000-0000-0000-000000000001','donation:f3000000','in_person',
    'delivered','signed synthetic receipt copy');
@@ -72,9 +83,28 @@ end $$;
 reset role;
 
 select set_config('request.jwt.claims',
+ '{"sub":"f1000000-0000-0000-0000-000000000004","session_id":"f1000000-0000-0000-0000-000000000004","role":"authenticated"}',true);
+set local role authenticated;
+do $$ begin
+ begin
+  perform public.manual_receipt_handoff_enabled();
+  raise exception 'president handoff capability was visible';
+ exception when insufficient_privilege then null; end;
+ begin
+  perform public.record_manual_receipt_handoff('f5000000-0000-0000-0000-000000000005',
+   'f4000000-0000-0000-0000-000000000001','donation:f3000000','in_person',
+   'delivered','signed synthetic receipt copy');
+  raise exception 'president handoff write was accepted';
+ exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+select set_config('request.jwt.claims',
  '{"sub":"f1000000-0000-0000-0000-000000000002","session_id":"f1000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 set local role authenticated;
 do $$ begin
+ if not public.manual_receipt_handoff_enabled() then
+  raise exception 'approved committee handoff not enabled'; end if;
  if public.record_manual_receipt_handoff('f5000000-0000-0000-0000-000000000001',
    'f4000000-0000-0000-0000-000000000001','donation:f3000000','in_person',
    'delivered','signed synthetic receipt copy')<>

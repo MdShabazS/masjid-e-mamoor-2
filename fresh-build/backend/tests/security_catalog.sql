@@ -22,7 +22,7 @@ begin
   from pg_proc p join pg_namespace n on n.oid=p.pronamespace
   where n.nspname='public' and p.prosecdef;
 
-  if v_total<>103 or v_anon<>1 or v_auth<>76 or v_unpinned<>0 then
+  if v_total<>106 or v_anon<>1 or v_auth<>79 or v_unpinned<>0 then
     raise exception 'public definer grant/search_path inventory drift: %, %, %, %',
       v_total,v_anon,v_auth,v_unpinned;
   end if;
@@ -39,6 +39,18 @@ begin
        'public.record_manual_receipt_handoff(uuid,text,text,text,text,text)','EXECUTE')
      or not has_function_privilege('authenticated',
        'public.record_manual_receipt_handoff(uuid,text,text,text,text,text)','EXECUTE')
+     or has_function_privilege('anon',
+       'public.manual_receipt_handoff_enabled()','EXECUTE')
+     or not has_function_privilege('authenticated',
+       'public.manual_receipt_handoff_enabled()','EXECUTE')
+     or has_function_privilege('anon',
+       'public.update_monthly_donor_suggestion(uuid,bigint,bigint,text,uuid)','EXECUTE')
+     or not has_function_privilege('authenticated',
+       'public.update_monthly_donor_suggestion(uuid,bigint,bigint,text,uuid)','EXECUTE')
+     or has_function_privilege('anon',
+       'public.staff_opt_out_monthly_donor(uuid,text,uuid)','EXECUTE')
+     or not has_function_privilege('authenticated',
+       'public.staff_opt_out_monthly_donor(uuid,text,uuid)','EXECUTE')
      or not has_function_privilege('service_role',
        'public.lookup_active_receipt(text)','EXECUTE')
      or has_function_privilege('authenticated',

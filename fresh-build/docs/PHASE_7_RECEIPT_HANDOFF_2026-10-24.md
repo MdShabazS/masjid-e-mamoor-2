@@ -21,9 +21,19 @@ Verification: all 30 migrations applied to a disposable local database; all 14 r
 
 Before switching the policy on, retain the full Board's recorded privacy and receipt-field decision, the approved rendered receipt template, the exact staff role/channel rule, recipient verification/consent procedure, and a test of the complete client handoff with corrected receipts. The current database command is groundwork only and does not make receipt delivery ready for public use.
 
+## 26 October manual handoff web slice
+
+Migration `20261026033610_receipt_handoff_capability.sql` exposes only the enabled/disabled policy state to an authenticated Treasurer or Committee Member. A database insert trigger narrows the older handoff command to those two roles, including direct RPC callers. The policy remains off, and neither the capability function nor the web page exposes the private decision reference or a receipt amount editor.
+
+The web finance page links those two roles to a manual handoff form. It accepts an issued receipt code, recipient and evidence references, a permitted manual channel, and the actual outcome. It requires a staff attestation before recording. It does not generate a receipt or send email or WhatsApp. An operation ID is retained for an uncertain retry of the same form values; a successful record clears it. The database still checks current receipt validity and stores the verified amount independently of the client.
+
+Verification: all 32 migrations applied on the disposable local stack; all 14 rollback-only SQL fixtures passed, including policy-off, Treasurer and Committee Member allow, Member and President deny, retry/conflict, invalid code, WhatsApp channel rejection and correction/void. The local security advisor returned no error-level issues. The isolated hosted development project received the migration; its receipt and security catalog fixtures passed and final counts were zero Auth users, app users, finance effects and handoff rows, with the gate off. Its security advisor reported the existing intentional RLS/no-policy and definer-RPC notices, with no new advisory category. The 153 Node tests, lint, format, typecheck, environment check, web production build, unconfigured HTTP route smoke and Android bundle export passed locally. A source archive passed checksum, file-digest and clean-restore verification; it is not a live-data backup.
+
+This is an audit screen for a handoff already performed outside the app. It cannot replace the masjid-approved generated receipt, actual delivery proof, Board authorization or a staged signed-in browser/device journey. Leave the switch off until those are complete.
+
 ## Still needed
 
 - Masjid receipt sample/template and exact approved fields.
 - Board decision on donor-facing and public receipt content.
 - Authorized committee sender role mapping and delivery channel.
-- Render, send and delivery tests with issued and corrected receipts on web and Android.
+- Render, actual send and delivery tests with issued and corrected receipts on web and Android; stage a signed-in manual audit journey after approval.

@@ -411,6 +411,11 @@ export default function FinancePage() {
               <Link href="/finance/reports">Private finance reports →</Link>
             </p>
           )}
+          {['treasurer', 'committee_member'].includes(role) && (
+            <p>
+              <Link href="/finance/receipt-handoff">Manual receipt handoff →</Link>
+            </p>
+          )}
           {financeReaders.has(role) && (
             <section className="panel">
               <h2>Account balances</h2>
