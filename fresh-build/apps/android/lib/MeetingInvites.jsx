@@ -1,10 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
+import { buildMeetingArgs } from '../../../packages/api-client/meeting-input.js';
 
-export default function MeetingInvites({ client }) {
+const editors = new Set(['president', 'vice_president', 'secretary', 'data_entry']);
+const emptyDraft = { title: '', description: '', date: '', time: '', location: '' };
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export default function MeetingInvites({ client, role }) {
   const [meetings, setMeetings] = useState([]);
+  const [draft, setDraft] = useState(emptyDraft);
   const [reasons, setReasons] = useState({});
+  const [invitees, setInvitees] = useState({});
+  const [cancelReasons, setCancelReasons] = useState({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -88,9 +96,92 @@ export default function MeetingInvites({ client }) {
     setBusy(false);
   }
 
+  async function mutate(name, args, key, success) {
+    const operationId = operations.current.get(key) ?? Crypto.randomUUID();
+    operations.current.set(key, operationId);
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const { error: rpcError } = await client.rpc(name, { ...args, p_operation_id: operationId });
+      if (rpcError) throw new Error(rpcError.message || 'Meeting action unavailable.');
+      operations.current.delete(key);
+    } catch (cause) {
+      setError(cause.message || 'Meeting action failed. Retry the same action.');
+      setBusy(false);
+      return false;
+    }
+    try {
+      await reload();
+      setNotice(success);
+    } catch {
+      setError('Action saved, but the meeting list could not refresh.');
+    }
+    setBusy(false);
+    return true;
+  }
+
+  async function createMeeting() {
+    try {
+      const args = buildMeetingArgs(draft);
+      if (
+        await mutate(
+          'create_committee_meeting',
+          args,
+          `create:${JSON.stringify(args)}`,
+          'Meeting scheduled.',
+        )
+      )
+        setDraft(emptyDraft);
+    } catch (cause) {
+      setError(cause.message);
+    }
+  }
+
   return (
     <View style={styles.card}>
       <Text style={styles.heading}>Committee meetings</Text>
+      {editors.has(role) && (
+        <View style={styles.group}>
+          <Text style={styles.title}>Schedule a meeting</Text>
+          <Field
+            label="Title"
+            value={draft.title}
+            maxLength={160}
+            onChangeText={(value) => setDraft((current) => ({ ...current, title: value }))}
+          />
+          <Field
+            label="Description"
+            value={draft.description}
+            maxLength={2000}
+            multiline
+            onChangeText={(value) => setDraft((current) => ({ ...current, description: value }))}
+          />
+          <Field
+            label="Date in India (YYYY-MM-DD)"
+            value={draft.date}
+            maxLength={10}
+            onChangeText={(value) => setDraft((current) => ({ ...current, date: value }))}
+          />
+          <Field
+            label="Start time in India (HH:mm)"
+            value={draft.time}
+            maxLength={5}
+            onChangeText={(value) => setDraft((current) => ({ ...current, time: value }))}
+          />
+          <Field
+            label="Location label (optional)"
+            value={draft.location}
+            maxLength={240}
+            onChangeText={(value) => setDraft((current) => ({ ...current, location: value }))}
+          />
+          <Button
+            label={busy ? 'Scheduling…' : 'Schedule meeting'}
+            disabled={busy}
+            onPress={createMeeting}
+          />
+        </View>
+      )}
       <Pressable
         accessibilityRole="button"
         disabled={busy || loading}
@@ -159,10 +250,103 @@ export default function MeetingInvites({ client }) {
                 </Pressable>
               </View>
             )}
+            {editors.has(role) && meeting.my_rsvp === null && meeting.status === 'active' && (
+              <View style={styles.group}>
+                <Field
+                  label="Member account ID to invite"
+                  value={invitees[meeting.meeting_id] ?? ''}
+                  maxLength={36}
+                  autoCapitalize="none"
+                  onChangeText={(value) =>
+                    setInvitees((current) => ({ ...current, [meeting.meeting_id]: value }))
+                  }
+                />
+                <Button
+                  label="Invite member"
+                  disabled={
+                    busy ||
+                    !uuidPattern.test(invitees[meeting.meeting_id] ?? '') ||
+                    new Date(meeting.starts_at).getTime() <= Date.now()
+                  }
+                  onPress={async () => {
+                    const memberId = invitees[meeting.meeting_id]?.trim();
+                    if (
+                      await mutate(
+                        'invite_committee_meeting',
+                        {
+                          p_meeting_id: meeting.meeting_id,
+                          p_member_id: memberId,
+                        },
+                        `invite:${meeting.meeting_id}:${memberId}`,
+                        'Member invited.',
+                      )
+                    )
+                      setInvitees((current) => ({ ...current, [meeting.meeting_id]: '' }));
+                  }}
+                />
+                <Field
+                  label="Cancellation reason (3–500 characters)"
+                  value={cancelReasons[meeting.meeting_id] ?? ''}
+                  maxLength={500}
+                  onChangeText={(value) =>
+                    setCancelReasons((current) => ({ ...current, [meeting.meeting_id]: value }))
+                  }
+                />
+                <Button
+                  label="Cancel meeting"
+                  secondary
+                  disabled={busy || (cancelReasons[meeting.meeting_id]?.trim().length ?? 0) < 3}
+                  onPress={() =>
+                    Alert.alert(
+                      'Cancel this meeting?',
+                      'Invitees will see it as cancelled. The cancellation stays in the audit trail.',
+                      [
+                        { text: 'Keep meeting', style: 'cancel' },
+                        {
+                          text: 'Cancel meeting',
+                          style: 'destructive',
+                          onPress: () => {
+                            const reason = cancelReasons[meeting.meeting_id]?.trim();
+                            mutate(
+                              'cancel_committee_meeting',
+                              { p_meeting_id: meeting.meeting_id, p_reason: reason },
+                              `cancel:${meeting.meeting_id}:${reason}`,
+                              'Meeting cancelled.',
+                            );
+                          },
+                        },
+                      ],
+                    )
+                  }
+                />
+              </View>
+            )}
           </View>
         );
       })}
     </View>
+  );
+}
+
+function Field({ label, value, onChangeText, ...props }) {
+  return (
+    <View style={styles.group}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput style={styles.input} value={value} onChangeText={onChangeText} {...props} />
+    </View>
+  );
+}
+
+function Button({ label, onPress, disabled = false, secondary = false }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.button, secondary && styles.secondary, disabled && styles.disabled]}
+    >
+      <Text style={secondary ? styles.secondaryText : styles.buttonText}>{label}</Text>
+    </Pressable>
   );
 }
 

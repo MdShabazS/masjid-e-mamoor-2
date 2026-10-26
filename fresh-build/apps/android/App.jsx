@@ -563,7 +563,7 @@ export default function App() {
                 <FinanceAccounts client={client} role={role} />
                 <WorkTasks client={client} role={role} />
                 <MemberInbox client={client} />
-                <MeetingInvites client={client} />
+                <MeetingInvites client={client} role={role} />
                 {enrollmentRoles.has(role) && (
                   <View style={styles.card}>
                     <Text style={styles.heading}>Enroll a contributor</Text>
