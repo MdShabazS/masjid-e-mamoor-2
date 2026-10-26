@@ -559,7 +559,7 @@ export default function App() {
                 </View>
                 {role === 'president' && <PaymentQrProfile client={client} />}
                 <FinanceAccounts client={client} role={role} />
-                <WorkTasks client={client} />
+                <WorkTasks client={client} role={role} />
                 {enrollmentRoles.has(role) && (
                   <View style={styles.card}>
                     <Text style={styles.heading}>Enroll a contributor</Text>

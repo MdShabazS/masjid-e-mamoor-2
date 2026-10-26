@@ -1,12 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
+import { buildWorkTaskArgs } from '../../../packages/api-client/work-tasks.js';
 
-export default function WorkTasks({ client }) {
+const creators = new Set(['president', 'vice_president', 'secretary']);
+const emptyDraft = {
+  title: '',
+  description: '',
+  date: '',
+  location: '',
+  mode: 'open',
+  total: '10',
+  invited: '0',
+  volunteer: '10',
+};
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export default function WorkTasks({ client, role }) {
   const [tasks, setTasks] = useState([]);
+  const [draft, setDraft] = useState(emptyDraft);
   const [participants, setParticipants] = useState({});
   const [notes, setNotes] = useState({});
   const [reasons, setReasons] = useState({});
+  const [invitees, setInvitees] = useState({});
+  const [cancelReasons, setCancelReasons] = useState({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -80,6 +97,20 @@ export default function WorkTasks({ client }) {
     }
   }
 
+  function updateDraft(patch) {
+    setDraft((current) => ({ ...current, ...patch }));
+  }
+
+  async function createTask() {
+    try {
+      const args = buildWorkTaskArgs(draft);
+      if (await action('create_work_task', args, `create:${JSON.stringify(args)}`, 'Task created.'))
+        setDraft(emptyDraft);
+    } catch (cause) {
+      setError(cause.message);
+    }
+  }
+
   return (
     <View style={styles.card}>
       <Text style={styles.heading}>Work tasks</Text>
@@ -93,6 +124,81 @@ export default function WorkTasks({ client }) {
         <Text accessibilityRole="alert" style={styles.notice}>
           {notice}
         </Text>
+      )}
+      {creators.has(role) && (
+        <View style={styles.group}>
+          <Text style={styles.title}>Create a work task</Text>
+          <Field
+            label="Title"
+            value={draft.title}
+            maxLength={160}
+            onChangeText={(value) => updateDraft({ title: value })}
+          />
+          <Field
+            label="Description"
+            value={draft.description}
+            maxLength={2000}
+            multiline
+            onChangeText={(value) => updateDraft({ description: value })}
+          />
+          <Field
+            label="Date (optional, YYYY-MM-DD)"
+            value={draft.date}
+            maxLength={10}
+            onChangeText={(value) => updateDraft({ date: value })}
+          />
+          <Field
+            label="Location (optional)"
+            value={draft.location}
+            maxLength={240}
+            onChangeText={(value) => updateDraft({ location: value })}
+          />
+          <Text style={styles.label}>Participation</Text>
+          <View style={styles.modes}>
+            {['open', 'direct', 'mixed'].map((mode) => (
+              <Pressable
+                key={mode}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: draft.mode === mode }}
+                onPress={() =>
+                  updateDraft({
+                    mode,
+                    invited: mode === 'open' ? '0' : mode === 'direct' ? '10' : '5',
+                    volunteer: mode === 'direct' ? '0' : mode === 'open' ? '10' : '5',
+                  })
+                }
+                style={[styles.choice, draft.mode === mode && styles.selected]}
+              >
+                <Text>
+                  {mode === 'direct' ? 'Invitation' : mode === 'mixed' ? 'Mixed' : 'Open'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Field
+            label="Total places"
+            value={draft.total}
+            keyboardType="number-pad"
+            onChangeText={(value) => updateDraft({ total: value })}
+          />
+          {draft.mode !== 'open' && (
+            <Field
+              label="Invited places"
+              value={draft.invited}
+              keyboardType="number-pad"
+              onChangeText={(value) => updateDraft({ invited: value })}
+            />
+          )}
+          {draft.mode !== 'direct' && (
+            <Field
+              label="Volunteer places"
+              value={draft.volunteer}
+              keyboardType="number-pad"
+              onChangeText={(value) => updateDraft({ volunteer: value })}
+            />
+          )}
+          <Button label={busy ? 'Creating…' : 'Create task'} disabled={busy} onPress={createTask} />
+        </View>
       )}
       {!loading && tasks.length === 0 && <Text style={styles.muted}>No visible tasks.</Text>}
       {tasks.map((task) => {
@@ -239,6 +345,75 @@ export default function WorkTasks({ client }) {
                     </View>
                   );
                 })}
+                {active && (
+                  <View style={styles.group}>
+                    {task.mode !== 'open' && (
+                      <View style={styles.group}>
+                        <Field
+                          label="Member account ID to invite"
+                          value={invitees[task.task_id] ?? ''}
+                          maxLength={36}
+                          autoCapitalize="none"
+                          onChangeText={(value) =>
+                            setInvitees((current) => ({ ...current, [task.task_id]: value }))
+                          }
+                        />
+                        <Button
+                          label="Invite member"
+                          disabled={busy || !uuidPattern.test(invitees[task.task_id] ?? '')}
+                          onPress={async () => {
+                            const memberId = invitees[task.task_id]?.trim();
+                            if (
+                              await action(
+                                'invite_work_task_member',
+                                { p_task_id: task.task_id, p_member_id: memberId },
+                                `invite:${task.task_id}:${memberId}`,
+                                'Member invited.',
+                                task.task_id,
+                              )
+                            )
+                              setInvitees((current) => ({ ...current, [task.task_id]: '' }));
+                          }}
+                        />
+                      </View>
+                    )}
+                    <Field
+                      label="Cancellation reason (3–500 characters)"
+                      value={cancelReasons[task.task_id] ?? ''}
+                      maxLength={500}
+                      onChangeText={(value) =>
+                        setCancelReasons((current) => ({ ...current, [task.task_id]: value }))
+                      }
+                    />
+                    <Button
+                      label="Cancel task"
+                      secondary
+                      disabled={busy || (cancelReasons[task.task_id]?.trim().length ?? 0) < 3}
+                      onPress={() =>
+                        Alert.alert(
+                          'Cancel this task?',
+                          'Members will no longer be able to participate. The cancellation is kept in the audit trail.',
+                          [
+                            { text: 'Keep task', style: 'cancel' },
+                            {
+                              text: 'Cancel task',
+                              style: 'destructive',
+                              onPress: () => {
+                                const reason = cancelReasons[task.task_id]?.trim();
+                                action(
+                                  'cancel_work_task',
+                                  { p_task_id: task.task_id, p_reason: reason },
+                                  `cancel:${task.task_id}:${reason}`,
+                                  'Task cancelled.',
+                                );
+                              },
+                            },
+                          ],
+                        )
+                      }
+                    />
+                  </View>
+                )}
               </View>
             )}
           </View>
@@ -261,6 +436,15 @@ function Button({ label, onPress, disabled = false, secondary = false }) {
   );
 }
 
+function Field({ label, value, onChangeText, ...props }) {
+  return (
+    <View style={styles.group}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput style={styles.input} value={value} onChangeText={onChangeText} {...props} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
@@ -276,6 +460,9 @@ const styles = StyleSheet.create({
   muted: { color: '#5e6e68', fontSize: 14, lineHeight: 21 },
   label: { color: '#182e2a', fontWeight: '600' },
   group: { gap: 9 },
+  modes: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  choice: { padding: 10, borderWidth: 1, borderColor: '#d9e1d9', borderRadius: 10 },
+  selected: { backgroundColor: '#e8f3ed', borderColor: '#145b49' },
   person: { borderTopWidth: 1, borderColor: '#d9e1d9', paddingTop: 9, gap: 7 },
   input: {
     borderWidth: 1,
