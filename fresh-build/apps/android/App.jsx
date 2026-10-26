@@ -100,6 +100,8 @@ export default function App() {
   const [accounts, setAccounts] = useState([]);
   const [verification, setVerification] = useState({});
   const [operation, setOperation] = useState(null);
+  const [rejection, setRejection] = useState({});
+  const rejectionOperationIds = useRef(new Map());
   const [staffDonorId, setStaffDonorId] = useState(null);
   const [revisedSuggestion, setRevisedSuggestion] = useState('');
   const [staffReason, setStaffReason] = useState('');
@@ -152,6 +154,11 @@ export default function App() {
       setDonors([]);
       setClaims([]);
       setAccounts([]);
+      setVerification({});
+      setOperation(null);
+      setRejection({});
+      rejectionOperationIds.current.clear();
+      staffOperationIds.current.clear();
       return;
     }
     let mounted = true;
@@ -160,6 +167,11 @@ export default function App() {
     setDonors([]);
     setClaims([]);
     setAccounts([]);
+    setVerification({});
+    setOperation(null);
+    setRejection({});
+    rejectionOperationIds.current.clear();
+    staffOperationIds.current.clear();
     const api = createManagementApi(client);
     client
       .rpc('current_identity_gate')
@@ -334,6 +346,41 @@ export default function App() {
       setNotice(`Verified and posted. Receipt code: ${code}`);
     } catch (cause) {
       setError(cause.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function rejectClaim(claimId) {
+    const reason = rejection[claimId]?.reason?.trim() ?? '';
+    if (!rejection[claimId]?.confirmed) {
+      setError('Confirm that this claim should be rejected without posting.');
+      return;
+    }
+    const key = JSON.stringify({ claimId, reason });
+    const operationId = rejectionOperationIds.current.get(key) ?? Crypto.randomUUID();
+    rejectionOperationIds.current.set(key, operationId);
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const api = createManagementApi(client);
+      await api.rejectMonthlyClaim({ claimId, reason, operationId });
+      rejectionOperationIds.current.delete(key);
+      setClaims((current) => current.filter((claim) => claim.claim_id !== claimId));
+      setRejection((current) => {
+        const next = { ...current };
+        delete next[claimId];
+        return next;
+      });
+      try {
+        setClaims(await api.listPendingMonthlyClaims());
+        setNotice('Claim rejected with a recorded reason. No money was posted or receipt issued.');
+      } catch {
+        setNotice('Claim rejected. Reopen the review list before taking another action.');
+      }
+    } catch (cause) {
+      setError(cause.message || 'Could not reject claim.');
     } finally {
       setBusy(false);
     }
@@ -667,6 +714,42 @@ export default function App() {
                           label={busy ? 'Verifying…' : 'Verify and issue receipt'}
                           onPress={() => verifyClaim(claim.claim_id)}
                           disabled={busy}
+                        />
+                        <Field
+                          label="Rejection reason"
+                          value={rejection[claim.claim_id]?.reason ?? ''}
+                          onChangeText={(value) =>
+                            setRejection((current) => ({
+                              ...current,
+                              [claim.claim_id]: { ...current[claim.claim_id], reason: value },
+                            }))
+                          }
+                          maxLength={500}
+                        />
+                        <View style={styles.consent}>
+                          <Switch
+                            value={rejection[claim.claim_id]?.confirmed ?? false}
+                            onValueChange={(value) =>
+                              setRejection((current) => ({
+                                ...current,
+                                [claim.claim_id]: { ...current[claim.claim_id], confirmed: value },
+                              }))
+                            }
+                            accessibilityLabel="Confirmed rejection without posting"
+                          />
+                          <Text style={styles.consentText}>
+                            I checked this reference and will not post payment from this claim.
+                          </Text>
+                        </View>
+                        <Button
+                          label={busy ? 'Saving…' : 'Reject without posting'}
+                          secondary
+                          onPress={() => rejectClaim(claim.claim_id)}
+                          disabled={
+                            busy ||
+                            !rejection[claim.claim_id]?.confirmed ||
+                            (rejection[claim.claim_id]?.reason?.trim().length ?? 0) < 3
+                          }
                         />
                       </View>
                     ))}

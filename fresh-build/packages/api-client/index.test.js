@@ -56,6 +56,40 @@ test('verification sends the actual amount and stable operation ID, not a role c
   );
 });
 
+test('Treasurer rejection sends a reason and operation without an amount or receipt', async () => {
+  const calls = [];
+  const api = createManagementApi({
+    rpc: async (name, args) => {
+      calls.push({ name, args });
+      return { data: null, error: null };
+    },
+  });
+  const operationId = 'a3000000-0000-4000-8000-000000000019';
+  await api.rejectMonthlyClaim({
+    claimId: 'claim-1',
+    reason: '  Reference absent from bank statement  ',
+    operationId,
+  });
+  assert.deepEqual(calls, [
+    {
+      name: 'reject_monthly_claim',
+      args: {
+        p_claim_id: 'claim-1',
+        p_reason: 'Reference absent from bank statement',
+        p_operation_id: operationId,
+      },
+    },
+  ]);
+  assert.throws(
+    () => api.rejectMonthlyClaim({ claimId: 'claim-1', reason: 'x', operationId }),
+    /invalid_rejection_reason/,
+  );
+  assert.throws(
+    () => api.rejectMonthlyClaim({ claimId: 'claim-1', reason: 'Valid reason' }),
+    /operation_id_required/,
+  );
+});
+
 test('enrollment goes through signed-in consent server endpoint, not old RPC', async () => {
   let request;
   const client = {

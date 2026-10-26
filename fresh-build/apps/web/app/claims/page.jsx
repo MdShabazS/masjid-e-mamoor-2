@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createManagementApi } from '../../../../packages/api-client/index.js';
 import { getBrowserClient } from '../../lib/supabase.js';
 
@@ -23,6 +23,7 @@ export default function ClaimsPage() {
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [operation, setOperation] = useState(null);
+  const rejectionOperations = useRef(new Map());
 
   async function refresh(client, currentRole) {
     const api = createManagementApi(client);
@@ -124,6 +125,34 @@ export default function ClaimsPage() {
     }
   }
 
+  async function reject(event, claimId) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const reason = String(new FormData(form).get('reason') ?? '').trim();
+    const key = JSON.stringify({ claimId, reason });
+    const operationId = rejectionOperations.current.get(key) ?? crypto.randomUUID();
+    rejectionOperations.current.set(key, operationId);
+    setBusy(true);
+    setNotice('');
+    try {
+      const client = getBrowserClient();
+      await createManagementApi(client).rejectMonthlyClaim({ claimId, reason, operationId });
+      rejectionOperations.current.delete(key);
+      setClaims((current) => current.filter((claim) => claim.claim_id !== claimId));
+      form.reset();
+      try {
+        await refresh(client, role);
+        setNotice('Claim rejected with a recorded reason. No money was posted or receipt issued.');
+      } catch {
+        setNotice('Claim rejected. Reload the review list before taking another action.');
+      }
+    } catch (cause) {
+      setNotice(cause.message || 'Could not reject claim.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <main className="management">
       <Link href="/contributors">← Contributors</Link>
@@ -219,6 +248,19 @@ export default function ClaimsPage() {
                       <button className="primary" disabled={busy}>
                         Verify and issue receipt
                       </button>
+                    </form>
+                    <form onSubmit={(event) => reject(event, claim.claim_id)}>
+                      <label className="field">
+                        Rejection reason
+                        <input name="reason" required minLength={3} maxLength={500} />
+                      </label>
+                      <label className="checkbox">
+                        <input type="checkbox" required />
+                        <span>
+                          I checked this reference and will not post payment from this claim.
+                        </span>
+                      </label>
+                      <button disabled={busy}>Reject without posting</button>
                     </form>
                   </li>
                 ))}

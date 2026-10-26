@@ -82,6 +82,16 @@ export function createManagementApi(authenticatedClient) {
         p_operation_id: requireOperationId(operationId),
       });
     },
+    rejectMonthlyClaim: ({ claimId, reason, operationId }) => {
+      const trimmedReason = reason?.trim() ?? '';
+      if (trimmedReason.length < 3 || trimmedReason.length > 500)
+        throw new Error('invalid_rejection_reason');
+      return call(authenticatedClient, 'reject_monthly_claim', {
+        p_claim_id: claimId,
+        p_reason: trimmedReason,
+        p_operation_id: requireOperationId(operationId),
+      });
+    },
     updateMonthlyDonorSuggestion: ({
       donorId,
       expectedAmountPaise,

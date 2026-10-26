@@ -1,0 +1,7 @@
+# Treasurer claim rejection clients — 26 October 2026
+
+The existing `reject_monthly_claim` RPC allows only the Treasurer to reject a pending monthly payment claim with a 3–500 character reason and an idempotent operation ID. It records an immutable rejection, changes the claim to rejected, and does not post a finance effect or issue a receipt. The rollback-only monthly contribution SQL fixture already covers rejection followed by a linked replacement claim and previously passed locally and in the isolated hosted development fixture sweep.
+
+Web and Android now show a separate rejection control alongside verification only for the Treasurer. The operator must enter a reason and confirm that this claim will not be posted. The shared client validates the reason and operation ID; each UI keeps the same ID when the same rejection is retried after an uncertain response. After a confirmed RPC success, the claim is removed from the visible pending list even if refresh fails.
+
+Verification for this client slice: the focused shared-client argument/validation test and all 156 Node tests, lint, format, typecheck, web production build and Android bundle export passed locally. A signed-in web/device rejection journey still needs to be performed. The existing linked `resubmit_rejected_monthly_claim` RPC has no client list/action yet, so staff must not treat this as a complete correction workflow. Staging acceptance remains open. Donor enrollment and real-money launch gates remain unchanged.

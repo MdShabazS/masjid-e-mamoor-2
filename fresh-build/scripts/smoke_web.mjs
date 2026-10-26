@@ -58,6 +58,7 @@ try {
     '/',
     '/announcements',
     '/login',
+    '/claims',
     '/contributors',
     '/finance/receipt-handoff',
   ]) {
