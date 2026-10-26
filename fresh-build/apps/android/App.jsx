@@ -22,6 +22,7 @@ import { getNativeClient } from './lib/supabase';
 import OfflineDrafts from './lib/OfflineDrafts';
 import FinanceAccounts from './lib/FinanceAccounts';
 import PaymentQrProfile from './lib/PaymentQrProfile';
+import ReceiptHandoff from './lib/ReceiptHandoff';
 
 const colors = {
   ink: '#182e2a',
@@ -751,6 +752,9 @@ export default function App() {
                   </View>
                 )}
                 <OfflineDrafts client={client} actorId={session.user.id} role={role} />
+                {(role === 'treasurer' || role === 'committee_member') && (
+                  <ReceiptHandoff client={client} />
+                )}
                 <View style={styles.card}>
                   <Text style={styles.heading}>Contributor roster</Text>
                   <Text style={styles.muted}>

@@ -31,6 +31,10 @@ Verification: all 32 migrations applied on the disposable local stack; all 14 ro
 
 This is an audit screen for a handoff already performed outside the app. It cannot replace the masjid-approved generated receipt, actual delivery proof, Board authorization or a staged signed-in browser/device journey. Leave the switch off until those are complete.
 
+## 26 October Android parity
+
+The Android contributor screen now shows the same policy-gated manual handoff form only for Treasurer and Committee Member. It reads the restricted approval capability and fails closed if that lookup fails. It uses the shared receipt-code/reference/channel/outcome validation, requires the staff attestation, and retains the operation ID for a retry with identical values. It records only an existing issued receipt's manual delivery outcome through the guarded RPC; it does not render or send a receipt. The Board policy remains off. The Android export, shared handoff tests and full Node suite pass; a signed-in device journey remains open.
+
 ## Still needed
 
 - Masjid receipt sample/template and exact approved fields.
