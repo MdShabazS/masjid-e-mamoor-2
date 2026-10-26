@@ -5,6 +5,27 @@ on:
   pull_request:
 
 jobs:
+  unsupported-runtime-rejection:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Reject unsupported Node 20 install
+        working-directory: fresh-build
+        shell: bash
+        run: |
+          set +e
+          output=$(npm ci --dry-run --ignore-scripts --no-audit --no-fund 2>&1)
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ] || ! grep -q 'EBADENGINE' <<< "$output"; then
+            echo "Expected npm engine-strict to reject Node 20 with EBADENGINE; got exit $status"
+            echo "$output"
+            exit 1
+          fi
+          echo 'Node 20 install rejected with EBADENGINE as required.'
   source-checks:
     runs-on: ubuntu-latest
     env:
