@@ -178,7 +178,7 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 - [x] Repeat task capacity, FIFO promotion, retry, competing review and cancellation-count races on hosted development with six separately issued role sessions; all passed and the fixture was removed. See `docs/PHASE_HOSTED_RACES_2026-10-19.md`.
 - [ ] Finish Android participation, member profile and explainable metrics after score approval; repeat the task journey in signed-in clients and staging. Android now supports regular task creation, invitation, join/leave, completion, creator review and cancellation through the existing guarded RPCs. The 160-test suite, static checks and bundle export pass. Signed-in Android/device and staging journeys, cash-task handling, member profile and Board-approved metrics remain open. See `docs/PHASE_8_ANDROID_TASK_PARTICIPATION_2026-10-26.md`.
 - [ ] Finish meeting edit/memo/private media, GPS/manual evidence, finalization/absence and prayer correction. Trial at confirmed site for boundary, stale/mock/denied location and wrong day.
-- [ ] Finish member self-contact/directory, Android inbox/push and accessible mobile/keyboard/screen-reader journeys.
+- [ ] Finish member self-contact/directory, Android inbox/push and accessible mobile/keyboard/screen-reader journeys. Android now lists owner-scoped inbox notices and can refresh/mark read; the 160-test suite, static checks and bundle export passed. Signed-in device/staging inbox, push, self-contact/directory and accessibility journeys remain open. See `docs/PHASE_10_ANDROID_INBOX_2026-10-26.md`.
 - [ ] Test scheduled/expired/private content and safe media; publish only approved public copy, contact, privacy and APK links.
 
 ### 6. Delivery, offline and real recovery (Phases 11–12)
