@@ -1,0 +1,5 @@
+# Web meeting creator controls — 26 October 2026
+
+The web meeting page now uses the same tested India-time input builder as Android. It shows invitation and cancellation controls only when the caller is an eligible editor and the visible meeting has no invitation row for that caller (the existing list function returns a null RSVP for its creator). The database remains the authority and also checks `creator_id` for both actions. The screen keeps separate invitation, decline and cancellation fields per meeting, asks before cancellation, and does not encourage a repeat mutation if a successful RPC is followed by a failed list refresh. Invitee RSVP buttons are limited to future active meetings.
+
+Verification: 162 Node tests, lint, typecheck, formatting, optimized web build, unconfigured local HTTP smoke and public-bundle canary scan passed. The existing Phase 9 rollback-only SQL fixture and hosted role-denial matrix cover the guarded meeting RPCs. Signed-in creator/invitee browser behavior, network-ambiguity retry, Android device and staging journeys still need evidence. Location check-in and attendance remain disabled until the site and field tests are approved.

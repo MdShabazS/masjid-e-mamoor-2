@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { buildMeetingArgs } from '../../../../packages/api-client/meeting-input.js';
 import { getBrowserClient } from '../../lib/supabase.js';
 
 const editors = new Set(['president', 'vice_president', 'secretary', 'data_entry']);
@@ -15,8 +16,9 @@ export default function MeetingsPage() {
   const [date, setDate] = useState(''),
     [time, setTime] = useState(''),
     [location, setLocation] = useState('');
-  const [invitee, setInvitee] = useState(''),
-    [reason, setReason] = useState('');
+  const [invitees, setInvitees] = useState({});
+  const [declineReasons, setDeclineReasons] = useState({});
+  const [cancelReasons, setCancelReasons] = useState({});
   const operations = useRef(new Map());
   async function rpc(name, args) {
     const { data, error } = await getBrowserClient().rpc(name, args);
@@ -63,35 +65,35 @@ export default function MeetingsPage() {
     try {
       await rpc(name, { ...args, p_operation_id: id });
       operations.current.delete(key);
-      await load();
-      return true;
     } catch (cause) {
       setError(cause.message);
-      return false;
-    } finally {
       setBusy(false);
+      return false;
     }
+    try {
+      await load();
+    } catch {
+      setError(
+        'Action saved, but the meeting list could not refresh. Reload before another action.',
+      );
+    }
+    setBusy(false);
+    return true;
   }
   async function create(event) {
     event.preventDefault();
-    const starts = new Date(`${date}T${time}:00+05:30`);
-    if (!Number.isFinite(starts.getTime())) {
-      setError('Choose a valid India date and time.');
-      return;
-    }
-    const args = {
-      p_title: title.trim(),
-      p_description: description.trim(),
-      p_date: date,
-      p_starts_at: starts.toISOString(),
-      p_location: location.trim() || null,
-    };
-    if (await command('create_committee_meeting', args, `create:${JSON.stringify(args)}`)) {
-      setTitle('');
-      setDescription('');
-      setDate('');
-      setTime('');
-      setLocation('');
+    setError('');
+    try {
+      const args = buildMeetingArgs({ title, description, date, time, location });
+      if (await command('create_committee_meeting', args, `create:${JSON.stringify(args)}`)) {
+        setTitle('');
+        setDescription('');
+        setDate('');
+        setTime('');
+        setLocation('');
+      }
+    } catch (cause) {
+      setError(cause.message);
     }
   }
   return (
@@ -175,70 +177,130 @@ export default function MeetingsPage() {
                   <p className="muted">
                     {meeting.meeting_date} · {meeting.status}
                   </p>
-                  {meeting.my_rsvp === 'invited' && meeting.status === 'active' && (
-                    <>
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          command(
-                            'respond_committee_meeting',
-                            {
-                              p_meeting_id: meeting.meeting_id,
-                              p_response: 'accept',
-                              p_reason: null,
-                            },
-                            `accept:${meeting.meeting_id}`,
-                          )
-                        }
-                      >
-                        Accept invitation
-                      </button>
-                      <label className="field">
-                        Decline reason (optional)
-                        <input
-                          value={reason}
-                          onChange={(e) => setReason(e.target.value)}
-                          maxLength={500}
-                        />
-                      </label>
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          command(
-                            'respond_committee_meeting',
-                            {
-                              p_meeting_id: meeting.meeting_id,
-                              p_response: 'decline',
-                              p_reason: reason || null,
-                            },
-                            `decline:${meeting.meeting_id}:${reason}`,
-                          )
-                        }
-                      >
-                        Decline
-                      </button>
-                    </>
-                  )}
-                  {editors.has(role) && meeting.status === 'active' && (
+                  {meeting.my_rsvp === 'invited' &&
+                    meeting.status === 'active' &&
+                    new Date(meeting.starts_at).getTime() > Date.now() && (
+                      <>
+                        <button
+                          disabled={busy}
+                          onClick={() =>
+                            command(
+                              'respond_committee_meeting',
+                              {
+                                p_meeting_id: meeting.meeting_id,
+                                p_response: 'accept',
+                                p_reason: null,
+                              },
+                              `accept:${meeting.meeting_id}`,
+                            )
+                          }
+                        >
+                          Accept invitation
+                        </button>
+                        <label className="field">
+                          Decline reason (optional)
+                          <input
+                            value={declineReasons[meeting.meeting_id] ?? ''}
+                            onChange={(e) =>
+                              setDeclineReasons((current) => ({
+                                ...current,
+                                [meeting.meeting_id]: e.target.value,
+                              }))
+                            }
+                            maxLength={500}
+                          />
+                        </label>
+                        <button
+                          disabled={busy}
+                          onClick={() =>
+                            command(
+                              'respond_committee_meeting',
+                              {
+                                p_meeting_id: meeting.meeting_id,
+                                p_response: 'decline',
+                                p_reason: declineReasons[meeting.meeting_id]?.trim() || null,
+                              },
+                              `decline:${meeting.meeting_id}:${declineReasons[meeting.meeting_id]?.trim() ?? ''}`,
+                            )
+                          }
+                        >
+                          Decline
+                        </button>
+                      </>
+                    )}
+                  {editors.has(role) && meeting.my_rsvp === null && meeting.status === 'active' && (
                     <>
                       <label className="field">
                         Invitee account ID
-                        <input value={invitee} onChange={(e) => setInvitee(e.target.value)} />
+                        <input
+                          value={invitees[meeting.meeting_id] ?? ''}
+                          onChange={(e) =>
+                            setInvitees((current) => ({
+                              ...current,
+                              [meeting.meeting_id]: e.target.value,
+                            }))
+                          }
+                        />
                       </label>
                       <button
-                        disabled={busy || !invitee}
-                        onClick={() =>
-                          command(
-                            'invite_committee_meeting',
-                            {
-                              p_meeting_id: meeting.meeting_id,
-                              p_member_id: invitee,
-                            },
-                            `invite:${meeting.meeting_id}:${invitee}`,
-                          )
+                        disabled={
+                          busy ||
+                          !invitees[meeting.meeting_id]?.trim() ||
+                          new Date(meeting.starts_at).getTime() <= Date.now()
                         }
+                        onClick={async () => {
+                          const memberId = invitees[meeting.meeting_id]?.trim();
+                          if (
+                            await command(
+                              'invite_committee_meeting',
+                              {
+                                p_meeting_id: meeting.meeting_id,
+                                p_member_id: memberId,
+                              },
+                              `invite:${meeting.meeting_id}:${memberId}`,
+                            )
+                          )
+                            setInvitees((current) => ({ ...current, [meeting.meeting_id]: '' }));
+                        }}
                       >
                         Invite member
+                      </button>
+                      <label className="field">
+                        Cancellation reason (3–500 characters)
+                        <input
+                          maxLength={500}
+                          value={cancelReasons[meeting.meeting_id] ?? ''}
+                          onChange={(e) =>
+                            setCancelReasons((current) => ({
+                              ...current,
+                              [meeting.meeting_id]: e.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                      <button
+                        disabled={
+                          busy || (cancelReasons[meeting.meeting_id]?.trim().length ?? 0) < 3
+                        }
+                        onClick={() => {
+                          if (
+                            !window.confirm(
+                              'Cancel this meeting? Invitees will see it as cancelled.',
+                            )
+                          )
+                            return;
+                          const cancelReason = cancelReasons[meeting.meeting_id].trim();
+                          command(
+                            'cancel_committee_meeting',
+                            {
+                              p_meeting_id: meeting.meeting_id,
+                              p_reason: cancelReason,
+                            },
+                            `cancel:${meeting.meeting_id}:${cancelReason}`,
+                          );
+                        }}
+                      >
+                        Cancel meeting
                       </button>
                     </>
                   )}
