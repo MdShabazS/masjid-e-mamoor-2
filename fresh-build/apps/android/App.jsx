@@ -24,6 +24,7 @@ import FinanceAccounts from './lib/FinanceAccounts';
 import PaymentQrProfile from './lib/PaymentQrProfile';
 import ReceiptHandoff from './lib/ReceiptHandoff';
 import RejectedClaims from './lib/RejectedClaims';
+import WorkTasks from './lib/WorkTasks';
 
 const colors = {
   ink: '#182e2a',
@@ -558,6 +559,7 @@ export default function App() {
                 </View>
                 {role === 'president' && <PaymentQrProfile client={client} />}
                 <FinanceAccounts client={client} role={role} />
+                <WorkTasks client={client} />
                 {enrollmentRoles.has(role) && (
                   <View style={styles.card}>
                     <Text style={styles.heading}>Enroll a contributor</Text>
