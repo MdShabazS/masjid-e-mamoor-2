@@ -19,7 +19,7 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 
 ## Verified foundation
 
-- [x] Independent npm workspace lockfile and clean `npm ci`; the latest full suite passed 142 Node tests, lint, format, typecheck and environment checks. Web build, Android bundle export and unconfigured production-web HTTP smoke passed locally. Hosted CI has not run.
+- [x] Independent npm workspace lockfile and clean `npm ci`; the latest full suite passed 151 Node tests, lint, format, typecheck and environment checks. Web build, Android bundle export and unconfigured production-web HTTP smoke passed locally. Hosted source CI passed for commit `71d9cde` on 25 October; see `docs/REPOSITORY_CLEANUP_2026-10-25.md`.
 - [x] Align the root, web and Android Node minimum with the locked Supabase clients at `>=22.0.0` and enable npm engine-strict installs. On Node 24, the offline install dry run, 151 Node tests, lint, typecheck, format, web build and Android export passed. A separate Node 20 rejection test, clean hosted CI and release build remain open. See `docs/NODE_RUNTIME_GATE_2026-10-25.md`.
 - [x] Native Android prebuild plus `assembleDebug` and `assembleRelease` completed with JDK 21. The generated release variant uses the Android debug key and `.fresh` package, so it is a development smoke-test APK, not a publishable release. It installed and rendered the fail-closed unconfigured screen on the Pixel 8 emulator. See `docs/PHASE_14_NATIVE_BUILD_2026-10-16.md`.
 - [x] Working-source archive refreshed after the direct cash slice on 23 October; SHA-256, 938 file digests and clean restore passed. The archive preserves source code; the separate encrypted local drill proved two synthetic report objects, not a scheduled real-data backup.
@@ -78,7 +78,7 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 ### 0. Reproducible build
 
 - [x] Remove dependency links to the legacy apps; create fresh lockfile, CI source/build/export checks and source-restore verifier.
-- [ ] Run hosted CI from a committed clean checkout and record logs and hashes.
+- [x] Run hosted CI from the committed fresh-build checkout: GitHub Actions run `40220489391` passed for commit `71d9cde` on 25 October. It covered locked install, audit gates, 151 Node tests, environment, lint, format, typecheck, web build/smoke, Android export, bundle scan, backup and fixture preflight. The cleanup follow-up commit still needs its own CI result.
 - [x] Inventory the 22 npm alerts observed on 19 October (7 moderate, 15 high), trace their root advisories and paths, and trial the supported Expo 58/React Native 0.88 pair in an isolated copy. That historical trial passed 90 Node tests, lint, typecheck, formatting, web build and Android export, but still had 22 alerts. The current 23 October audit is updated below. See `docs/DEPENDENCY_ADVISORY_TRIAGE_2026-10-19.md`.
 - [ ] Resolve the dependency release gate: the 25 October clean audit has five high Expo CLI findings from `node-forge` and `zod`. Obtain a compatible upstream fix or a dated approved residual-risk decision; repeat audit, native signed build, device regression and hosted CI before release. Do not use `npm audit fix --force`, which proposes a breaking Expo 44 downgrade. See `docs/DEPENDENCY_RECHECK_2026-10-25.md`.
 - [x] Add local and CI lint, formatting, and JavaScript typecheck gates across fresh web, Android, server, packages and scripts. Production JS/JSX is typechecked; Node tests and Python use their own test checks.
@@ -147,6 +147,7 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 - [x] Add web/Android public-bundle canary scanning to CI and expand the unconfigured web HTTP smoke across identity, jobs, QR, reports, receipt and WhatsApp routes. Synthetic server-only values were absent from 48 exported public assets and public HTML; privileged paths failed closed. Six Python regression tests, 142 Node tests, lint, typecheck, format, web build and Android export passed. Real environment values and hosted runtime checks remain open. See `docs/CONFIG_RELEASE_PREFLIGHT_2026-10-25.md`.
 - [ ] Complete real QR payee validation and operator approval, hosted web/Storage checks, private retrieval for approved recipients, guarded cleanup on staging and Storage backup/restore; preserve account/QR/consent snapshot per request. Local HTTP route, synthetic account-screen browser journey and guarded cleanup pass.
 - [ ] Complete donor profile/edit/dedupe/opt-out, multiple/late payments, actual amount, duplicate reference, reminder and referral correction. Enrollment stays gated until consent approval.
+- [x] Add President/Treasurer-only audited suggested-amount correction and staff opt-out RPCs in migration 31. The hosted isolated-development rollback fixture passed allowed roles, wrong-role denial, stale edit, replay/conflict and reminder suppression; it left zero donor, event and Auth rows. Web/Android controls, full donor profile/dedupe and staging remain open.
 - [ ] Finish one-time donation, collection-task cash counter and direct Treasurer cash posting without double count. All three paths share a numbered-slip claim, and a rejected count can be replaced with a linked new-slip count. The task rejection/replacement web journey passed locally. Add independent physical-slip reconciliation; prove all three paths together in both signed-in clients and staging.
 - [ ] Finish private bills, expense revisions/reapproval/partial payment races, advances/returns, salary and approved member reads.
 - [ ] Ensure corrections also update receipt validity, referral/score and revised report linkage; retain immutable history.
@@ -210,7 +211,7 @@ Each checkbox below needs dated evidence, the environment/build used, expected a
 
 ### 0. Build and environments
 
-- [ ] From a clean committed checkout, run hosted CI: install, lint, formatting, typecheck, unit/integration tests, web build, Android export and backup preflight. Record the commit, logs and artifact hashes.
+- [x] From a clean committed checkout, run hosted source CI: run `40220489391` passed for commit `71d9cde`. Its Android output was a bundle export, not a signed APK; record the cleanup commit's CI result separately.
 - [ ] Validate required environment variables in development, staging and production with named secret owners and hosted runtime checks. Synthetic canary scans of web/Android public bundles and expanded unconfigured local HTTP fail-closed checks passed; repeat against actual release builds without exposing real secret values.
 - [ ] Resolve the five Expo CLI dependency audit entries through compatible upstream fixes and regression checks, or obtain a dated release-owner residual-risk decision after reviewing their build-process path. The 25 October audit and CI change detection are complete; see `docs/DEPENDENCY_RECHECK_2026-10-25.md`.
 

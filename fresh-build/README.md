@@ -1,10 +1,10 @@
 # Masjid E Mamoor 2 — fresh build
 
 This directory is the implementation home for the new Android and web product.
-The older `apps/`, `packages/`, and `supabase/` trees elsewhere in this repository
-are reference material until a component is explicitly reviewed and brought into
-this build. New runtime code must not depend on their database migrations or
-assume their older business rules are approved.
+The superseded root `apps/`, `packages/`, and `supabase/` trees were removed
+after a verified source backup. Their committed history remains available in
+Git. New runtime code must not depend on those database migrations or assume
+their older business rules are approved.
 
 Use the confirmed decisions in `../docs/REQUIREMENTS_BASELINE_2026-10-15.md`,
 `../docs/TASK_5_DECISION_REGISTER_2026-10-15.md`, and subsequent user decisions
@@ -27,8 +27,8 @@ rules and outstanding owner decisions are in `docs/PHASE_1_AUDIT.md`; Phase 2
 architecture, API/data, threats/migration and acceptance mapping are in
 `docs/PHASE_2_*.md`. Draft designs are not deployed behavior.
 
-The previous Task 7 migrations and tests remain preserved in the repository and
-in the project backup. They are not applied to this fresh build automatically.
+The previous Task 7 migrations and tests remain in Git history and the
+pre-cleanup source backup. They are not applied to this fresh build.
 
 ## Local setup and checks
 

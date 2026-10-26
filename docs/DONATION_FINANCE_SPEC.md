@@ -1,5 +1,7 @@
 # Masjid-e-Mamoor --- Donation & Finance Specification
 
+> **Historical draft.** The monthly obligation, FIFO allocation, outstanding-balance and partial-payment sections below are superseded by the 15 October 2026 Q101/Q102 decisions in `TASK_5_DECISION_REGISTER_2026-10-15.md`: record only the Treasurer-verified amount, receipt that amount, treat the month as contributed and send no remaining-balance reminder. A changed suggested amount applies to the current month's profile without rewriting a prior request or receipt. Do not implement these older balance tests for monthly contributors.
+
 **Document Status:** Draft --- Architecture Review Required\
 **Version:** 1.0\
 **Phase:** Documentation-First / Pre-Development\

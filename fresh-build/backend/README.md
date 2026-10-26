@@ -1,14 +1,15 @@
 # Fresh backend
 
-This backend uses its own Supabase `config.toml` and 20 ordered migrations in
-`supabase/migrations/`. The older root `supabase/` tree is reference material
+This backend uses its own Supabase `config.toml` and 31 ordered migrations in
+`supabase/migrations/`. The older root `supabase/` tree is preserved in Git history
 and must never be applied to this project. The initial
 `001_monthly_contributions.sql` is a historical reference copy; the ordered
 migration tree is the executable source.
 
-The isolated hosted development project and a separate disposable local stack
-have applied all 20 migrations. The 12 rollback-only SQL fixtures pass through
-real PostgreSQL roles. Eight distinct issued sessions passed 48 direct API
+The isolated hosted development project has applied all 31 migrations. Its
+expanded monthly-contribution rollback fixture passed after migration 31;
+the local disposable stack needs a clean repeat at this version. Earlier
+database checks used real PostgreSQL roles. Eight distinct issued sessions passed 48 direct API
 role/read checks and 288 wrong-role calls across 65 guarded RPCs locally and on
 hosted development. Local expiry, role change and deactivation, and hosted
 President/Treasurer finance and independent-session task races also pass. These are development checks;

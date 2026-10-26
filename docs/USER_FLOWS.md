@@ -705,20 +705,22 @@ specification.
 
 ## UF-030 --- Record GPS-Based Attendance
 
-**Actor:** Authorized attendance user/member, depending on final policy
+**Actor:** Member (self-attendance); President (event setup)
 
 ### Steps
 
-1.  User opens eligible Jummah attendance event.
-2.  Application requests location permission where required.
-3.  Current location is collected.
-4.  Client sends attendance request with event/operation context and
+1.  President creates the Jummah event and configures its GPS centre and
+    check-in opening/closing timestamps.
+2.  Member opens an eligible event for their own attendance.
+3.  Application requests foreground location permission when required.
+4.  Current location is collected only for the attendance action.
+5.  Client sends attendance request with event/operation context and
     permitted location evidence.
-5.  Backend validates event eligibility and the approved V1 100 metre
+6.  Backend validates the Member identity, event window, and approved V1 100 metre
     location rule.
-6.  Attendance is accepted or rejected.
-7.  Result is stored authoritatively.
-8.  User sees the final state.
+7.  Attendance is accepted or rejected.
+8.  Result is stored authoritatively without retaining the submitted GPS point.
+9.  User sees the server-confirmed or rejected state.
 
 ### Rules
 
@@ -731,6 +733,12 @@ specification.
     validation.
 -   The client must not supply or override the authoritative acceptance
     radius.
+-   Only the President may create an event or set its centre and check-in
+    window. The centre and window are event-specific; the 100 metre radius is
+    fixed for V1.
+-   Only an account whose current role is Member may record its own attendance.
+-   Offline attendance is judged using current server time when synchronized;
+    an attempt synchronized after the configured window closes is rejected.
 -   Do not introduce GPS accuracy thresholds, spoof-detection algorithms,
     background tracking, continuous tracking or additional location
     requirements unless separately approved.
@@ -751,9 +759,11 @@ specification.
 6.  User can continue using approved offline features.
 7.  Network becomes available.
 8.  Sync process sends the pending operation.
-9.  Backend validates authorization and current event rules.
-10. Operation is accepted, rejected, or requires reconciliation.
-11. Local state is updated.
+9.  Backend validates current Member authorization, the event window using
+    server time, duplicate state, and the GPS radius.
+10. An operation synchronized after the event check-in window closes is
+    rejected; a device timestamp cannot override the server decision.
+11. Operation is accepted or rejected and local state is updated.
 
 ### Retry
 

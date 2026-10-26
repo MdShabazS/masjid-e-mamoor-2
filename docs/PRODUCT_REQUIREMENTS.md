@@ -481,6 +481,13 @@ authorization requirements.
 
 The system must not collect unnecessary location data.
 
+For V1 Jummah attendance, the President creates each event and configures
+its GPS centre and check-in opening/closing timestamps. Only a current
+Member may submit their own attendance. The server uses a fixed 100 metre
+acceptance radius and server time for online and synchronized offline
+validation; the client cannot provide or override either authoritative
+decision.
+
 ------------------------------------------------------------------------
 
 ## 13. Notification Requirements
@@ -488,12 +495,16 @@ The system must not collect unnecessary location data.
 The platform must support:
 
 -   in-app notifications
--   notification preferences
--   push notifications where supported
+-   push-delivery attempts for every V1 durable in-app notification by
+    default, without an in-app opt-out
+-   notification preferences only for future categories explicitly approved
+    as optional
 -   delivery status
 -   failure handling
 -   retry behavior
 
+The operating system may deny or revoke notification permission. The app must
+respect that decision and keep the durable in-app notification available.
 Business transactions must not fail merely because push delivery fails.
 
 ------------------------------------------------------------------------

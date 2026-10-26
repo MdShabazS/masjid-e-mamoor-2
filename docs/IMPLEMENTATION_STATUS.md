@@ -4,6 +4,8 @@
 **Last reviewed:** 2026-10-09 (Committee + Meetings Phase 10/11 backend and mobile-domain closure refreshed; unrelated domain rows retain their previous audit state)
 **Scope:** Documentation, architecture, database foundation, application foundations, testing, deployment readiness.
 
+> 2026-10-13 checkpoint: `20261013224500_committee_meeting_responses.sql` adds invited-member accept/decline history with a required decline reason. Android and web now expose invitation responses. Local TypeScript/lint and unit tests passed (Android 50 suites/304 tests; web 19 suites/130 tests). The migration has not run against Postgres. The performance dashboard and verified donor-referrer attribution are still pending, as are web meeting creation/attendance and expanding creator invitation options to include the Treasurer. Older status rows below predate this checkpoint and should not be read as current release evidence.
+
 This document is the single project implementation status map. It distinguishes documentation decisions from implemented and tested software behavior. Do not use this document to claim a domain is production-ready unless implementation evidence and verification evidence both exist in the repository.
 
 ## 1. Project Overview

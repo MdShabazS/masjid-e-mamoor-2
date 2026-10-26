@@ -303,6 +303,77 @@ do $$ begin
     raise exception 'rejection/resubmission changed financial posting'; end if;
 end $$;
 
+-- Staff edits are audited, retry-safe and restricted to President/Treasurer.
+select public.enroll_versioned_monthly_donor(
+  'Staff opt-out fixture','+919000000008',10000,
+  'a1000000-0000-0000-0000-000000000005',
+  'a1000000-0000-0000-0000-000000000005',
+  'in-person',now(),'fixture-v1','staff stop consent evidence') as stop_donor_id \gset
+select set_config('test.stop_donor', :'stop_donor_id',true);
+select set_config('request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000004","session_id":"a1000000-0000-0000-0000-000000000004","role":"authenticated"}',true);
+set local role authenticated;
+select public.update_monthly_donor_suggestion(:'donor_id'::uuid,100000,125000,
+  'Donor requested a revised suggestion','a3000000-0000-4000-8000-000000000011');
+select public.update_monthly_donor_suggestion(:'donor_id'::uuid,100000,125000,
+  'Donor requested a revised suggestion','a3000000-0000-4000-8000-000000000011');
+reset role;
+do $$ begin
+  if (select suggested_amount_paise from public.monthly_donors
+      where id=current_setting('test.donor',true)::uuid) <> 125000
+    or (select count(*) from public.donor_events
+      where donor_id=current_setting('test.donor',true)::uuid
+        and event='suggestion_changed') <> 1 then
+    raise exception 'staff suggestion edit or retry failed';
+  end if;
+end $$;
+set local role authenticated;
+do $$ begin
+  begin
+    perform public.update_monthly_donor_suggestion(
+      current_setting('test.donor',true)::uuid,100000,130000,
+      'Stale suggestion', 'a3000000-0000-4000-8000-000000000012');
+    raise exception 'stale suggestion accepted';
+  exception when serialization_failure then null;
+  end;
+  begin
+    perform public.update_monthly_donor_suggestion(
+      current_setting('test.donor',true)::uuid,100000,140000,
+      'Conflicting retry', 'a3000000-0000-4000-8000-000000000011');
+    raise exception 'operation conflict accepted';
+  exception when unique_violation then null;
+  end;
+end $$;
+select set_config('request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000005","session_id":"a1000000-0000-0000-0000-000000000005","role":"authenticated"}',true);
+do $$ begin
+  begin
+    perform public.staff_opt_out_monthly_donor(
+      current_setting('test.stop_donor',true)::uuid,'Donor requested STOP',
+      'a3000000-0000-4000-8000-000000000013');
+    raise exception 'Member opted donor out';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+select set_config('request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000002","session_id":"a1000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
+select public.staff_opt_out_monthly_donor(:'stop_donor_id'::uuid,
+  'Donor requested STOP','a3000000-0000-4000-8000-000000000013');
+select public.staff_opt_out_monthly_donor(:'stop_donor_id'::uuid,
+  'Donor requested STOP','a3000000-0000-4000-8000-000000000013');
+reset role;
+do $$ begin
+  if (select active from public.monthly_donors
+      where id=current_setting('test.stop_donor',true)::uuid)
+    or (select count(*) from public.donor_events
+      where donor_id=current_setting('test.stop_donor',true)::uuid
+        and event='opted_out') <> 1
+    or public.monthly_reminder_eligible(
+      current_setting('test.stop_donor',true)::uuid,'2026-10-01') then
+    raise exception 'staff opt-out or retry failed';
+  end if;
+end $$;
+
 select public.record_monthly_donor_opt_out(:'donor_id'::uuid,'verified STOP test');
 do $$ begin
   if (select active from public.monthly_donors

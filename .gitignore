@@ -23,3 +23,22 @@ web-build/
 # Local database backups
 .local-backups/
 .vercel/
+backups/
+
+# One-time legacy sync notes, retained only in the local source backup
+docs/CONTINUE_CHECKPOINT*.md
+docs/PENDING_SYNC_2026-10-14.txt
+docs/PHASE1_SYNC_MANIFEST.json
+scripts/consolidate_phase1.py
+
+# Device, service and signing credentials
+google-services.json
+GoogleService-Info.plist
+credentials.json
+service-account.json
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key

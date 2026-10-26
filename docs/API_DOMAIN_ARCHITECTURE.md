@@ -820,6 +820,14 @@ recordAttendance({
 For self-attendance, the member identity should be derived from the
 authenticated context.
 
+The V1 Jummah command surface is `create_jummah_attendance_event`,
+`list_jummah_attendance_events`, and `record_self_jummah_attendance`.
+Event creation requires `attendance.events.manage` (President only); the
+record command derives the caller and permits only a current Member's own
+active member profile. It validates the fixed 100 metre radius and event
+window using trusted server-side logic. No client-supplied actor identity,
+radius, or event centre is authoritative.
+
 ------------------------------------------------------------------------
 
 # 37. Offline Sync Command

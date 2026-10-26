@@ -128,6 +128,7 @@ audit.records.read
 | `attendance.records.create` | Create attendance records within authorized scope |
 | `attendance.records.manage` | Manage/correct attendance through authorized workflows |
 | `attendance.offline_sync` | Submit authorized offline attendance operations for server validation |
+| `attendance.events.manage` | Create Jummah attendance events and configure their centre and check-in window; President only |
 
 ### 4.8 Notifications
 

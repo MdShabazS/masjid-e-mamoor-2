@@ -84,10 +84,13 @@ previews unless explicitly approved.
 
 ## NOTIF-006 --- User Preference Respect
 
-Optional notifications should respect user preferences.
+V1 push delivery is attempted for every durable in-app notification and is
+not disabled by an in-app preference. Android's operating-system notification
+permission remains user-controlled; if it is denied, the durable in-app
+notification remains available.
 
-Mandatory transactional/security notifications may be non-disableable
-where required.
+Preferences may apply only to future notification categories that are
+explicitly approved as optional.
 
 ------------------------------------------------------------------------
 
@@ -397,6 +400,16 @@ reversal recorded
 
 Finance notifications should be role-scoped.
 
+V1 implementation: submitted expenses, transfers, corrections/reversals,
+and member payment submissions notify active authorized reviewers with
+`notifications.own.read`. Decisions notify the active submitter. Referral
+submissions notify the President/System Admin review surface; a decision or
+completed registration notifies the referrer when linked to an active member
+account. Each durable notification is committed with its source transition
+and enters the existing push-delivery outbox. Messages omit sensitive
+financial and applicant details; recipients open the authorized workflow
+for the current record state.
+
 ------------------------------------------------------------------------
 
 # 17. Finance Notification Privacy
@@ -519,49 +532,52 @@ Do not allow ordinary clients to arbitrarily mark notifications urgent.
 
 # 25. Notification Preferences
 
-Users may have preferences for optional categories.
+Users may have preferences only for notification categories explicitly
+approved as optional. V1 durable notifications are pushed by default and
+cannot be disabled through an in-app preference.
 
 Conceptual:
 
 ``` text
-notification_preferences
+future_optional_notification_preferences
     user_id
     category
     in_app_enabled
     push_enabled
 ```
 
-Exact preference schema remains an implementation decision.
+This is a future-only conceptual model; no V1 preference can suppress a push
+attempt. Exact preference schema remains an implementation decision.
 
 ------------------------------------------------------------------------
 
 # 26. Mandatory Notifications
 
-Some notifications may not be suppressible.
+V1 push-attempt policy applies to every durable in-app notification. OS
+permission denial or revocation may prevent display but does not change that
+application policy or the in-app record.
 
-Potential categories:
+Additional legally/operationally mandatory categories may include:
 
 -   security
 -   critical account status
 -   legally/operationally required notices where applicable
 
-The final mandatory list must be explicitly documented.
+Any additional mandatory categories must be explicitly documented.
 
 ------------------------------------------------------------------------
 
 # 27. Notification Delivery Channels
 
-Initial channel:
+Required V1 channels:
 
 ``` text
-in-app
+in-app + push attempt
 ```
 
-Potential channel:
-
-``` text
-push
-```
+Push delivery is best-effort transport. The durable in-app notification
+remains the source of truth when a device has no registered token, denies OS
+permission, or cannot be reached.
 
 Future channels:
 
@@ -901,7 +917,8 @@ Do not silently discard important notifications.
 
 # 46. Push Notification Architecture
 
-If push notifications are enabled:
+For V1, each inserted durable in-app notification must atomically enqueue
+push delivery work for its recipient:
 
 ``` text
 application
@@ -973,8 +990,9 @@ inactive rather than retry indefinitely.
 
 # 51. Push Permission Denial
 
-A user who denies push permissions should still receive supported in-app
-notifications.
+A user who denies push permissions still receives durable in-app
+notifications. The application must not attempt to bypass or repeatedly
+override the operating-system permission decision.
 
 Push availability is a delivery preference/capability, not
 business-state authority.
@@ -1165,11 +1183,12 @@ Opening the notification loads the current task.
 
 # 63. Notification Preferences and Mandatory Events
 
-Preference evaluation should occur when the notification is dispatched.
+Preference evaluation is not used to suppress V1 push attempts. If a future
+category is explicitly approved as optional, its preference may be evaluated
+when dispatched; the underlying event remains recorded.
 
-However, the underlying event remains recorded.
-
-If a user disables optional push:
+For V1 notification kinds, an in-app preference does not suppress push
+dispatch. For a future category explicitly approved as optional:
 
 ``` text
 in-app notification remains
@@ -1874,7 +1893,8 @@ Server/database authorization remains authoritative.
 
 # 111. Notification Preferences UX
 
-Preferences should clearly distinguish:
+If preferences are later introduced for explicitly optional categories, they
+should clearly distinguish:
 
 ``` text
 Required
@@ -1894,9 +1914,8 @@ if those channels are supported.
 
 # 112. Preference Defaults
 
-Default preferences should be explicitly documented.
-
-Do not assume every user wants every optional notification.
+Defaults for any future optional categories must be explicitly documented.
+V1 push attempts for durable notifications have no in-app opt-out.
 
 ------------------------------------------------------------------------
 
@@ -2131,8 +2150,12 @@ V1 notification decisions are closed by
 Approved:
 - authoritative business events create outbox work;
 - the V1 event catalogue is fixed by the implementation baseline;
-- preferences apply to non-mandatory categories;
-- security/account-state notifications are mandatory where applicable;
+- every V1 durable in-app notification triggers a push attempt by default,
+  with no in-app opt-out;
+- preferences may apply only to future categories explicitly approved as
+  optional and may not suppress V1 push attempts;
+- the operating system may deny or revoke push display permission, while
+  durable in-app notifications remain available;
 - mobile delivery initially uses `expo-notifications` / Expo Push Service;
 - outbox and delivery status are separate;
 - retries are bounded and idempotent;

@@ -1,7 +1,7 @@
 # Masjid E Mamoor 2 — Durable Notification Specification
 
-**Status:** V1 durable backend and private Realtime Broadcast foundation implemented
-**Scope:** Durable in-app notification records, personal notification RPCs, and recipient-scoped Realtime transport
+**Status:** V1 durable backend and private Realtime Broadcast implemented; push outbox/dispatcher source added locally; mobile token registration and provider setup remain
+**Scope:** Durable in-app notification records, personal notification RPCs, recipient-scoped Realtime transport, and the approved V1 push policy
 
 ## 1. Authority and Purpose
 
@@ -14,6 +14,17 @@ The durable notification record remains the authoritative source consumed by
 Web, Mobile, Realtime, and future push-delivery layers. Realtime Broadcast is
 only a low-latency delivery signal and does not replace durable notification
 storage or trusted personal notification RPCs.
+
+Approved V1 delivery policy: every durable in-app notification must enqueue a
+push attempt by default. In-app preferences do not suppress V1 push attempts;
+there is no V1 in-app opt-out.
+Android's OS notification permission remains user-controlled; denial or
+revocation may prevent display but must not affect the durable in-app record.
+Push is best-effort transport, not proof that a person saw the notification.
+This policy is approved. The local implementation adds an atomic push outbox,
+private device-token registry, bounded delivery retries, and Expo ticket/
+receipt processing. Mobile token registration, provider credentials, and
+deployment/configuration verification remain release blockers.
 
 ## 2. Durable Model
 
@@ -121,6 +132,7 @@ The following remain explicitly deferred:
 
 - Web Realtime subscription and live notification refresh;
 - Mobile notification center and Realtime subscription;
-- OS push delivery and device-token management;
-- notification preferences and channel dispatch;
+- mobile token registration, provider credentials, deployment, and real-device
+  push-delivery verification;
+- preferences for future notification categories explicitly approved as optional;
 - email, SMS, and WhatsApp delivery.

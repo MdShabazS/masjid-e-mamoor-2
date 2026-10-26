@@ -24,14 +24,24 @@ authorization, offline-sync, notification, and storage boundaries.
 
 ## 2. Attendance
 
+- A President creates each Jummah attendance event and configures its
+  authoritative GPS centre and check-in opening/closing timestamps.
+- Only an account whose current role is Member may record Jummah attendance,
+  and it may record only its own linked active member profile.
 - Attendance identity is based on an `attendance_event_id` together with the
   member identity.
 - Duplicate attendance submission must be rejected or recognized as already
   applied.
 - Offline operations use stable operation IDs.
+- Offline attendance is revalidated against the event window and current
+  authorization when synchronized; the client timestamp is not authoritative.
 - GPS acceptance uses a server-side 100 metre radius.
+- The 100 metre radius is fixed for V1 and cannot be supplied or overridden by
+  the client or configured per event.
 - Client-side GPS validation is advisory only.
 - Poor GPS accuracy does not silently widen the server acceptance radius.
+- Submitted member coordinates are used only for server validation and are not
+  retained in attendance history.
 
 ## 3. Notifications
 
@@ -49,10 +59,17 @@ V1 notification events cover:
 - attendance synchronization rejection or action required;
 - security/account restriction or deactivation.
 
-Security/account notifications are mandatory where applicable.
-Other notification categories may respect user preferences.
+Every V1 durable in-app notification triggers a push-delivery attempt by
+default. In-app preferences must not suppress these V1 attempts. The
+operating system may deny or revoke notification permission; the durable
+in-app notification remains available, and the application must not bypass
+the OS decision. Push delivery is best-effort and is not proof of receipt or
+reading. Preferences may apply only to future notification categories
+explicitly approved as optional.
 
 Mobile push delivery initially uses Expo Notifications / Expo Push Service.
+The delivery policy is approved; device registration, provider credentials,
+outbox dispatch, and delivery monitoring remain implementation work.
 
 ## 4. API and Trusted Operations
 

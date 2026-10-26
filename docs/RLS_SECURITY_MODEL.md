@@ -579,6 +579,13 @@ The V1 GPS acceptance radius is 100 metres. Trusted server-side logic
 must determine whether submitted location evidence satisfies the
 attendance location requirement.
 
+For Jummah attendance, only the President may create an event and set its
+GPS centre and check-in opening/closing timestamps. Only a current Member
+may record their own linked active member profile. The server uses its own
+time when validating the event window, including during offline sync. The
+event-list RPC does not return the geofence centre, direct client table access
+is revoked, and submitted attendee coordinates are not stored.
+
 Retention policy remains a separate open decision. Do not introduce GPS
 accuracy thresholds, spoof-detection algorithms, background tracking,
 continuous tracking or additional location requirements unless separately
