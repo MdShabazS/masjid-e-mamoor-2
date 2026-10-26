@@ -285,11 +285,45 @@ begin
 end;
 $$;
 
+select set_config('request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000001","session_id":"a1000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
 select public.submit_monthly_claim(:'donor_id'::uuid,'2026-10-01','TEST-UPI-456')
   as rejected_claim_id \gset
 select set_config('test.rejected_claim', :'rejected_claim_id',true);
+select set_config('request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000002","session_id":"a1000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 select public.reject_monthly_claim(:'rejected_claim_id'::uuid,'Reference not found in bank',
   'a3000000-0000-0000-0000-000000000009');
+do $$ begin
+  if (select count(*) from public.list_rejected_monthly_claims())<>1
+    or (select count(*) from public.list_rejected_monthly_claims(1,1))<>0
+    or (select original_reference from public.list_rejected_monthly_claims())<>'TEST-UPI-456' then
+    raise exception 'Treasurer rejected-claim review projection failed'; end if;
+  begin
+    perform public.list_rejected_monthly_claims(0,0);
+    raise exception 'unbounded rejected-claim page accepted';
+  exception when invalid_parameter_value then null; end;
+end $$;
+select set_config('request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000004","session_id":"a1000000-0000-0000-0000-000000000004","role":"authenticated"}',true);
+do $$ begin
+  if exists(select 1 from public.list_rejected_monthly_claims()) then
+    raise exception 'other leader saw a claim they did not submit'; end if;
+end $$;
+select set_config('request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000005","session_id":"a1000000-0000-0000-0000-000000000005","role":"authenticated"}',true);
+do $$ begin
+  begin
+    perform public.list_rejected_monthly_claims();
+    raise exception 'Member read rejected-claim references';
+  exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000001","session_id":"a1000000-0000-0000-0000-000000000001","role":"authenticated"}',true);
+do $$ begin
+  if (select count(*) from public.list_rejected_monthly_claims())<>1 then
+    raise exception 'original submitter cannot review rejected claim'; end if;
+end $$;
 select public.resubmit_rejected_monthly_claim(:'rejected_claim_id'::uuid,'TEST-UPI-457')
   as replacement_claim_id \gset
 select set_config('test.replacement_claim', :'replacement_claim_id',true);
@@ -299,8 +333,17 @@ do $$ begin
     or (select replaces_rejected_claim_id from public.payment_claims
       where id=current_setting('test.replacement_claim',true)::uuid)
       <> current_setting('test.rejected_claim',true)::uuid
+    or public.resubmit_rejected_monthly_claim(
+      current_setting('test.rejected_claim',true)::uuid,'TEST-UPI-457')
+      <> current_setting('test.replacement_claim',true)::uuid
+    or exists(select 1 from public.list_rejected_monthly_claims())
     or (select count(*) from public.monthly_receipts) <> 1 then
     raise exception 'rejection/resubmission changed financial posting'; end if;
+  begin
+    perform public.resubmit_rejected_monthly_claim(
+      current_setting('test.rejected_claim',true)::uuid,'TEST-UPI-458');
+    raise exception 'conflicting rejected-claim replacement accepted';
+  exception when unique_violation then null; end;
 end $$;
 
 -- Staff edits are audited, retry-safe and restricted to President/Treasurer.

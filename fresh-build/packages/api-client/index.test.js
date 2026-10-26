@@ -90,6 +90,39 @@ test('Treasurer rejection sends a reason and operation without an amount or rece
   );
 });
 
+test('rejected-claim review pages and linked replacement use bounded arguments', async () => {
+  const calls = [];
+  const api = createManagementApi({
+    rpc: async (name, args) => {
+      calls.push({ name, args });
+      return {
+        data: name === 'resubmit_rejected_monthly_claim' ? 'replacement-1' : [],
+        error: null,
+      };
+    },
+  });
+  await api.listRejectedMonthlyClaims({ limit: 50, offset: 100 });
+  assert.equal(
+    await api.resubmitRejectedMonthlyClaim({
+      claimId: 'claim-1',
+      transactionId: '  NEW-REF-123  ',
+    }),
+    'replacement-1',
+  );
+  assert.deepEqual(calls, [
+    { name: 'list_rejected_monthly_claims', args: { p_limit: 50, p_offset: 100 } },
+    {
+      name: 'resubmit_rejected_monthly_claim',
+      args: { p_claim_id: 'claim-1', p_transaction_id: 'NEW-REF-123' },
+    },
+  ]);
+  assert.throws(() => api.listRejectedMonthlyClaims({ limit: 101 }), /invalid_rejected_claim_page/);
+  assert.throws(
+    () => api.resubmitRejectedMonthlyClaim({ claimId: 'claim-1', transactionId: 'x' }),
+    /invalid_reference/,
+  );
+});
+
 test('enrollment goes through signed-in consent server endpoint, not old RPC', async () => {
   let request;
   const client = {

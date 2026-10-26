@@ -67,6 +67,21 @@ export function createManagementApi(authenticatedClient) {
     getMyRole: () => call(authenticatedClient, 'current_app_role', {}),
     listMonthlyDonors: () => call(authenticatedClient, 'list_monthly_donors', {}),
     listPendingMonthlyClaims: () => call(authenticatedClient, 'list_pending_monthly_claims', {}),
+    listRejectedMonthlyClaims: ({ limit = 50, offset = 0 } = {}) => {
+      if (
+        !Number.isInteger(limit) ||
+        limit < 1 ||
+        limit > 100 ||
+        !Number.isInteger(offset) ||
+        offset < 0 ||
+        offset > 100000
+      )
+        throw new Error('invalid_rejected_claim_page');
+      return call(authenticatedClient, 'list_rejected_monthly_claims', {
+        p_limit: limit,
+        p_offset: offset,
+      });
+    },
     listActiveMasjidAccounts: () => call(authenticatedClient, 'list_active_masjid_accounts', {}),
     submitMonthlyClaim: ({ donorId, periodDate, transactionId }) =>
       call(authenticatedClient, 'submit_monthly_claim', {
@@ -90,6 +105,14 @@ export function createManagementApi(authenticatedClient) {
         p_claim_id: claimId,
         p_reason: trimmedReason,
         p_operation_id: requireOperationId(operationId),
+      });
+    },
+    resubmitRejectedMonthlyClaim: ({ claimId, transactionId }) => {
+      const reference = transactionId?.trim() ?? '';
+      if (reference.length < 3 || reference.length > 200) throw new Error('invalid_reference');
+      return call(authenticatedClient, 'resubmit_rejected_monthly_claim', {
+        p_claim_id: claimId,
+        p_transaction_id: reference,
       });
     },
     updateMonthlyDonorSuggestion: ({

@@ -19,6 +19,9 @@ export default function ClaimsPage() {
   const [role, setRole] = useState(null);
   const [donors, setDonors] = useState([]);
   const [claims, setClaims] = useState([]);
+  const [rejectedClaims, setRejectedClaims] = useState([]);
+  const [rejectedOffset, setRejectedOffset] = useState(0);
+  const [moreRejected, setMoreRejected] = useState(false);
   const [accounts, setAccounts] = useState([]);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
@@ -27,14 +30,18 @@ export default function ClaimsPage() {
 
   async function refresh(client, currentRole) {
     const api = createManagementApi(client);
-    const [list, pending, destinations] = await Promise.all([
+    const [list, pending, destinations, rejected] = await Promise.all([
       api.listMonthlyDonors(),
       currentRole === 'treasurer' ? api.listPendingMonthlyClaims() : [],
       currentRole === 'treasurer' ? api.listActiveMasjidAccounts() : [],
+      submitRoles.has(currentRole) ? api.listRejectedMonthlyClaims() : [],
     ]);
     setDonors(list ?? []);
     setClaims(pending ?? []);
     setAccounts(destinations ?? []);
+    setRejectedClaims(rejected ?? []);
+    setRejectedOffset(rejected?.length ?? 0);
+    setMoreRejected((rejected?.length ?? 0) === 50);
   }
 
   useEffect(() => {
@@ -148,6 +155,53 @@ export default function ClaimsPage() {
       }
     } catch (cause) {
       setNotice(cause.message || 'Could not reject claim.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loadMoreRejected() {
+    setBusy(true);
+    setNotice('');
+    try {
+      const page = await createManagementApi(getBrowserClient()).listRejectedMonthlyClaims({
+        offset: rejectedOffset,
+      });
+      setRejectedOffset((current) => current + page.length);
+      setRejectedClaims((current) => {
+        const known = new Set(current.map((claim) => claim.rejected_claim_id));
+        return [...current, ...page.filter((claim) => !known.has(claim.rejected_claim_id))];
+      });
+      setMoreRejected(page.length === 50);
+    } catch (cause) {
+      setNotice(cause.message || 'Could not load older rejected claims.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resubmit(event, claimId) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const transactionId = String(new FormData(form).get('transaction') ?? '').trim();
+    setBusy(true);
+    setNotice('');
+    try {
+      const client = getBrowserClient();
+      await createManagementApi(client).resubmitRejectedMonthlyClaim({ claimId, transactionId });
+      setRejectedClaims((current) =>
+        current.filter((claim) => claim.rejected_claim_id !== claimId),
+      );
+      form.reset();
+      try {
+        await refresh(client, role);
+        setNotice('Linked replacement submitted for Treasurer review. No money was posted.');
+      } catch {
+        setMoreRejected(false);
+        setNotice('Replacement submitted. Reload the claim lists before another action.');
+      }
+    } catch (cause) {
+      setNotice(cause.message || 'Could not resubmit rejected claim.');
     } finally {
       setBusy(false);
     }
@@ -267,6 +321,41 @@ export default function ClaimsPage() {
               </ul>
             )}
           </section>
+          {submitRoles.has(role) && (
+            <section className="panel">
+              <h2>Rejected claims needing a new reference</h2>
+              <p className="muted">
+                You can replace claims you submitted. The Treasurer can replace any rejected claim.
+                A replacement goes back to review and does not post money.
+              </p>
+              {rejectedClaims.length === 0 ? (
+                <p className="muted">No rejected claims need replacement.</p>
+              ) : (
+                <ul className="claim-list">
+                  {rejectedClaims.map((claim) => (
+                    <li key={claim.rejected_claim_id}>
+                      <strong>{claim.donor_name}</strong> · {claim.period_date}
+                      <br />
+                      <small>Original reference: {claim.original_reference}</small>
+                      <p>Reason: {claim.rejection_reason}</p>
+                      <form onSubmit={(event) => resubmit(event, claim.rejected_claim_id)}>
+                        <label className="field">
+                          Corrected transaction reference
+                          <input name="transaction" required minLength={3} maxLength={200} />
+                        </label>
+                        <button disabled={busy}>Submit linked replacement</button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {moreRejected && (
+                <button type="button" disabled={busy} onClick={loadMoreRejected}>
+                  Load older rejected claims
+                </button>
+              )}
+            </section>
+          )}
         </div>
       )}
     </main>

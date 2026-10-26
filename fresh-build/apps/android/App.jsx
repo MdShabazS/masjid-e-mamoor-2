@@ -23,6 +23,7 @@ import OfflineDrafts from './lib/OfflineDrafts';
 import FinanceAccounts from './lib/FinanceAccounts';
 import PaymentQrProfile from './lib/PaymentQrProfile';
 import ReceiptHandoff from './lib/ReceiptHandoff';
+import RejectedClaims from './lib/RejectedClaims';
 
 const colors = {
   ink: '#182e2a',
@@ -101,6 +102,7 @@ export default function App() {
   const [verification, setVerification] = useState({});
   const [operation, setOperation] = useState(null);
   const [rejection, setRejection] = useState({});
+  const [claimReviewRevision, setClaimReviewRevision] = useState(0);
   const rejectionOperationIds = useRef(new Map());
   const [staffDonorId, setStaffDonorId] = useState(null);
   const [revisedSuggestion, setRevisedSuggestion] = useState('');
@@ -375,8 +377,10 @@ export default function App() {
       });
       try {
         setClaims(await api.listPendingMonthlyClaims());
+        setClaimReviewRevision((current) => current + 1);
         setNotice('Claim rejected with a recorded reason. No money was posted or receipt issued.');
       } catch {
+        setClaimReviewRevision((current) => current + 1);
         setNotice('Claim rejected. Reopen the review list before taking another action.');
       }
     } catch (cause) {
@@ -754,6 +758,18 @@ export default function App() {
                       </View>
                     ))}
                   </View>
+                )}
+                {claimRoles.has(role) && (
+                  <RejectedClaims
+                    client={client}
+                    revision={claimReviewRevision}
+                    onResubmitted={async () => {
+                      if (role === 'treasurer')
+                        setClaims(
+                          (await createManagementApi(client).listPendingMonthlyClaims()) ?? [],
+                        );
+                    }}
+                  />
                 )}
                 {donorStaffRoles.has(role) && (
                   <View style={styles.card}>
