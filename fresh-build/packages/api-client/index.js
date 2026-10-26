@@ -39,6 +39,26 @@ async function call(client, name, args) {
   return data;
 }
 
+function requireOperationId(value) {
+  if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value ?? ''))
+    throw new Error('operation_id_required');
+  return value;
+}
+
+function positivePaiseText(value) {
+  if (typeof value === 'number' && !Number.isSafeInteger(value))
+    throw new Error('invalid_expected_amount');
+  const text = String(value);
+  if (!/^[1-9][0-9]*$/.test(text)) throw new Error('invalid_expected_amount');
+  return text;
+}
+
+function staffReason(value) {
+  const reason = value?.trim() ?? '';
+  if (reason.length < 3 || reason.length > 240) throw new Error('invalid_staff_reason');
+  return reason;
+}
+
 export function createManagementApi(authenticatedClient) {
   if (!authenticatedClient || typeof authenticatedClient.rpc !== 'function') {
     throw new Error('authenticated_client_required');
@@ -55,15 +75,32 @@ export function createManagementApi(authenticatedClient) {
         p_transaction_id: transactionId,
       }),
     verifyMonthlyClaim: ({ claimId, accountId, actualAmountINR, operationId }) => {
-      if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(operationId ?? '')) {
-        throw new Error('operation_id_required');
-      }
       return call(authenticatedClient, 'verify_monthly_claim', {
         p_claim_id: claimId,
         p_account_id: accountId,
         p_actual_amount_paise: parseINRToPaise(actualAmountINR),
-        p_operation_id: operationId,
+        p_operation_id: requireOperationId(operationId),
       });
     },
+    updateMonthlyDonorSuggestion: ({
+      donorId,
+      expectedAmountPaise,
+      newAmountINR,
+      reason,
+      operationId,
+    }) =>
+      call(authenticatedClient, 'update_monthly_donor_suggestion', {
+        p_donor_id: donorId,
+        p_expected_amount_paise: positivePaiseText(expectedAmountPaise),
+        p_new_amount_paise: parseINRToPaise(newAmountINR),
+        p_reason: staffReason(reason),
+        p_operation_id: requireOperationId(operationId),
+      }),
+    optOutMonthlyDonor: ({ donorId, sourceReference, operationId }) =>
+      call(authenticatedClient, 'staff_opt_out_monthly_donor', {
+        p_donor_id: donorId,
+        p_source_reference: staffReason(sourceReference),
+        p_operation_id: requireOperationId(operationId),
+      }),
   };
 }

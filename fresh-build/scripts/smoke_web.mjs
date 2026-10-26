@@ -54,7 +54,13 @@ try {
     await new Promise((resolveWait) => setTimeout(resolveWait, 100));
   }
   if (!ready) throw new Error('Web process did not become ready');
-  for (const path of ['/', '/announcements', '/login', '/finance/receipt-handoff']) {
+  for (const path of [
+    '/',
+    '/announcements',
+    '/login',
+    '/contributors',
+    '/finance/receipt-handoff',
+  ]) {
     const response = await fetch(base + path);
     if (response.status !== 200 || !response.headers.get('content-type')?.includes('text/html'))
       throw new Error(`Unexpected public page: ${path} ${response.status}`);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -42,6 +42,7 @@ const enrollmentRoles = new Set([
   'data_entry',
 ]);
 const claimRoles = enrollmentRoles;
+const donorStaffRoles = new Set(['president', 'treasurer']);
 
 function Button({ label, onPress, disabled = false, secondary = false }) {
   return (
@@ -98,6 +99,12 @@ export default function App() {
   const [accounts, setAccounts] = useState([]);
   const [verification, setVerification] = useState({});
   const [operation, setOperation] = useState(null);
+  const [staffDonorId, setStaffDonorId] = useState(null);
+  const [revisedSuggestion, setRevisedSuggestion] = useState('');
+  const [staffReason, setStaffReason] = useState('');
+  const [optOutSource, setOptOutSource] = useState('');
+  const [optOutConfirmed, setOptOutConfirmed] = useState(false);
+  const staffOperationIds = useRef(new Map());
 
   useEffect(() => {
     let mounted = true;
@@ -330,6 +337,71 @@ export default function App() {
       setBusy(false);
     }
   }
+
+  async function runStaffDonorAction(key, action, successMessage) {
+    setBusy(true);
+    setError('');
+    setNotice('');
+    const operationId = staffOperationIds.current.get(key) ?? Crypto.randomUUID();
+    staffOperationIds.current.set(key, operationId);
+    try {
+      const api = createManagementApi(client);
+      await action(api, operationId);
+      staffOperationIds.current.delete(key);
+      try {
+        setDonors((await api.listMonthlyDonors()) ?? []);
+        setNotice(successMessage);
+      } catch {
+        setNotice(`${successMessage} Refresh the roster before another change.`);
+      }
+      return true;
+    } catch (cause) {
+      setError(cause.message || 'Could not save contributor change.');
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function correctSuggestion(donor) {
+    const args = {
+      donorId: donor.donor_id,
+      expectedAmountPaise: donor.suggested_amount_paise,
+      newAmountINR: revisedSuggestion.trim(),
+      reason: staffReason.trim(),
+    };
+    if (
+      await runStaffDonorAction(
+        `suggestion:${JSON.stringify(args)}`,
+        (api, operationId) => api.updateMonthlyDonorSuggestion({ ...args, operationId }),
+        'Voluntary suggestion updated without changing earlier payments.',
+      )
+    ) {
+      setRevisedSuggestion('');
+      setStaffReason('');
+    }
+  }
+
+  async function optOutDonor(donor) {
+    if (!optOutConfirmed) {
+      setError('Confirm the donor asked to stop future requests.');
+      return;
+    }
+    const args = { donorId: donor.donor_id, sourceReference: optOutSource.trim() };
+    if (
+      await runStaffDonorAction(
+        `opt-out:${JSON.stringify(args)}`,
+        (api, operationId) => api.optOutMonthlyDonor({ ...args, operationId }),
+        'Donor opt-out recorded. Future monthly requests are disabled.',
+      )
+    ) {
+      setStaffDonorId(null);
+      setOptOutSource('');
+      setOptOutConfirmed(false);
+    }
+  }
+
+  const staffDonor = donors.find((donor) => donor.donor_id === staffDonorId && donor.active);
 
   return (
     <SafeAreaProvider>
@@ -597,6 +669,85 @@ export default function App() {
                         />
                       </View>
                     ))}
+                  </View>
+                )}
+                {donorStaffRoles.has(role) && (
+                  <View style={styles.card}>
+                    <Text style={styles.heading}>Contributor correction and opt-out</Text>
+                    <Text style={styles.muted}>
+                      Change only a voluntary suggestion or record the donor’s request to stop.
+                      Verified payments stay unchanged.
+                    </Text>
+                    {donors
+                      .filter((donor) => donor.active)
+                      .map((donor) => (
+                        <Pressable
+                          key={donor.donor_id}
+                          accessibilityRole="radio"
+                          accessibilityState={{ selected: staffDonorId === donor.donor_id }}
+                          onPress={() => {
+                            setStaffDonorId(donor.donor_id);
+                            setRevisedSuggestion('');
+                            setStaffReason('');
+                            setOptOutSource('');
+                            setOptOutConfirmed(false);
+                          }}
+                          style={[
+                            styles.choice,
+                            staffDonorId === donor.donor_id && styles.selected,
+                          ]}
+                        >
+                          <Text style={styles.donor}>{donor.donor_name}</Text>
+                        </Pressable>
+                      ))}
+                    {staffDonor && (
+                      <>
+                        <Text style={styles.muted}>
+                          Current suggestion: {formatPaiseINR(staffDonor.suggested_amount_paise)}
+                        </Text>
+                        <Field
+                          label="Revised suggestion (₹)"
+                          value={revisedSuggestion}
+                          onChangeText={setRevisedSuggestion}
+                          keyboardType="decimal-pad"
+                        />
+                        <Field
+                          label="Donor request or correction reference"
+                          value={staffReason}
+                          onChangeText={setStaffReason}
+                          maxLength={240}
+                        />
+                        <Button
+                          label={busy ? 'Saving…' : 'Save revised suggestion'}
+                          onPress={() => correctSuggestion(staffDonor)}
+                          disabled={
+                            busy || !revisedSuggestion.trim() || staffReason.trim().length < 3
+                          }
+                        />
+                        <Field
+                          label="Opt-out request reference"
+                          value={optOutSource}
+                          onChangeText={setOptOutSource}
+                          maxLength={240}
+                        />
+                        <View style={styles.consent}>
+                          <Switch
+                            value={optOutConfirmed}
+                            onValueChange={setOptOutConfirmed}
+                            trackColor={{ true: colors.green }}
+                            accessibilityLabel="Confirmed donor asked to stop future requests"
+                          />
+                          <Text style={styles.consentText}>
+                            I verified this donor asked to stop future requests.
+                          </Text>
+                        </View>
+                        <Button
+                          label={busy ? 'Saving…' : 'Record donor opt-out'}
+                          onPress={() => optOutDonor(staffDonor)}
+                          disabled={busy || !optOutConfirmed || optOutSource.trim().length < 3}
+                        />
+                      </>
+                    )}
                   </View>
                 )}
                 <OfflineDrafts client={client} actorId={session.user.id} role={role} />

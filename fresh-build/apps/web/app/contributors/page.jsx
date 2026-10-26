@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createManagementApi, formatPaiseINR } from '../../../../packages/api-client/index.js';
 import { getBrowserClient } from '../../lib/supabase.js';
 import { enrollConsentedDonor } from '../../../../packages/api-client/donor-enrollment.js';
@@ -14,6 +14,76 @@ const allowedToEnroll = new Set([
   'committee_member',
   'data_entry',
 ]);
+const donorStaffRoles = new Set(['president', 'treasurer']);
+
+function DonorStaffControls({ donor, busy, onCorrection, onOptOut }) {
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState('');
+  const [stopSource, setStopSource] = useState('');
+  const [stopConfirmed, setStopConfirmed] = useState(false);
+  async function correct(event) {
+    event.preventDefault();
+    if (await onCorrection(donor, amount.trim(), reason.trim())) {
+      setAmount('');
+      setReason('');
+    }
+  }
+  async function optOut(event) {
+    event.preventDefault();
+    if (!stopConfirmed) return;
+    if (await onOptOut(donor, stopSource.trim())) {
+      setStopSource('');
+      setStopConfirmed(false);
+    }
+  }
+  return (
+    <div>
+      <form onSubmit={correct}>
+        <label className="field">
+          Revised voluntary suggestion (₹)
+          <input
+            inputMode="decimal"
+            required
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+          />
+        </label>
+        <label className="field">
+          Donor request or correction reference
+          <input
+            required
+            minLength={3}
+            maxLength={240}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        </label>
+        <button disabled={busy}>Save revised suggestion</button>
+      </form>
+      <form onSubmit={optOut}>
+        <label className="field">
+          Opt-out request reference
+          <input
+            required
+            minLength={3}
+            maxLength={240}
+            value={stopSource}
+            onChange={(event) => setStopSource(event.target.value)}
+          />
+        </label>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={stopConfirmed}
+            onChange={(event) => setStopConfirmed(event.target.checked)}
+          />
+          <span>I verified this donor asked to stop future requests.</span>
+        </label>
+        <button disabled={busy || !stopConfirmed}>Record opt-out</button>
+      </form>
+    </div>
+  );
+}
 
 export default function ContributorsPage() {
   const [session, setSession] = useState('checking');
@@ -21,6 +91,7 @@ export default function ContributorsPage() {
   const [donors, setDonors] = useState([]);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const operationIds = useRef(new Map());
 
   async function load(client) {
     const api = createManagementApi(client);
@@ -99,6 +170,53 @@ export default function ContributorsPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function runStaffAction(key, action, successMessage) {
+    setBusy(true);
+    setNotice('');
+    const operationId = operationIds.current.get(key) ?? crypto.randomUUID();
+    operationIds.current.set(key, operationId);
+    try {
+      const client = getBrowserClient();
+      await action(createManagementApi(client), operationId);
+      operationIds.current.delete(key);
+      try {
+        await load(client);
+        setNotice(successMessage);
+      } catch {
+        setNotice(`${successMessage} Reload to refresh the roster.`);
+      }
+      return true;
+    } catch (cause) {
+      setNotice(cause.message || 'Could not save contributor change.');
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function correctSuggestion(donor, newAmountINR, reason) {
+    const args = {
+      donorId: donor.donor_id,
+      expectedAmountPaise: donor.suggested_amount_paise,
+      newAmountINR,
+      reason,
+    };
+    return runStaffAction(
+      `suggestion:${JSON.stringify(args)}`,
+      (api, operationId) => api.updateMonthlyDonorSuggestion({ ...args, operationId }),
+      'Voluntary suggestion updated. Historical payments and consent were not changed.',
+    );
+  }
+
+  function optOutDonor(donor, sourceReference) {
+    const args = { donorId: donor.donor_id, sourceReference };
+    return runStaffAction(
+      `opt-out:${JSON.stringify(args)}`,
+      (api, operationId) => api.optOutMonthlyDonor({ ...args, operationId }),
+      'Donor opt-out recorded. Future monthly requests are disabled.',
+    );
   }
 
   async function signOut() {
@@ -243,6 +361,14 @@ export default function ContributorsPage() {
                         <small>{donor.active ? 'Active' : 'Inactive'}</small>
                       </span>
                       <span>{formatPaiseINR(donor.suggested_amount_paise)}</span>
+                      {donor.active && donorStaffRoles.has(role) && (
+                        <DonorStaffControls
+                          donor={donor}
+                          busy={busy}
+                          onCorrection={correctSuggestion}
+                          onOptOut={optOutDonor}
+                        />
+                      )}
                     </li>
                   ))}
                 </ul>

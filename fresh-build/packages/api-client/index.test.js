@@ -89,3 +89,89 @@ test('RPC failures reach the caller', async () => {
   });
   await assert.rejects(api.listMonthlyDonors(), /not_authorized/);
 });
+
+test('staff correction uses exact expected paise, reason and retry operation', async () => {
+  const calls = [];
+  const api = createManagementApi({
+    rpc: async (name, args) => {
+      calls.push({ name, args });
+      return { data: null, error: null };
+    },
+  });
+  const operationId = 'a3000000-0000-4000-8000-000000000011';
+  await api.updateMonthlyDonorSuggestion({
+    donorId: 'donor-1',
+    expectedAmountPaise: '9007199254740993',
+    newAmountINR: '1250.25',
+    reason: '  Donor requested change  ',
+    operationId,
+  });
+  assert.deepEqual(calls, [
+    {
+      name: 'update_monthly_donor_suggestion',
+      args: {
+        p_donor_id: 'donor-1',
+        p_expected_amount_paise: '9007199254740993',
+        p_new_amount_paise: 125025,
+        p_reason: 'Donor requested change',
+        p_operation_id: operationId,
+      },
+    },
+  ]);
+  assert.throws(
+    () =>
+      api.updateMonthlyDonorSuggestion({
+        donorId: 'donor-1',
+        expectedAmountPaise: 9007199254740993,
+        newAmountINR: '1250.25',
+        reason: 'Donor requested change',
+        operationId,
+      }),
+    /invalid_expected_amount/,
+  );
+  assert.throws(
+    () =>
+      api.updateMonthlyDonorSuggestion({
+        donorId: 'donor-1',
+        expectedAmountPaise: 10000,
+        newAmountINR: '1250.25',
+        reason: 'x',
+        operationId,
+      }),
+    /invalid_staff_reason/,
+  );
+});
+
+test('staff opt-out sends a source and stable operation without a payment', async () => {
+  const calls = [];
+  const api = createManagementApi({
+    rpc: async (name, args) => {
+      calls.push({ name, args });
+      return { data: null, error: null };
+    },
+  });
+  const operationId = 'a3000000-0000-4000-8000-000000000013';
+  await api.optOutMonthlyDonor({
+    donorId: 'donor-1',
+    sourceReference: '  Donor requested STOP  ',
+    operationId,
+  });
+  assert.deepEqual(calls, [
+    {
+      name: 'staff_opt_out_monthly_donor',
+      args: {
+        p_donor_id: 'donor-1',
+        p_source_reference: 'Donor requested STOP',
+        p_operation_id: operationId,
+      },
+    },
+  ]);
+  assert.throws(
+    () =>
+      api.optOutMonthlyDonor({
+        donorId: 'donor-1',
+        sourceReference: 'Donor requested STOP',
+      }),
+    /operation_id_required/,
+  );
+});
