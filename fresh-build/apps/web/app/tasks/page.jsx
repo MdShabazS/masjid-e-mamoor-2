@@ -2,9 +2,19 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { parseINRToPaise } from '../../../../packages/api-client/index.js';
+import { runTaskCommand } from '../../../../packages/api-client/task-command.js';
 import { getBrowserClient } from '../../lib/supabase.js';
 
 const creators = new Set(['president', 'vice_president', 'secretary']);
+const taskReaders = new Set([
+  'president',
+  'vice_president',
+  'secretary',
+  'treasurer',
+  'committee_member',
+  'member',
+  'data_entry',
+]);
 function CashCountForm({ taskId, busy, correction, onSubmit }) {
   const [date, setDate] = useState('');
   const [amount, setAmount] = useState('');
@@ -86,7 +96,8 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState([]),
     [cashTasks, setCashTasks] = useState([]),
     [error, setError] = useState(''),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [stale, setStale] = useState(false);
   const [title, setTitle] = useState(''),
     [description, setDescription] = useState('');
   const [cashCollection, setCashCollection] = useState(false);
@@ -108,8 +119,14 @@ export default function TasksPage() {
     return data;
   }
   async function load() {
-    const [nextRole, items, collections] = await Promise.all([
-      rpc('current_app_role', {}),
+    const nextRole = await rpc('current_app_role', {});
+    if (!taskReaders.has(nextRole)) {
+      setRole(nextRole);
+      setTasks([]);
+      setCashTasks([]);
+      return;
+    }
+    const [items, collections] = await Promise.all([
       rpc('list_visible_work_tasks', {}),
       rpc('list_cash_collection_workflow', {}),
     ]);
@@ -131,7 +148,10 @@ export default function TasksPage() {
           await load();
           if (active) setSession('ready');
         } catch (cause) {
-          if (active) setError(cause.message);
+          if (active) {
+            setError(cause.message);
+            setSession('error');
+          }
         }
       })
       .catch(() => {
@@ -142,18 +162,39 @@ export default function TasksPage() {
     };
   }, []);
   async function command(name, args, key) {
+    if (stale) {
+      setError('Reload the task list before another action.');
+      return false;
+    }
     setBusy(true);
     setError('');
-    const id = operations.current.get(key) ?? crypto.randomUUID();
-    operations.current.set(key, id);
+    const result = await runTaskCommand({
+      operations: operations.current,
+      key,
+      name,
+      args,
+      rpc,
+      refresh: load,
+      createId: () => crypto.randomUUID(),
+    });
+    if (!result.saved)
+      setError(result.error?.message || 'Task action failed. Retry the same action.');
+    else if (!result.refreshed) {
+      setError('Action saved, but the task list could not refresh. Reload before another action.');
+      setStale(true);
+    }
+    setBusy(false);
+    return result.saved;
+  }
+  async function retryLoad() {
+    setBusy(true);
     try {
-      await rpc(name, { ...args, p_operation_id: id });
-      operations.current.delete(key);
       await load();
-      return true;
+      setStale(false);
+      setError('');
+      setSession('ready');
     } catch (cause) {
-      setError(cause.message);
-      return false;
+      setError(cause.message || 'Could not load tasks.');
     } finally {
       setBusy(false);
     }
@@ -187,7 +228,6 @@ export default function TasksPage() {
     try {
       const list = await rpc('list_work_task_participants', { p_task_id: id });
       setParticipants({ ...participants, [id]: list ?? [] });
-      setError('');
     } catch (cause) {
       setError(cause.message);
     }
@@ -203,12 +243,20 @@ export default function TasksPage() {
           <Link href="/login">Sign in</Link> to see tasks.
         </p>
       )}
+      {(session === 'error' || stale) && (
+        <button disabled={busy} onClick={retryLoad}>
+          Reload task list
+        </button>
+      )}
+      {session === 'ready' && !taskReaders.has(role) && (
+        <p>Work tasks are unavailable for this account role.</p>
+      )}
       {error && (
         <p role="alert" className="notice error">
           {error}
         </p>
       )}
-      {session === 'ready' && (
+      {session === 'ready' && taskReaders.has(role) && (
         <>
           {creators.has(role) && (
             <form className="panel" onSubmit={create}>
@@ -314,7 +362,7 @@ export default function TasksPage() {
                   />
                 </label>
               )}
-              <button className="primary" disabled={busy}>
+              <button className="primary" disabled={busy || stale}>
                 Create task
               </button>
             </form>
@@ -362,7 +410,7 @@ export default function TasksPage() {
                         ) && (
                           <CashCountForm
                             taskId={task.task_id}
-                            busy={busy}
+                            busy={busy || stale}
                             correction={cashByTask.get(task.task_id).count_status === 'rejected'}
                             onSubmit={(args) =>
                               command(
@@ -378,7 +426,7 @@ export default function TasksPage() {
                   {task.status === 'active' &&
                     (!task.my_status || task.my_status === 'invited') && (
                       <button
-                        disabled={busy}
+                        disabled={busy || stale}
                         onClick={() =>
                           command(
                             'join_work_task',
@@ -398,7 +446,7 @@ export default function TasksPage() {
                           <input value={note} onChange={(e) => setNote(e.target.value)} />
                         </label>
                         <button
-                          disabled={busy}
+                          disabled={busy || stale}
                           onClick={() =>
                             command(
                               'submit_work_task_completion',
@@ -417,7 +465,7 @@ export default function TasksPage() {
                   {task.status === 'active' &&
                     ['confirmed', 'waitlisted', 'invited'].includes(task.my_status) && (
                       <button
-                        disabled={busy}
+                        disabled={busy || stale}
                         onClick={() =>
                           command(
                             'leave_work_task',
@@ -446,7 +494,7 @@ export default function TasksPage() {
                                 task.status === 'active' && (
                                   <>
                                     <button
-                                      disabled={busy}
+                                      disabled={busy || stale}
                                       onClick={async () => {
                                         if (
                                           await command(
@@ -466,7 +514,7 @@ export default function TasksPage() {
                                       Accept completion
                                     </button>
                                     <button
-                                      disabled={busy || reviewReason.trim().length < 3}
+                                      disabled={busy || stale || reviewReason.trim().length < 3}
                                       onClick={async () => {
                                         if (
                                           await command(
@@ -498,7 +546,7 @@ export default function TasksPage() {
                             <input value={invitee} onChange={(e) => setInvitee(e.target.value)} />
                           </label>
                           <button
-                            disabled={busy || !invitee}
+                            disabled={busy || stale || !invitee}
                             onClick={async () => {
                               if (
                                 await command(
@@ -529,7 +577,7 @@ export default function TasksPage() {
                             />
                           </label>
                           <button
-                            disabled={busy || cancelReason.trim().length < 3}
+                            disabled={busy || stale || cancelReason.trim().length < 3}
                             onClick={() =>
                               command(
                                 'cancel_work_task',

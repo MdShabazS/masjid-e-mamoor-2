@@ -19,6 +19,8 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 
 **27 October Android cash task slice:** Cash collection task creation, numbered count submission, rejected-count replacement, and Treasurer reject/physical-verify controls now exist in Android through the existing guarded RPCs. The 166-test suite, static checks and Android bundle export passed; see `docs/PHASE_6_ANDROID_CASH_TASKS_2026-10-27.md`. Signed-in device/staging journeys and independent physical-slip reconciliation remain open.
 
+**27 October web task retry fix:** A saved task/cash action is no longer presented as a failed mutation when its list refresh fails. The page blocks further writes until reload and recovers from an initial list failure; a System Admin session no longer calls denied task RPCs. The 168-test suite, static checks, web build and HTTP smoke passed; see `docs/PHASE_6_WEB_TASK_RETRY_2026-10-27.md`. Signed-in web/staging interruption testing remains open.
+
 ## Verified foundation
 
 - [x] Independent npm workspace lockfile and clean `npm ci`; the latest full suite passed 151 Node tests, lint, format, typecheck and environment checks. Web build, Android bundle export and unconfigured production-web HTTP smoke passed locally. Hosted source CI passed for commit `71d9cde` on 25 October; see `docs/REPOSITORY_CLEANUP_2026-10-25.md`.
