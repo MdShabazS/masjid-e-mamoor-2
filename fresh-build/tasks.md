@@ -1,6 +1,6 @@
 # Masjid E Mamoor 2 — remaining work to usable release
 
-**Updated:** 26 October 2026 (India time). **Scope:** this `fresh-build/` worktree. `docs/MASTER_BUILD_PLAN.md` is the full phase definition; `docs/PHASE_13_EXECUTION_2026-10-16.md` tracks the 25 acceptance IDs. A checked item means only its stated proof passed, not that a whole phase is accepted. No release-wide ID has passed.
+**Updated:** 27 October 2026 (India time). **Scope:** this `fresh-build/` worktree. `docs/MASTER_BUILD_PLAN.md` is the full phase definition; `docs/PHASE_13_EXECUTION_2026-10-16.md` tracks the 25 acceptance IDs. A checked item means only its stated proof passed, not that a whole phase is accepted. No release-wide ID has passed.
 
 ## 24 October real-money launch decision
 
@@ -16,6 +16,8 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 **24 October owner input:** The official bank/UPI details and QR are **not yet available**. The Board's approval of the four privacy/publication rules is unconfirmed. Both remain open launch gates; no synthetic payee or roster entry substitutes for them. Use `docs/LIVE_PAYMENT_DETAILS_HANDOFF_2026-10-24.md` to collect and verify payment details without putting account identifiers in this repository.
 
 **24 October messaging decision:** The owner deferred WhatsApp automation to a future release. Automated monthly requests/reminders, receipt sends, provider webhooks and chatbot-style flows stay disabled. A first release may use an approved staff-led receipt handoff after Treasurer verification; it does not require a Meta API integration. This deferral does not waive recipient consent or the need to audit any send action that the app later offers.
+
+**27 October Android cash task slice:** Cash collection task creation, numbered count submission, rejected-count replacement, and Treasurer reject/physical-verify controls now exist in Android through the existing guarded RPCs. The 166-test suite, static checks and Android bundle export passed; see `docs/PHASE_6_ANDROID_CASH_TASKS_2026-10-27.md`. Signed-in device/staging journeys and independent physical-slip reconciliation remain open.
 
 ## Verified foundation
 
@@ -149,7 +151,7 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 - [ ] Complete real QR payee validation and operator approval, hosted web/Storage checks, private retrieval for approved recipients, guarded cleanup on staging and Storage backup/restore; preserve account/QR/consent snapshot per request. Local HTTP route, synthetic account-screen browser journey and guarded cleanup pass.
 - [ ] Complete donor profile/edit/dedupe/opt-out, multiple/late payments, actual amount, duplicate reference, reminder and referral correction. The role-scoped rejected-claim list and linked replacement client action are implemented; signed-in client/staging acceptance remains open. Enrollment stays gated until consent approval.
 - [x] Add President/Treasurer-only audited suggested-amount correction and staff opt-out RPCs in migration 31. The hosted isolated-development rollback fixture passed allowed roles, wrong-role denial, stale edit, replay/conflict and reminder suppression; it left zero donor, event and Auth rows. Web/Android controls, full donor profile/dedupe and staging remain open.
-- [ ] Finish one-time donation, collection-task cash counter and direct Treasurer cash posting without double count. All three paths share a numbered-slip claim, and a rejected count can be replaced with a linked new-slip count. The task rejection/replacement web journey passed locally. Add independent physical-slip reconciliation; prove all three paths together in both signed-in clients and staging.
+- [ ] Finish one-time donation, collection-task cash counter and direct Treasurer cash posting without double count. All three paths share a numbered-slip claim, and a rejected count can be replaced with a linked new-slip count. The task rejection/replacement web journey passed locally. Android now covers collection task creation, count submission/replacement and Treasurer review. Add independent physical-slip reconciliation; prove all three paths together in both signed-in clients and staging.
 - [ ] Finish private bills, expense revisions/reapproval/partial payment races, advances/returns, salary and approved member reads.
 - [ ] Ensure corrections also update receipt validity, referral/score and revised report linkage; retain immutable history.
 
@@ -240,7 +242,7 @@ Each checkbox below needs dated evidence, the environment/build used, expected a
 
 - [ ] Reconcile each account and a mixed-source month independently from opening balance plus immutable effects; test transfers, corrections, reversals, retries, simultaneous requests and Android/web parity.
 - [ ] Test donor creation/edit/dedupe, referral and consent changes, multiple/late payments, duplicate references, reminders and opt-out through both clients and the database.
-- [ ] Test one-time donations, task collections and direct cash posting together; prove one real-world payment produces exactly one ledger effect and one valid receipt. All three same-slip cash routes and a direct/task race passed locally with issued sessions; task rejection/replacement passed in the signed-in local web client. Different-slip physical duplicates, Android, the combined web journey and staging remain open.
+- [ ] Test one-time donations, task collections and direct cash posting together; prove one real-world payment produces exactly one ledger effect and one valid receipt. All three same-slip cash routes and a direct/task race passed locally with issued sessions; task rejection/replacement passed in the signed-in local web client. Android cash-task controls are bundled and unit-checked, but different-slip physical duplicates, signed-in Android, the combined web journey and staging remain open.
 - [ ] Test bills, approval separation, revisions, partial payments, advances, returns and salary visibility with concurrent requests and wrong-role denial.
 - [ ] Test real QR scan/payee approval, hosted upload/read and recipient-specific delivery; prove retry/conflict behavior, stale-image inventory and guarded cleanup without deleting a referenced image. Restore private QR bytes from backup on a clean staging target. Local issued-session HTTP retry/conflict/replacement, frozen-request snapshot, Storage cleanup and encrypted QR-byte replay now pass; repeat on staging/device with official payee evidence.
 
