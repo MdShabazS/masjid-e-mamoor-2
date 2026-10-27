@@ -13,4 +13,10 @@ The page now keeps the operation ID across an uncertain mutation response, delet
 
 ## Still required
 
-Exercise the web page with issued President/Member/Treasurer sessions on a hosted or staging candidate, including an interrupted refresh after a saved cash count, then reconcile the resulting count, ledger effect and receipt. This local source/build test does not prove that signed-in browser journey.
+An interrupted refresh immediately after a successful browser mutation remains to be exercised through the full UI. The pure command tests cover that timing locally. Repeat the signed-in browser journey on hosted development and staging, then reconcile a paper slip against physical cash and the account statement before real-money use.
+
+## Signed-in local browser follow-up
+
+On 27 October, the separate disposable `masjid-e-mamoor-2-fresh` stack ran the current web source with synthetic President, Member, Treasurer and System Admin sessions. The President created an open collection task, and the Member joined and submitted numbered slip `RETRY-BROWSER-001` for ₹23.50. Before verification, the database showed one pending count, one 10,000-paise opening effect and no donation effect. The Treasurer's web review showed the pending count and ₹100.00 balance. After physical-count acknowledgment and verification, the page showed ₹123.50 and no pending count. Database reconciliation showed one verified 2,350-paise count, one `one_time_donation` effect, a non-null receipt identity, a 12,350-paise account total and one reserved slip key. The System Admin task page displayed its unavailable-role message instead of hanging or exposing task controls.
+
+The fixture's local reset then reported zero Auth users, sessions, app users, finance effects, cash counts, slip claims and Storage objects (`0|0|0|0|0|0|0`). Only this fresh local stack and its Colima runtime were stopped. The test did not use real people, cash, bank details or hosted services.
