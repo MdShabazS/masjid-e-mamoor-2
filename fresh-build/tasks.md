@@ -23,6 +23,8 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 
 **27 October signed-in follow-up:** Four separate synthetic local roles exercised the current web cash task and role-denial screens. The Member's ₹23.50 count stayed pending with only the ₹100 opening; Treasurer verification produced exactly one 2,350-paise donation effect, a receipt identity and a ₹123.50 balance. System Admin saw the unavailable-role message. The disposable reset returned seven Auth/finance/cash/Storage counts to zero. Browser-level refresh interruption, hosted/staging journeys and physical reconciliation remain open; see `docs/PHASE_6_WEB_TASK_RETRY_2026-10-27.md`.
 
+**27 October release configuration preflight:** A private-shell check now rejects mixed web/Android/server Supabase targets, mismatched web origin, placeholders, local/HTTP URLs, public secret keys and missing service credentials without printing values. The synthetic regression tests passed. Actual staging/production values and hosted builds remain untested; Vercel project details and deployments are unavailable through the current connector session (404/403), and its dashboard needs owner sign-in. See `docs/RELEASE_CONFIG_PREFLIGHT_2026-10-27.md`.
+
 ## Verified foundation
 
 - [x] Independent npm workspace lockfile and clean `npm ci`; the latest full suite passed 151 Node tests, lint, format, typecheck and environment checks. Web build, Android bundle export and unconfigured production-web HTTP smoke passed locally. Hosted source CI passed for commit `71d9cde` on 25 October; see `docs/REPOSITORY_CLEANUP_2026-10-25.md`.

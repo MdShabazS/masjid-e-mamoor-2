@@ -19,6 +19,7 @@
     "test:backup": "python3 -m unittest discover -s backend/backup -v",
     "check:shell": "bash -n backend/scripts/run_fresh_db_checks.sh",
     "check:env": "python3 scripts/check_env_templates.py && python3 -m unittest discover -s scripts -p 'test_check_*.py' -v",
+    "check:release-config": "python3 scripts/check_release_config.py",
     "check:bundle": "python3 scripts/check_public_bundle.py --root apps/web/.next/static --root apps/android/dist"
   },
   "engines": {
