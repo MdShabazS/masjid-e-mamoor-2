@@ -12,6 +12,10 @@ The test exercised local Storage and archive handling. It did **not** restore th
 
 The full 147-test Node suite, Python archive test, lint, typecheck and formatting check passed. The disposable Supabase stack and the Colima runtime started for this drill were stopped after cleanup.
 
+## 29 October size preflight
+
+Private-object capture now checks a downloaded Blob's reported size before making a second in-memory copy. Replay checks an extracted file's `lstat` size before `readFile`. The existing byte-length and SHA-256 checks still run after reading. A focused test proves an oversized remote Blob's `arrayBuffer()` is never called and a sparse oversized archive file is refused before loading. All 169 Node tests, focused lint and formatting pass. Supabase's download implementation may itself buffer a response before returning a Blob, so this is a local copy guard, not a streaming or write-consistent hosted backup. The hosted capture/clean restore, offsite schedule, retention and alerts remain open.
+
 ## Operator outline for an authorized isolated target
 
 1. Capture a verified custom-format database dump and coordinate a stable Storage capture window. Hold the recovery certificate, private key and random MAC key in approved custody outside the repository.

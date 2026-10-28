@@ -37,6 +37,8 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 
 **29 October delivery check:** Owner-approved commits through `926bbd7` were pushed. [Hosted CI run 40750073889](https://github.com/MdShabazS/masjid-e-mamoor-2/actions/runs/40750073889) passed for the documentation commits, and [run 40750745218](https://github.com/MdShabazS/masjid-e-mamoor-2/actions/runs/40750745218) passed for the key-type preflight change. Both included source checks, Android bundle export, bundle scan and source restore. An ADB check outside the sandbox found no connected Android device; signed release identity, keystore custody and real-device acceptance remain open.
 
+**29 October backup size guard:** Combined private-bucket capture now rejects an oversized Blob before copying it into a Node Buffer; replay rejects a mismatched or oversized extracted file before reading it. The focused guard test and all 169 Node tests, lint and formatting pass. This does not supply a consistent hosted database-plus-object snapshot or clean restore. See `docs/PRIVATE_BUCKET_RECOVERY_2026-10-25.md`.
+
 ## Verified foundation
 
 - [x] Independent npm workspace lockfile and clean `npm ci`; the latest full suite passed 151 Node tests, lint, format, typecheck and environment checks. Web build, Android bundle export and unconfigured production-web HTTP smoke passed locally. Hosted source CI passed for commit `71d9cde` on 25 October; see `docs/REPOSITORY_CLEANUP_2026-10-25.md`.

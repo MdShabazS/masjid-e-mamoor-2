@@ -101,6 +101,10 @@ async function inventory(client) {
 async function remoteBytes(client, item) {
   const { data, error } = await client.storage.from(item.bucket).download(item.path);
   if (error || !data) throw new Error('private_backup_object_missing');
+  if (typeof data.size === 'number' && (data.size < 1 || data.size > BUCKETS[item.bucket].maxBytes))
+    throw new Error('private_backup_object_size');
+  if (item.bytes !== undefined && typeof data.size === 'number' && data.size !== item.bytes)
+    throw new Error('private_backup_object_mismatch');
   const bytes = Buffer.from(await data.arrayBuffer());
   if (bytes.length < 1 || bytes.length > BUCKETS[item.bucket].maxBytes)
     throw new Error('private_backup_object_size');
@@ -112,10 +116,13 @@ async function remoteBytes(client, item) {
 async function archiveBytes(root, item) {
   if ((await lstat(root)).isSymbolicLink()) throw new Error('private_backup_symlink');
   let current = root;
+  let stat;
   for (const segment of [item.bucket, ...item.path.split('/')]) {
     current = path.join(current, segment);
-    if ((await lstat(current)).isSymbolicLink()) throw new Error('private_backup_symlink');
+    stat = await lstat(current);
+    if (stat.isSymbolicLink()) throw new Error('private_backup_symlink');
   }
+  if (!stat.isFile() || stat.size !== item.bytes) throw new Error('private_backup_file_mismatch');
   const bytes = await readFile(current);
   if (bytes.length !== item.bytes || hash(bytes) !== item.sha256)
     throw new Error('private_backup_file_mismatch');

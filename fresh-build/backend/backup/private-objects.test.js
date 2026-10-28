@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, symlink, truncate, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -184,6 +184,55 @@ test('rejects manifest drift before any upload', async () => {
       /private_backup_invalid_manifest/,
     );
     assert.equal(uploads.length, 0);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('rejects oversized remote and archive objects before loading their bytes', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'mem2-private-test-'));
+  try {
+    const { client } = fixture();
+    let readOversized = false;
+    const originalFrom = client.storage.from;
+    client.storage.from = (bucket) => {
+      const handle = originalFrom(bucket);
+      if (bucket !== 'qr-private') return handle;
+      return {
+        ...handle,
+        async download(name) {
+          if (name !== QR) return handle.download(name);
+          return {
+            data: {
+              size: 5 * 1024 * 1024 + 1,
+              async arrayBuffer() {
+                readOversized = true;
+                throw new Error('oversized bytes should not be read');
+              },
+            },
+            error: null,
+          };
+        },
+      };
+    };
+    await assert.rejects(
+      capturePrivateObjects({ client, directory: path.join(root, 'oversized-capture') }),
+      /private_backup_object_size/,
+    );
+    assert.equal(readOversized, false);
+
+    client.storage.from = originalFrom;
+    const capture = path.join(root, 'capture');
+    const records = await capturePrivateObjects({ client, directory: capture });
+    await truncate(path.join(capture, 'objects/qr-private', QR), 5 * 1024 * 1024 + 1);
+    await assert.rejects(
+      replayPrivateObjects({
+        client,
+        manifest: { objects: records },
+        objectsRoot: path.join(capture, 'objects'),
+      }),
+      /private_backup_file_mismatch/,
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }
