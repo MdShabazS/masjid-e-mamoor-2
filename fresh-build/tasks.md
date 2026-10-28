@@ -33,6 +33,8 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 
 **28 October configured Preview follow-up:** A new dedicated staging secret is installed as a sensitive, branch-scoped Vercel Preview variable; the exposed staging default secret was revoked. A fresh READY Preview returns `AUTH_REQUIRED` from the unauthenticated `/api/v1/me` route. Public HTML and six loaded scripts had no secret-key marker. Three temporary staging roles signed in through the live browser: Member saw the read-only contributor roster, President saw enrollment and the no-bank-account QR state, and Treasurer saw the empty claim review queue. After owner-approved deletion, final staging readback showed zero Auth users/sessions, app profiles/aliases, finance effects, payment claims, QR versions and Storage objects. This is a narrow hosted identity/role smoke, not the full finance, Storage, report, Android or real-money acceptance. See `docs/STAGING_AND_VERCEL_2026-10-27.md`.
 
+**28 October configuration hardening:** Release preflight now rejects arbitrary or wrong-role Supabase keys in public and server slots without printing values. All 24 Python script checks pass. This is a local key-type check; production values, project ownership and Android build injection still require runtime verification. See `docs/RELEASE_CONFIG_PREFLIGHT_2026-10-27.md`.
+
 ## Verified foundation
 
 - [x] Independent npm workspace lockfile and clean `npm ci`; the latest full suite passed 151 Node tests, lint, format, typecheck and environment checks. Web build, Android bundle export and unconfigured production-web HTTP smoke passed locally. Hosted source CI passed for commit `71d9cde` on 25 October; see `docs/REPOSITORY_CLEANUP_2026-10-25.md`.

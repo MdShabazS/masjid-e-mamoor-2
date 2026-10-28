@@ -43,18 +43,25 @@ def _origin(value: str, *, name: str) -> tuple[str | None, str | None]:
         return None, f"{name}: invalid URL"
 
 
-def _is_secret_key(value: str) -> bool:
-    if value.startswith("sb_secret_"):
-        return True
-    # Legacy Supabase keys are JWTs. Only inspect the role claim; do not log it.
+def _legacy_key_role(value: str) -> str | None:
+    # Legacy Supabase keys are JWTs. This is a shape check, not signature validation.
     segments = value.split(".")
     if len(segments) != 3:
-        return False
+        return None
     try:
         payload = base64.urlsafe_b64decode(segments[1] + "=" * (-len(segments[1]) % 4))
-        return json.loads(payload).get("role") == "service_role"
-    except (ValueError, UnicodeDecodeError):
-        return False
+        role = json.loads(payload).get("role")
+        return role if isinstance(role, str) else None
+    except (ValueError, UnicodeDecodeError, AttributeError):
+        return None
+
+
+def _is_secret_key(value: str) -> bool:
+    return (value.startswith("sb_secret_") and len(value) > len("sb_secret_")) or _legacy_key_role(value) == "service_role"
+
+
+def _is_public_key(value: str) -> bool:
+    return (value.startswith("sb_publishable_") and len(value) > len("sb_publishable_")) or _legacy_key_role(value) == "anon"
 
 
 def check_config(
@@ -92,6 +99,10 @@ def check_config(
             errors.append(f"{name}: missing or placeholder key")
         elif name != private and _is_secret_key(value):
             errors.append(f"{name}: secret key in a public slot")
+        elif name != private and not _is_public_key(value):
+            errors.append(f"{name}: expected Supabase publishable or legacy anon key")
+        elif name == private and not _is_secret_key(value):
+            errors.append(f"{name}: expected Supabase secret or legacy service-role key")
     if all(values.get(name) for name in (*public_keys, server_public)):
         if len({values[name] for name in (*public_keys, server_public)}) != 1:
             errors.append("public Supabase keys differ between clients and server")

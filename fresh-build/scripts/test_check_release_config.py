@@ -57,6 +57,33 @@ class ReleaseConfigTests(unittest.TestCase):
         values["SUPABASE_SERVICE_ROLE_KEY"] = values["SUPABASE_PUBLISHABLE_KEY"]
         self.assertTrue(any("service role key matches" in error for error in self.check(values)))
 
+    def test_arbitrary_or_wrong_role_keys_fail_without_echo(self):
+        bad = "NOT_A_SUPABASE_KEY_NEVER_PRINT"
+        values = {**VALID, "SUPABASE_SERVICE_ROLE_KEY": bad}
+        errors = self.check(values)
+        self.assertTrue(any("expected Supabase secret" in error for error in errors))
+        self.assertNotIn(bad, " ".join(errors))
+
+        values = {**VALID, "SUPABASE_PUBLISHABLE_KEY": bad}
+        errors = self.check(values)
+        self.assertTrue(any("expected Supabase publishable" in error for error in errors))
+        self.assertNotIn(bad, " ".join(errors))
+
+    def test_legacy_key_roles_are_scoped(self):
+        def jwt(role):
+            payload = base64.urlsafe_b64encode(json.dumps({"role": role}).encode()).decode().rstrip("=")
+            return f"header.{payload}.signature"
+
+        anon = jwt("anon")
+        service = jwt("service_role")
+        values = {**VALID, "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": anon,
+                  "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": anon,
+                  "SUPABASE_PUBLISHABLE_KEY": anon,
+                  "SUPABASE_SERVICE_ROLE_KEY": service}
+        self.assertEqual(self.check(values), [])
+        values["SUPABASE_SERVICE_ROLE_KEY"] = anon
+        self.assertTrue(any("expected Supabase secret" in error for error in self.check(values)))
+
 
 if __name__ == "__main__":
     unittest.main()
