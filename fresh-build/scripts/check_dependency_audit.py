@@ -9,9 +9,21 @@ import sys
 
 
 KNOWN_HIGH_VIA = {
-    "@expo/cli": {"@expo/code-signing-certificates", "node-forge", "zod"},
+    "@expo/cli": {
+        "@expo/code-signing-certificates",
+        "@expo/config",
+        "@expo/metro-config",
+        "@expo/prebuild-config",
+        "node-forge",
+        "zod",
+    },
     "@expo/code-signing-certificates": {"node-forge"},
-    "expo": {"@expo/cli"},
+    "expo": {
+        "@expo/cli",
+        "@expo/config",
+        "@expo/local-build-cache-provider",
+        "@expo/metro-config",
+    },
     "node-forge": {"https://github.com/advisories/GHSA-86w9-cpqp-85rv"},
     "zod": {"https://github.com/advisories/GHSA-mrhx-c7xc-m3w5"},
 }

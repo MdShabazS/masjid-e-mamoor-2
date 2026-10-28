@@ -22,6 +22,23 @@ class DependencyAuditTests(unittest.TestCase):
         clean["vulnerabilities"] = {}
         self.assertEqual(check_audit(clean), [])
 
+    def test_current_expo_transitive_paths_pass(self):
+        audit = sample()
+        audit["vulnerabilities"]["@expo/cli"]["via"] = [
+            "@expo/config", "@expo/metro-config", "@expo/prebuild-config", "zod"
+        ]
+        audit["vulnerabilities"]["expo"] = {
+            "severity": "high",
+            "via": [
+                "@expo/cli",
+                "@expo/config",
+                "@expo/local-build-cache-provider",
+                "@expo/metro-config",
+            ],
+        }
+        audit["metadata"]["vulnerabilities"].update(high=3, total=3)
+        self.assertEqual(check_audit(audit), [])
+
     def test_new_advisory_or_package_fails(self):
         unknown = sample()
         unknown["vulnerabilities"]["node-forge"]["via"][0]["url"] = "https://github.com/advisories/GHSA-new"
