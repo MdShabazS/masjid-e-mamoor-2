@@ -35,6 +35,8 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 
 **28 October configuration hardening:** Release preflight now rejects arbitrary or wrong-role Supabase keys in public and server slots without printing values. All 24 Python script checks pass. This is a local key-type check; production values, project ownership and Android build injection still require runtime verification. See `docs/RELEASE_CONFIG_PREFLIGHT_2026-10-27.md`.
 
+**29 October delivery check:** Owner-approved commits through `926bbd7` were pushed. [Hosted CI run 40750073889](https://github.com/MdShabazS/masjid-e-mamoor-2/actions/runs/40750073889) passed for the documentation commits, and [run 40750745218](https://github.com/MdShabazS/masjid-e-mamoor-2/actions/runs/40750745218) passed for the key-type preflight change. Both included source checks, Android bundle export, bundle scan and source restore. An ADB check outside the sandbox found no connected Android device; signed release identity, keystore custody and real-device acceptance remain open.
+
 ## Verified foundation
 
 - [x] Independent npm workspace lockfile and clean `npm ci`; the latest full suite passed 151 Node tests, lint, format, typecheck and environment checks. Web build, Android bundle export and unconfigured production-web HTTP smoke passed locally. Hosted source CI passed for commit `71d9cde` on 25 October; see `docs/REPOSITORY_CLEANUP_2026-10-25.md`.
