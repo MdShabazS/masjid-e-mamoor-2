@@ -4,6 +4,7 @@ import { createDraftQueue, validateDraft, rpcForDraft } from './index.js';
 
 const actor = '7a7977e0-d9db-40d8-a260-d9a40a6c0ec0';
 const id = 'ebce2cca-a525-473e-952a-3e9592235b70';
+const nextId = '44e4211a-42c2-4d45-a897-c86ba896c010';
 const expense = {
   title: 'Fuel',
   description: 'Travel',
@@ -68,6 +69,81 @@ test('restart preserves actor-scoped operation ID and uncertain response retries
   assert.equal(seen.length, 2);
   assert.equal(seen[0][1].p_operation_id, seen[1][1].p_operation_id);
   assert.deepEqual(await afterRestart.list(), []);
+});
+
+test('interrupted reviewed removal clears private content before index update', async () => {
+  const store = memoryStore();
+  const queue = createDraftQueue({ store, actorId: actor, uuid: () => id });
+  await queue.add('expense', expense);
+  const originalSet = store.setItemAsync;
+  store.setItemAsync = async (key, value) => {
+    if (key.endsWith('_index')) throw new Error('storage interrupted');
+    return originalSet(key, value);
+  };
+  await assert.rejects(queue.remove(id), /storage interrupted/);
+  assert.deepEqual(await queue.list(), []);
+  assert.equal([...store.values.keys()].filter((key) => key.endsWith(`_${id}`)).length, 0);
+  store.setItemAsync = originalSet;
+  const restarted = createDraftQueue({ store, actorId: actor, uuid: () => nextId });
+  await restarted.add('expense', expense);
+  assert.deepEqual(
+    (await restarted.list()).map((draft) => draft.id),
+    [nextId],
+  );
+});
+
+test('interrupted post-submit cleanup does not retain or replay private content', async () => {
+  const store = memoryStore();
+  let calls = 0;
+  const client = {
+    auth: { getUser: async () => ({ data: { user: { id: actor } } }) },
+    rpc: async () => {
+      calls++;
+      return { data: 'server-id', error: null };
+    },
+  };
+  const queue = createDraftQueue({ store, actorId: actor, uuid: () => id, client });
+  await queue.add('expense', expense);
+  const originalSet = store.setItemAsync;
+  store.setItemAsync = async (key, value) => {
+    if (key.endsWith('_index')) throw new Error('storage interrupted');
+    return originalSet(key, value);
+  };
+  await assert.rejects(queue.sync(), /storage interrupted/);
+  assert.deepEqual(await queue.list(), []);
+  assert.equal([...store.values.keys()].filter((key) => key.endsWith(`_${id}`)).length, 0);
+  store.setItemAsync = originalSet;
+  const restarted = createDraftQueue({ store, actorId: actor, uuid: () => nextId, client });
+  assert.equal((await restarted.sync()).sent, 0);
+  assert.equal(calls, 1);
+});
+
+test('failed private-item deletion keeps the same operation for an idempotent retry', async () => {
+  const store = memoryStore();
+  const seen = [];
+  const client = {
+    auth: { getUser: async () => ({ data: { user: { id: actor } } }) },
+    rpc: async (_name, args) => {
+      seen.push(args.p_operation_id);
+      return { data: 'server-id', error: null };
+    },
+  };
+  const queue = createDraftQueue({ store, actorId: actor, uuid: () => id, client });
+  await queue.add('expense', expense);
+  const originalDelete = store.deleteItemAsync;
+  store.deleteItemAsync = async () => {
+    throw new Error('storage interrupted');
+  };
+  await assert.rejects(queue.sync(), /storage interrupted/);
+  assert.deepEqual(
+    (await queue.list()).map((draft) => draft.id),
+    [id],
+  );
+  store.deleteItemAsync = originalDelete;
+  const restarted = createDraftQueue({ store, actorId: actor, uuid: () => nextId, client });
+  assert.equal((await restarted.sync()).sent, 1);
+  assert.deepEqual(seen, [id, id]);
+  assert.deepEqual(await restarted.list(), []);
 });
 
 test('another session cannot replay an actor draft; conflict and rejection remain visible', async () => {

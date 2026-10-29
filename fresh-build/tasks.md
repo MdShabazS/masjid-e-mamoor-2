@@ -211,6 +211,7 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 
 - [ ] Deploy scheduler/worker for reminders, notices, PDFs and push; prove queued→delivered/failed, bounded retries and operator recovery. Never automatically resend an ambiguous external message.
 - [ ] **Future release:** complete Meta dispatch/renderer/status/STOP race tests; activate only after masjid-owned number, consent, templates, rate/budget and provider test. WhatsApp automation is deferred by the owner and is not a first-release gate while outbound remains disabled.
+- [x] Delete a submitted or reviewed Android offline draft's private SecureStore item before removing its index entry. Interruption tests show a failed index write leaves no private item, while a failed item deletion retains the same operation ID for idempotent retry. The 172-test suite, lint, typecheck, formatting and Android bundle export pass. This is a storage-fault slice; device kill/upgrade and two-phone acceptance remain open. See `docs/PHASE_12_DRAFT_CLEANUP_2026-10-29.md`.
 - [ ] Test encrypted Android drafts across kill/update/reconnect/two phones; block offline approvals, verification and stale GPS check-in.
 - [ ] Capture a write-consistent daily Postgres dump and both private bucket contents with encryption/hash, offsite copy, alert and 30 daily/12 monthly retention; drill authorized clean `pg_restore` plus object replay and measure recovery. Combined local archive/replay is proved, but scheduling, hosted restore and consistency are not.
 

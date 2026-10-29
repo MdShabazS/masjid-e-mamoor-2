@@ -220,8 +220,17 @@ export default function OfflineDrafts({ client, actorId, role }) {
             <Pressable
               accessibilityRole="button"
               onPress={async () => {
-                await queue.remove(draft.id);
-                await reload();
+                try {
+                  await queue.remove(draft.id);
+                  setMessage('Reviewed draft removed from this device.');
+                } catch {
+                  setMessage(
+                    'Draft removal was interrupted. Check the saved list before retrying.',
+                  );
+                }
+                await reload().catch(() =>
+                  setMessage('Could not unlock saved drafts on this device.'),
+                );
               }}
             >
               <Text style={styles.remove}>Remove reviewed draft</Text>

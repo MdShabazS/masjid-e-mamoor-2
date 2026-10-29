@@ -220,8 +220,10 @@ export function createDraftQueue({ store, actorId, uuid, client }) {
     try {
       const existing = await ids();
       if (!existing.includes(id)) return false;
-      await store.setItemAsync(indexKey, JSON.stringify(existing.filter((x) => x !== id)));
+      // Delete private content first. If the index update fails, its stale ID
+      // is skipped by list() and compacted by the next add().
       await store.deleteItemAsync(key(id));
+      await store.setItemAsync(indexKey, JSON.stringify(existing.filter((x) => x !== id)));
       return true;
     } finally {
       busy = false;
@@ -257,8 +259,10 @@ export function createDraftQueue({ store, actorId, uuid, client }) {
         }
         if (!response.error) {
           const current = await ids();
-          await store.setItemAsync(indexKey, JSON.stringify(current.filter((x) => x !== draft.id)));
+          // Preserve the same crash ordering as remove(): a failed index write
+          // must never leave an invisible copy of submitted private data.
           await store.deleteItemAsync(key(draft.id));
+          await store.setItemAsync(indexKey, JSON.stringify(current.filter((x) => x !== draft.id)));
           result.sent++;
           continue;
         }
