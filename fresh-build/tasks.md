@@ -1,6 +1,6 @@
 # Masjid E Mamoor 2 — remaining work to usable release
 
-**Updated:** 28 October 2026 (India time). **Scope:** this `fresh-build/` worktree. `docs/MASTER_BUILD_PLAN.md` is the full phase definition; `docs/PHASE_13_EXECUTION_2026-10-16.md` tracks the 25 acceptance IDs. A checked item means only its stated proof passed, not that a whole phase is accepted. No release-wide ID has passed.
+**Updated:** 29 October 2026 (India time). **Scope:** this `fresh-build/` worktree. `docs/MASTER_BUILD_PLAN.md` is the full phase definition; `docs/PHASE_13_EXECUTION_2026-10-16.md` tracks the 25 acceptance IDs. A checked item means only its stated proof passed, not that a whole phase is accepted. No release-wide ID has passed.
 
 ## 24 October real-money launch decision
 
@@ -40,6 +40,8 @@ Do not enable enrollment, public receipts, outbound messaging or real-money work
 **29 October backup size guard:** Combined private-bucket capture now rejects an oversized Blob before copying it into a Node Buffer; replay rejects a mismatched or oversized extracted file before reading it. The focused guard test and all 169 Node tests, lint and formatting pass. This does not supply a consistent hosted database-plus-object snapshot or clean restore. See `docs/PRIVATE_BUCKET_RECOVERY_2026-10-25.md`.
 
 **29 October latest Preview smoke:** READY deployment `dpl_7xx5krkfNjfioetpJpXEJjpZwVFS` at commit `c6ddb06` returned `AUTH_REQUIRED` for anonymous identity and private QR reads. Report capabilities remained off, and private CSV/PDF export returned `SERVICE_UNAVAILABLE`. No synthetic data was created. Signed-in finance/Storage/report-worker and real-money tests remain open. See `docs/STAGING_AND_VERCEL_2026-10-27.md`.
+
+**29 October Production configuration cleanup:** With owner approval, the three stale Production-only Vercel variables (`SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) were deleted. A connector readback lists five Preview-only variables and no Production variables. The project remains `live: false` with no project domains; its latest source Preview (`dpl_E3HRgh7QgkwLN5ASAcwXjw9PQfAZ`, commit `669329e`) is READY. A future Production build requires verified production values and a fresh deployment. Deleting the Vercel copy does not revoke the old key at its unknown source project. No production deployment or real-money test was performed. See `docs/STAGING_AND_VERCEL_2026-10-27.md`.
 
 ## Verified foundation
 
