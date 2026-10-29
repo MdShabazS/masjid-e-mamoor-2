@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail CI when npm reports a new high/critical advisory or an invalid audit."""
+"""Fail CI when npm reports an unreviewed advisory or an invalid audit."""
 
 from __future__ import annotations
 
@@ -26,6 +26,14 @@ KNOWN_HIGH_VIA = {
     },
     "node-forge": {"https://github.com/advisories/GHSA-86w9-cpqp-85rv"},
     "zod": {"https://github.com/advisories/GHSA-mrhx-c7xc-m3w5"},
+}
+
+KNOWN_LOW_VIA = {
+    "@expo/config": {"deepmerge"},
+    "@expo/local-build-cache-provider": {"@expo/config"},
+    "@expo/metro-config": {"@expo/config"},
+    "@expo/prebuild-config": {"@expo/config"},
+    "deepmerge": {"https://github.com/advisories/GHSA-gcqx-w48m-w2h4"},
 }
 
 
@@ -55,10 +63,11 @@ def check_audit(audit: object) -> list[str]:
         severity = finding.get("severity")
         if severity == "critical":
             errors.append(f"Critical dependency finding: {name}")
-        elif severity == "high":
-            allowed_via = KNOWN_HIGH_VIA.get(name)
+        elif severity in ("high", "moderate", "low"):
+            known = KNOWN_HIGH_VIA if severity == "high" else KNOWN_LOW_VIA if severity == "low" else {}
+            allowed_via = known.get(name)
             if allowed_via is None:
-                errors.append(f"New high dependency finding: {name}")
+                errors.append(f"New {severity} dependency finding: {name}")
             via = finding.get("via")
             if not isinstance(via, list) or not via:
                 errors.append(f"Missing advisory path: {name}")
@@ -69,12 +78,13 @@ def check_audit(audit: object) -> list[str]:
                             errors.append(f"New advisory or path for {name}")
                     elif not isinstance(item, str) or item not in (allowed_via or set()):
                         errors.append(f"Unexpected dependency path for {name}")
-        elif severity not in ("info", "low", "moderate"):
+        elif severity != "info":
             errors.append(f"Invalid severity for {name}")
-    if counts["critical"] or counts["high"] != sum(
-        item.get("severity") == "high"
-        for item in vulnerabilities.values()
-        if isinstance(item, dict)
+    if any(
+        counts[level]
+        != sum(item.get("severity") == level for item in vulnerabilities.values()
+               if isinstance(item, dict))
+        for level in ("info", "low", "moderate", "high", "critical")
     ):
         errors.append("npm audit severity counts do not match its entries")
     return errors
@@ -97,8 +107,8 @@ def main() -> int:
     counts = audit["metadata"]["vulnerabilities"]
     print(
         f"npm audit baseline passed: {counts['high']} known high, "
-        f"{counts['critical']} critical, no new high advisories. "
-        "Known highs still require release-owner review."
+        f"{counts['low']} known low, {counts['critical']} critical, no new advisories. "
+        "Known findings still require release-owner review."
     )
     return 0
 

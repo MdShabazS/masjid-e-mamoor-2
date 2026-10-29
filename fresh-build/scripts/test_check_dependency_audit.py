@@ -48,6 +48,25 @@ class DependencyAuditTests(unittest.TestCase):
         package["metadata"]["vulnerabilities"].update(high=3, total=3)
         self.assertTrue(check_audit(package))
 
+    def test_current_low_paths_pass_and_new_low_or_moderate_fails(self):
+        audit = sample()
+        audit["vulnerabilities"].update({
+            "@expo/config": {"severity": "low", "via": ["deepmerge"]},
+            "@expo/local-build-cache-provider": {"severity": "low", "via": ["@expo/config"]},
+            "@expo/metro-config": {"severity": "low", "via": ["@expo/config"]},
+            "@expo/prebuild-config": {"severity": "low", "via": ["@expo/config"]},
+            "deepmerge": {"severity": "low", "via": [{"url": "https://github.com/advisories/GHSA-gcqx-w48m-w2h4"}]},
+        })
+        audit["metadata"]["vulnerabilities"].update(low=5, total=7)
+        self.assertEqual(check_audit(audit), [])
+        changed = copy.deepcopy(audit)
+        changed["vulnerabilities"]["deepmerge"]["via"][0]["url"] = "https://github.com/advisories/GHSA-new"
+        self.assertTrue(check_audit(changed))
+        moderate = copy.deepcopy(audit)
+        moderate["vulnerabilities"]["other"] = {"severity": "moderate", "via": ["deepmerge"]}
+        moderate["metadata"]["vulnerabilities"].update(moderate=1, total=8)
+        self.assertTrue(check_audit(moderate))
+
     def test_critical_or_audit_error_fails(self):
         critical = copy.deepcopy(sample())
         critical["vulnerabilities"]["node-forge"]["severity"] = "critical"
@@ -59,6 +78,9 @@ class DependencyAuditTests(unittest.TestCase):
         audit = sample()
         audit["metadata"]["vulnerabilities"]["high"] = 1
         self.assertTrue(check_audit(audit))
+        low = sample()
+        low["metadata"]["vulnerabilities"]["low"] = 1
+        self.assertTrue(check_audit(low))
 
 
 if __name__ == "__main__":
