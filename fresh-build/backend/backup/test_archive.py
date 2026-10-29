@@ -1,6 +1,7 @@
 import hashlib
 import json
 import pathlib
+import stat
 import subprocess
 import tempfile
 import unittest
@@ -32,10 +33,16 @@ class BackupPreflightTests(unittest.TestCase):
             inventory.write_text(json.dumps([record]))
             encrypted, staging = root / 'archive.cms', root / 'staging'
             build(dump, inventory, objects, cert, encrypted, mac)
+            staging.mkdir(mode=0o755)
             result = verify(encrypted, cert, key, mac, staging)
             self.assertEqual(result['objects'], [record])
             self.assertEqual((staging / 'database.dump').read_bytes(), dump.read_bytes())
             self.assertEqual((staging / 'objects/qr-private/current.png').read_bytes(), qr.read_bytes())
+            for directory in (staging, staging / 'objects', staging / 'objects/qr-private'):
+                self.assertEqual(stat.S_IMODE(directory.stat().st_mode), 0o700)
+            for private_file in (staging / 'MANIFEST.json', staging / 'database.dump',
+                                 staging / 'objects/qr-private/current.png'):
+                self.assertEqual(stat.S_IMODE(private_file.stat().st_mode), 0o600)
             qr.unlink()
             with self.assertRaisesRegex(ValueError, 'missing object bytes'):
                 build(dump, inventory, objects, cert, root / 'bad.cms', mac)

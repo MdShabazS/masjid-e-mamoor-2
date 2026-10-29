@@ -74,6 +74,12 @@ def add_bytes(archive, name, data):
     archive.addfile(info, io.BytesIO(data))
 
 
+def write_private_file(destination, data):
+    descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, 'wb') as output:
+        output.write(data)
+
+
 def mac_secret(path):
     secret = path.read_bytes()
     if len(secret) < 32:
@@ -158,13 +164,18 @@ def verify(encrypted, certificate, private_key, mac_key, staging=None):
                     raise ValueError('staging symlink prohibited')
                 if staging.exists() and any(staging.iterdir()):
                     raise ValueError('staging directory must be empty')
-                staging.mkdir(parents=True, exist_ok=True)
+                staging.mkdir(parents=True, exist_ok=True, mode=0o700)
+                os.chmod(staging, 0o700)
                 for name in sorted(expected - {'MANIFEST.json'}):
                     destination = staging / name
-                    destination.parent.mkdir(parents=True, exist_ok=True)
-                    destination.write_bytes(archive.extractfile(name).read())
-                    os.chmod(destination, 0o600)
-                (staging / 'MANIFEST.json').write_text(json.dumps(manifest, indent=2))
+                    directory = staging
+                    for part in destination.parent.relative_to(staging).parts:
+                        directory = directory / part
+                        directory.mkdir(mode=0o700, exist_ok=True)
+                        os.chmod(directory, 0o700)
+                    write_private_file(destination, archive.extractfile(name).read())
+                write_private_file(staging / 'MANIFEST.json',
+                                   json.dumps(manifest, indent=2).encode())
             return manifest
 
 
