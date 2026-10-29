@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { createIdentityLimiter } from '../../../../../../backend/identity/rate-limit.js';
 import { createPublicReceiptLookup } from '../../../../../../backend/receipts/public-lookup.js';
+import { trustedClientIp } from '../../../../lib/trusted-client-ip.js';
 
 export const runtime = 'nodejs';
 
@@ -16,6 +17,7 @@ export async function POST(request) {
     url,
     serviceKey,
     limiter,
+    trustedClientIp,
     enabled: process.env.PUBLIC_RECEIPT_LOOKUP_APPROVED === 'true',
   })(request);
 }

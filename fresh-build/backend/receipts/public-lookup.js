@@ -40,16 +40,20 @@ export function createPublicReceiptLookup({
   url,
   serviceKey,
   limiter,
+  trustedClientIp,
   enabled,
   onInternalError = /** @type {(error: unknown) => void} */ (() => {}),
 }) {
   return async function lookup(request) {
-    if (!enabled || !url || !serviceKey || !limiter)
+    if (!enabled || !url || !serviceKey || !limiter || !trustedClientIp)
       return response(503, { error: { code: 'PUBLICATION_DISABLED' } });
     if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('content-type') ?? ''))
       return response(415, { error: { code: 'INVALID_INPUT' } });
     try {
-      if (!(await limiter.consume('receipt:global')))
+      const ip = trustedClientIp(request);
+      if (!ip || typeof ip !== 'string')
+        return response(503, { error: { code: 'SERVICE_UNAVAILABLE' } });
+      if (!(await limiter.consume(`receipt:${ip}`)))
         return response(429, { error: { code: 'RATE_LIMITED' } });
       let body;
       try {
