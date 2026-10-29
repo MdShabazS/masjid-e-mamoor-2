@@ -16,6 +16,12 @@ The full 147-test Node suite, Python archive test, lint, typecheck and formattin
 
 Private-object capture now checks a downloaded Blob's reported size before making a second in-memory copy. Replay checks an extracted file's `lstat` size before `readFile`. The existing byte-length and SHA-256 checks still run after reading. A focused test proves an oversized remote Blob's `arrayBuffer()` is never called and a sparse oversized archive file is refused before loading. All 169 Node tests, focused lint and formatting pass. Supabase's download implementation may itself buffer a response before returning a Blob, so this is a local copy guard, not a streaming or write-consistent hosted backup. The hosted capture/clean restore, offsite schedule, retention and alerts remain open.
 
+## 29 October same-path mutation guard
+
+After downloading the initial inventory, combined capture now re-downloads every private object with `cache: no-store` and compares its byte count and SHA-256 with the saved copy. It then rechecks the path inventory. A same-path overwrite during capture therefore fails the backup instead of silently packaging an earlier version. The failed capture removes its partial plaintext directory. A focused test mutates a synthetic report after its first download and proves failure and cleanup. The full **173/173** Node suite, Python archive test, lint, typecheck and formatting pass.
+
+This doubles object-download traffic during capture. It cannot establish a single transaction across Postgres and Storage, nor prevent a write after the final check. The operator must still coordinate a write pause or an equivalent documented snapshot, then restore a database dump and both private buckets to a clean authorized target. Hosted capture, measured restore, offsite copy, scheduling, retention and alerts remain open.
+
 ## Operator outline for an authorized isolated target
 
 1. Capture a verified custom-format database dump and coordinate a stable Storage capture window. Hold the recovery certificate, private key and random MAC key in approved custody outside the repository.

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, rm, symlink, truncate, writeFile } from 'node:fs/promises';
+import { lstat, mkdtemp, readFile, rm, symlink, truncate, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -127,6 +127,43 @@ test('rejects an unknown private bucket and unrecognized paths before capture', 
       capturePrivateObjects({ client, directory: path.join(root, 'two') }),
       /private_backup_invalid_path/,
     );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('rejects same-path content changes before packaging the capture', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'mem2-private-test-'));
+  try {
+    const { client, objects } = fixture();
+    const originalFrom = client.storage.from;
+    let changed = false;
+    let downloads = 0;
+    client.storage.from = (bucket) => {
+      const handle = originalFrom(bucket);
+      return {
+        ...handle,
+        async download(name, options, parameters) {
+          assert.deepEqual(options, {});
+          assert.deepEqual(parameters, { cache: 'no-store' });
+          downloads++;
+          const response = await handle.download(name);
+          if (bucket === 'qr-private' && name === QR && !changed) {
+            objects.set(`finance-reports-private/${PDF}`, Buffer.from('changed report bytes'));
+            changed = true;
+          }
+          return response;
+        },
+      };
+    };
+    const capture = path.join(root, 'capture');
+    await assert.rejects(
+      capturePrivateObjects({ client, directory: capture }),
+      /private_backup_object_mismatch/,
+    );
+    assert.equal(changed, true);
+    assert.ok(downloads > 3);
+    await assert.rejects(lstat(capture), { code: 'ENOENT' });
   } finally {
     await rm(root, { recursive: true, force: true });
   }

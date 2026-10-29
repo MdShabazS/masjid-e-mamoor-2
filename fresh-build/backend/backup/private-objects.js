@@ -99,7 +99,9 @@ async function inventory(client) {
 }
 
 async function remoteBytes(client, item) {
-  const { data, error } = await client.storage.from(item.bucket).download(item.path);
+  const { data, error } = await client.storage
+    .from(item.bucket)
+    .download(item.path, {}, { cache: 'no-store' });
   if (error || !data) throw new Error('private_backup_object_missing');
   if (typeof data.size === 'number' && (data.size < 1 || data.size > BUCKETS[item.bucket].maxBytes))
     throw new Error('private_backup_object_size');
@@ -171,6 +173,9 @@ export async function capturePrivateObjects({ client, directory }) {
       await writeFile(destination, bytes, { flag: 'wx', mode: 0o600 });
       items.push(record);
     }
+    // A path-only inventory cannot detect an overwrite that keeps the same
+    // name. Re-read every captured object without cache before packaging.
+    for (const item of items) await remoteBytes(client, item);
     if (JSON.stringify(await inventory(client)) !== JSON.stringify(initial))
       throw new Error('private_backup_inventory_changed');
     await writeFile(path.join(directory, 'inventory.json'), JSON.stringify(items), {
