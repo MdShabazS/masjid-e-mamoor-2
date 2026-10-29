@@ -22,6 +22,12 @@ After downloading the initial inventory, combined capture now re-downloads every
 
 This doubles object-download traffic during capture. It cannot establish a single transaction across Postgres and Storage, nor prevent a write after the final check. The operator must still coordinate a write pause or an equivalent documented snapshot, then restore a database dump and both private buckets to a clean authorized target. Hosted capture, measured restore, offsite copy, scheduling, retention and alerts remain open.
 
+## 29 October disposable database restore drill
+
+The synthetic local drill now decrypts the combined archive and feeds its extracted `database.dump` to `pg_restore` in a new `template0` database in the **same local Postgres cluster**. It removes that database's default `public` schema before a single-transaction restore, then checks zero Auth/report/QR rows and the two exact synthetic Storage metadata paths from the source upload. The two private object bytes are separately replayed and compared through the local Storage API. The disposable restore database and all synthetic source objects are removed; the final source Auth/report/QR/Storage count was `0|0|0|0`. Two runs passed, with the local database restore taking 265 ms and 355 ms respectively. These times cover only the database restore and checks, not full service recovery.
+
+This proves that the encrypted archive contains a restorable local database dump and both private object bytes. The restored database is not connected to a separate running Storage service, and the test uses the same Docker cluster. A clean hosted staging target, coordinated write-consistent capture, role/permission checks, offsite copy, retention, alerting and measured end-to-end recovery are still required before release.
+
 ## Operator outline for an authorized isolated target
 
 1. Capture a verified custom-format database dump and coordinate a stable Storage capture window. Hold the recovery certificate, private key and random MAC key in approved custody outside the repository.

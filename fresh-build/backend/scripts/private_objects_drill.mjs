@@ -21,23 +21,10 @@ function run(command, args, options = {}) {
   return result.stdout;
 }
 
-function sql(query) {
+function sql(query, database = 'postgres') {
   const result = spawnSync(
     'docker',
-    [
-      'exec',
-      '-i',
-      container,
-      'psql',
-      '-X',
-      '-U',
-      'postgres',
-      '-d',
-      'postgres',
-      '-Atq',
-      '-c',
-      query,
-    ],
+    ['exec', '-i', container, 'psql', '-X', '-U', 'postgres', '-d', database, '-Atq', '-c', query],
     { encoding: 'utf8' },
   );
   if (result.status !== 0) throw new Error('disposable_database_unavailable');
@@ -63,6 +50,7 @@ async function main() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const id = randomUUID();
+  const restoreDatabase = `mem2_restore_${randomUUID().replaceAll('-', '').slice(0, 20)}`;
   const objects = [
     {
       bucket: 'qr-private',
@@ -173,6 +161,54 @@ async function main() {
       JSON.parse(await readFile(path.join(staging, 'MANIFEST.json'))).objects,
       captured,
     );
+    // Restore the database bytes extracted from the encrypted archive into a
+    // separate empty database. Never run pg_restore against the source DB.
+    const restoreStarted = Date.now();
+    run('docker', [
+      'exec',
+      container,
+      'createdb',
+      '-U',
+      'postgres',
+      '-T',
+      'template0',
+      restoreDatabase,
+    ]);
+    sql('drop schema public cascade', restoreDatabase);
+    run(
+      'docker',
+      [
+        'exec',
+        '-i',
+        container,
+        'pg_restore',
+        '-U',
+        'postgres',
+        '-d',
+        restoreDatabase,
+        '--no-owner',
+        '--no-privileges',
+        '--single-transaction',
+        '--exit-on-error',
+      ],
+      { input: await readFile(path.join(staging, 'database.dump')) },
+    );
+    assert.equal(
+      sql(
+        `select (select count(*) from auth.users),
+        (select count(*) from public.finance_report_artifacts),
+        (select count(*) from public.payment_qr_versions),
+        (select count(*) from storage.objects)`,
+        restoreDatabase,
+      ),
+      '0|0|0|2',
+    );
+    const objectPaths = sql(
+      "select bucket_id || '/' || name from storage.objects order by bucket_id, name",
+      restoreDatabase,
+    ).split('\n');
+    assert.deepEqual(objectPaths, objects.map((item) => `${item.bucket}/${item.path}`).sort());
+    console.log(`Disposable database restore verified in ${Date.now() - restoreStarted} ms.`);
     for (const item of objects) {
       const { error } = await client.storage.from(item.bucket).remove([item.path]);
       if (error) throw new Error('drill_remove_failed');
@@ -225,6 +261,19 @@ async function main() {
     }
     console.log('Both private buckets captured in an encrypted DB/object archive and replayed.');
   } finally {
+    try {
+      run('docker', [
+        'exec',
+        container,
+        'dropdb',
+        '-U',
+        'postgres',
+        '--if-exists',
+        restoreDatabase,
+      ]);
+    } catch {
+      console.error('Disposable restore database cleanup failed');
+    }
     for (const item of objects) {
       const { error } = await client.storage.from(item.bucket).remove([item.path]);
       if (error) console.error('Disposable Storage cleanup failed');
@@ -232,6 +281,11 @@ async function main() {
     await rm(temp, { recursive: true, force: true });
   }
   assert.equal(counts(), '0|0|0|0', 'disposable stack must be empty after drill');
+  assert.equal(
+    sql(`select count(*) from pg_database where datname = '${restoreDatabase}'`),
+    '0',
+    'disposable restore database must be removed',
+  );
   console.log('Final Auth/report/QR/Storage counts: 0|0|0|0');
 }
 
