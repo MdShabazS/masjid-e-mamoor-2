@@ -55,9 +55,17 @@ class ReleaseManifestTests(unittest.TestCase):
             release.manifest(apk=pathlib.Path("absent.apk"), previous_apk=None,
                 first_install=True, web_url="https://masjid-release.org",
                 apk_url="https://masjid-release.org/app.apk")
-        for url in ("http://masjid.example.org/app.apk", "https://example.invalid/app.apk"):
+        for url in ("http://masjid.example.org/app.apk", "https://example.invalid/app.apk",
+                    "https://masjid-release.org/app.apk?token=secret",
+                    "https://masjid-release.org/app.apk#download",
+                    "https://masjid-release.org:999999/app.apk",
+                    "https://masjid-release.org:8443/app.apk",
+                    " https://masjid-release.org/app.apk",
+                    "https://masjid-release.org\\@example.invalid/app.apk"):
             with self.assertRaises(ValueError):
                 release.secure_url(url)
+        self.assertEqual(release.secure_url("https://masjid-release.org:443/app.apk"),
+                         "https://masjid-release.org:443/app.apk")
 
 
 if __name__ == "__main__":

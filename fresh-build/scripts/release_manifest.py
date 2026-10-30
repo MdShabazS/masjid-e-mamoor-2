@@ -50,7 +50,13 @@ def inspected_apk(path: pathlib.Path) -> tuple[str, int, str]:
 
 
 def secure_url(raw: str) -> str:
-    url = urlsplit(raw)
+    if not isinstance(raw, str) or raw != raw.strip() or any(ord(char) < 32 for char in raw) or '\\' in raw:
+        raise ValueError("Release URLs must use a real HTTPS host")
+    try:
+        url = urlsplit(raw)
+        port = url.port
+    except ValueError as error:
+        raise ValueError("Release URLs must use a real HTTPS host") from error
     host = (url.hostname or "").lower()
     try:
         address = ipaddress.ip_address(host)
@@ -58,6 +64,7 @@ def secure_url(raw: str) -> str:
     except ValueError:
         unsafe_address = False
     if (url.scheme != "https" or not url.hostname or url.username or url.password
+            or url.query or url.fragment or (port is not None and port != 443)
             or unsafe_address or host == "localhost"
             or host in {"example.com", "example.net", "example.org"}
             or host.endswith((".invalid", ".example", ".test", ".localhost",
