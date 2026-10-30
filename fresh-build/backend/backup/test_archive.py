@@ -5,7 +5,9 @@ import stat
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
+import archive
 from archive import build, verify
 
 
@@ -21,7 +23,7 @@ class BackupPreflightTests(unittest.TestCase):
             mac = root / 'mac.key'
             mac.write_bytes(b'test-only-MAC-key-material-32-bytes-xyz')
             dump = root / 'database.dump'
-            dump.write_bytes(b'PGDMPtest-fixture-only')
+            dump.write_bytes(b'PGDMP' + b'x' * (2 * 1024 * 1024 + 17))
             objects = root / 'objects'
             (objects / 'qr-private').mkdir(parents=True)
             qr = objects / 'qr-private' / 'current.png'
@@ -32,9 +34,18 @@ class BackupPreflightTests(unittest.TestCase):
                       'bytes': qr.stat().st_size}
             inventory.write_text(json.dumps([record]))
             encrypted, staging = root / 'archive.cms', root / 'staging'
-            build(dump, inventory, objects, cert, encrypted, mac)
+            original_read_bytes = pathlib.Path.read_bytes
+
+            def reject_large_file_read(path):
+                if path in (dump, encrypted):
+                    raise AssertionError('database dump and encrypted archive must be streamed')
+                return original_read_bytes(path)
+
+            with patch.object(pathlib.Path, 'read_bytes', reject_large_file_read):
+                build(dump, inventory, objects, cert, encrypted, mac)
             staging.mkdir(mode=0o755)
-            result = verify(encrypted, cert, key, mac, staging)
+            with patch.object(pathlib.Path, 'read_bytes', reject_large_file_read):
+                result = verify(encrypted, cert, key, mac, staging)
             self.assertEqual(result['objects'], [record])
             self.assertEqual((staging / 'database.dump').read_bytes(), dump.read_bytes())
             self.assertEqual((staging / 'objects/qr-private/current.png').read_bytes(), qr.read_bytes())
@@ -52,6 +63,30 @@ class BackupPreflightTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'checksum mismatch'):
                 verify(encrypted, cert, key, mac, root / 'empty-staging')
             self.assertFalse((root / 'empty-staging').exists())
+
+    def test_source_change_during_tar_capture_is_rejected(self):
+        with tempfile.TemporaryDirectory() as root_name:
+            root = pathlib.Path(root_name)
+            dump = root / 'database.dump'
+            dump.write_bytes(b'PGDMPinitial')
+            objects = root / 'objects'
+            objects.mkdir()
+            inventory = root / 'inventory.json'
+            inventory.write_text('[]')
+            mac = root / 'mac.key'
+            mac.write_bytes(b'test-only-MAC-key-material-32-bytes-xyz')
+            output = root / 'archive.cms'
+            original_add_file = archive.add_file
+
+            def mutate_before_add(tar, name, source):
+                if name == 'database.dump':
+                    dump.write_bytes(b'PGDMPchanged')
+                return original_add_file(tar, name, source)
+
+            with patch.object(archive, 'add_file', mutate_before_add):
+                with self.assertRaisesRegex(ValueError, 'source changed during archive capture'):
+                    build(dump, inventory, objects, root / 'unused-cert.pem', output, mac)
+            self.assertFalse(output.exists())
 
 
 if __name__ == '__main__':

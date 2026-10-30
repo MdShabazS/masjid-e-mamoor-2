@@ -32,6 +32,12 @@ This proves that the encrypted archive contains a restorable local database dump
 
 Archive verification now changes an existing empty staging folder to owner-only access before writing plaintext, creates every nested object folder with owner-only access, and creates the database dump, object files and manifest with owner-only file access. The focused round-trip test starts with a permissive empty staging folder, verifies the exact `0700` directory and `0600` file modes, and still checks archive tampering before extraction. These controls protect local extraction metadata and bytes; approved custody, encrypted offsite storage, clean-target recovery and operator cleanup remain separate release checks.
 
+## 30 October streaming archive preflight
+
+The Python archive builder now streams the database dump into the tar payload and streams the encrypted archive for its SHA-256 and HMAC sidecars. Verification streams the dump digest and plaintext extraction rather than loading the complete dump or encrypted archive into memory. Before encryption, it reads back the tar members and rejects a dump or private object whose packaged bytes no longer match the inventory. The two focused Python tests pass: encrypted round trip with full-file `read_bytes` blocked for the dump and encrypted archive, and a mutation during tar capture that fails before an encrypted output is created. Python syntax and patch checks pass.
+
+This removes the archive preflight's full-dump memory requirement. It does not create a write-consistent Postgres plus Storage snapshot, scheduled offsite backup, or clean hosted restore. Supabase's current platform restore guidance also notes that raw `pg_dump` includes managed internals and can encounter permissions when restoring to a different service; the local same-cluster drill is not proof of a managed clean-target restore. See [Supabase's restore guidance](https://supabase.com/docs/guides/self-hosting/restore-from-platform) before selecting the hosted export and recovery target.
+
 ## Operator outline for an authorized isolated target
 
 1. Capture a verified custom-format database dump and coordinate a stable Storage capture window. Hold the recovery certificate, private key and random MAC key in approved custody outside the repository.

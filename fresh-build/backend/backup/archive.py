@@ -15,6 +15,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -22,6 +23,28 @@ import tempfile
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def digest_stream(source):
+    hashed = hashlib.sha256()
+    size = 0
+    while chunk := source.read(1024 * 1024):
+        hashed.update(chunk)
+        size += len(chunk)
+    return size, hashed.hexdigest()
+
+
+def digest_file(path):
+    with path.open('rb') as source:
+        return digest_stream(source)
+
+
+def hmac_file(path, secret):
+    tagged = hmac.new(secret, digestmod=hashlib.sha256)
+    with path.open('rb') as source:
+        while chunk := source.read(1024 * 1024):
+            tagged.update(chunk)
+    return tagged.hexdigest()
 
 
 def path_for(root, bucket, name):
@@ -74,10 +97,24 @@ def add_bytes(archive, name, data):
     archive.addfile(info, io.BytesIO(data))
 
 
+def add_file(archive, name, source):
+    info = tarfile.TarInfo(name)
+    info.size = source.stat().st_size
+    info.mode = 0o600
+    with source.open('rb') as input_file:
+        archive.addfile(info, input_file)
+
+
 def write_private_file(destination, data):
     descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, 'wb') as output:
         output.write(data)
+
+
+def write_private_stream(destination, source):
+    descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, 'wb') as output:
+        shutil.copyfileobj(source, output, length=1024 * 1024)
 
 
 def mac_secret(path):
@@ -93,29 +130,40 @@ def build(dump, inventory_file, objects_root, certificate, output, mac_key):
     validate_inventory(inventory, objects_root)
     if not dump.is_file() or dump.is_symlink() or dump.stat().st_size == 0:
         raise ValueError('database dump missing')
-    db = dump.read_bytes()
-    if not db.startswith(b'PGDMP'):
-        raise ValueError('expected pg_dump custom-format dump')
-    metadata = {'version': 1, 'database': {'bytes': len(db), 'sha256': digest(db)},
+    with dump.open('rb') as source:
+        if source.read(5) != b'PGDMP':
+            raise ValueError('expected pg_dump custom-format dump')
+    db_size, db_digest = digest_file(dump)
+    metadata = {'version': 1, 'database': {'bytes': db_size, 'sha256': db_digest},
                 'objects': sorted(inventory, key=lambda x: (x['bucket'], x['path']))}
     with tempfile.TemporaryDirectory(prefix='mem2-backup-') as temp:
         os.chmod(temp, 0o700)
         tar = pathlib.Path(temp) / 'payload.tar'
         with tarfile.open(tar, 'w') as archive:
             add_bytes(archive, 'MANIFEST.json', json.dumps(metadata, sort_keys=True).encode())
-            add_bytes(archive, 'database.dump', db)
+            add_file(archive, 'database.dump', dump)
             for item in metadata['objects']:
-                add_bytes(archive, f"objects/{item['bucket']}/{item['path']}",
-                          path_for(objects_root, item['bucket'], item['path']).read_bytes())
+                add_file(archive, f"objects/{item['bucket']}/{item['path']}",
+                         path_for(objects_root, item['bucket'], item['path']))
+        # Refuse a source file that changed after its inventory digest was taken.
+        with tarfile.open(tar) as archive:
+            for name, item in [('database.dump', metadata['database'])] + [
+                (f"objects/{entry['bucket']}/{entry['path']}", entry)
+                for entry in metadata['objects']
+            ]:
+                with archive.extractfile(name) as source:
+                    size, sha256 = digest_stream(source)
+                if (size, sha256) != (item['bytes'], item['sha256']):
+                    raise ValueError('source changed during archive capture')
         output.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(['openssl', 'cms', '-encrypt', '-binary', '-aes-256-cbc',
                         '-in', str(tar), '-out', str(output), '-outform', 'DER',
                         str(certificate)], check=True, capture_output=True)
         os.chmod(output, 0o600)
     sidecar = output.with_name(output.name + '.sha256')
-    sidecar.write_text(digest(output.read_bytes()) + '  ' + output.name + '\n')
+    sidecar.write_text(digest_file(output)[1] + '  ' + output.name + '\n')
     os.chmod(sidecar, 0o600)
-    tag = hmac.new(secret, output.read_bytes(), hashlib.sha256).hexdigest()
+    tag = hmac_file(output, secret)
     mac_path = output.with_name(output.name + '.hmac')
     mac_path.write_text(tag + '\n')
     os.chmod(mac_path, 0o600)
@@ -124,10 +172,10 @@ def build(dump, inventory_file, objects_root, certificate, output, mac_key):
 
 def verify(encrypted, certificate, private_key, mac_key, staging=None):
     sidecar = encrypted.with_name(encrypted.name + '.sha256')
-    if not sidecar.is_file() or sidecar.read_text().split()[0] != digest(encrypted.read_bytes()):
+    if not sidecar.is_file() or sidecar.read_text().split()[0] != digest_file(encrypted)[1]:
         raise ValueError('archive checksum mismatch')
     mac_path = encrypted.with_name(encrypted.name + '.hmac')
-    expected = hmac.new(mac_secret(mac_key), encrypted.read_bytes(), hashlib.sha256).hexdigest()
+    expected = hmac_file(encrypted, mac_secret(mac_key))
     if not mac_path.is_file() or not hmac.compare_digest(mac_path.read_text().strip(), expected):
         raise ValueError('archive authentication failed')
     with tempfile.TemporaryDirectory(prefix='mem2-verify-') as temp:
@@ -152,8 +200,9 @@ def verify(encrypted, certificate, private_key, mac_key, staging=None):
                 path_for(pathlib.Path(temp), item['bucket'], item['path'])
             if set(names) != expected:
                 raise ValueError('missing or extra archive member')
-            db = archive.extractfile('database.dump').read()
-            if len(db) != manifest['database']['bytes'] or digest(db) != manifest['database']['sha256']:
+            with archive.extractfile('database.dump') as source:
+                db_size, db_digest = digest_stream(source)
+            if db_size != manifest['database']['bytes'] or db_digest != manifest['database']['sha256']:
                 raise ValueError('database digest mismatch')
             for item in manifest['objects']:
                 data = archive.extractfile(f"objects/{item['bucket']}/{item['path']}").read()
@@ -173,7 +222,8 @@ def verify(encrypted, certificate, private_key, mac_key, staging=None):
                         directory = directory / part
                         directory.mkdir(mode=0o700, exist_ok=True)
                         os.chmod(directory, 0o700)
-                    write_private_file(destination, archive.extractfile(name).read())
+                    with archive.extractfile(name) as source:
+                        write_private_stream(destination, source)
                 write_private_file(staging / 'MANIFEST.json',
                                    json.dumps(manifest, indent=2).encode())
             return manifest
