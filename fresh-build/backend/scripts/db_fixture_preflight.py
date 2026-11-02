@@ -10,7 +10,7 @@ FIXTURES = [
     "phase4_corrections.sql", "phase4_beneficiary_versions.sql", "phase6_money.sql", "phase6_cash_tasks.sql", "phase7_report.sql",
     "phase8_tasks.sql", "phase9_meetings.sql", "phase10_content.sql",
     "receipt_handoff_audit.sql",
-    "security_catalog.sql", "eight_role_reads.sql",
+    "security_catalog.sql", "eight_role_reads.sql", "member_directory.sql",
 ]
 
 
