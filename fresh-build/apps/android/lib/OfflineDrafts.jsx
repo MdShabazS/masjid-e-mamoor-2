@@ -2,12 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
+import { DateField, indiaToday } from './Pickers';
 import { createDraftQueue } from '../../../packages/offline-drafts/index.js';
 
 const fields = {
   donation: [
     ['name', 'Donor name'],
-    ['date', 'Donation date (YYYY-MM-DD)'],
+    ['date', 'Donation date'],
     ['amountINR', 'Claimed amount (₹)'],
     ['evidence', 'Evidence reference'],
   ],
@@ -22,7 +23,7 @@ const fields = {
   task: [
     ['title', 'Task title'],
     ['description', 'Description'],
-    ['date', 'Scheduled date (YYYY-MM-DD)'],
+    ['date', 'Scheduled date'],
     ['location', 'Location'],
     ['total', 'Total places'],
     ['invited', 'Invited places'],
@@ -172,16 +173,26 @@ export default function OfflineDrafts({ client, actorId, role }) {
       </View>
       {allowed && (
         <>
-          {fields[kind].map(([key, label]) => (
-            <View key={key}>
-              <Text style={styles.label}>{label}</Text>
-              <TextInput
-                style={styles.input}
-                value={form[key] ?? ''}
-                onChangeText={(value) => setForm((current) => ({ ...current, [key]: value }))}
+          {fields[kind].map(([key, label]) =>
+            key === 'date' ? (
+              <DateField
+                key={key}
+                label={label}
+                value={form.date ?? ''}
+                max={kind === 'donation' ? indiaToday() : undefined}
+                onChange={(value) => setForm((current) => ({ ...current, date: value }))}
               />
-            </View>
-          ))}
+            ) : (
+              <View key={key}>
+                <Text style={styles.label}>{label}</Text>
+                <TextInput
+                  style={styles.input}
+                  value={form[key] ?? ''}
+                  onChangeText={(value) => setForm((current) => ({ ...current, [key]: value }))}
+                />
+              </View>
+            ),
+          )}
           {kind === 'donation' && (
             <View style={styles.row}>
               {['cash', 'upi', 'bank'].map((method) => (

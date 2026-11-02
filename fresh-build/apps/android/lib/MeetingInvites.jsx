@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { userMessage } from '../../../packages/api-client/messages.js';
+import { DateField, MemberPicker, TimeField, indiaToday } from './Pickers';
 import { buildMeetingArgs } from '../../../packages/api-client/meeting-input.js';
 
 const editors = new Set(['president', 'vice_president', 'secretary', 'data_entry']);
@@ -158,17 +159,16 @@ export default function MeetingInvites({ client, role }) {
             multiline
             onChangeText={(value) => setDraft((current) => ({ ...current, description: value }))}
           />
-          <Field
-            label="Date in India (YYYY-MM-DD)"
+          <DateField
+            label="Date in India"
             value={draft.date}
-            maxLength={10}
-            onChangeText={(value) => setDraft((current) => ({ ...current, date: value }))}
+            min={indiaToday()}
+            onChange={(value) => setDraft((current) => ({ ...current, date: value }))}
           />
-          <Field
-            label="Start time in India (HH:mm)"
+          <TimeField
+            label="Start time in India"
             value={draft.time}
-            maxLength={5}
-            onChangeText={(value) => setDraft((current) => ({ ...current, time: value }))}
+            onChange={(value) => setDraft((current) => ({ ...current, time: value }))}
           />
           <Field
             label="Location label (optional)"
@@ -253,12 +253,12 @@ export default function MeetingInvites({ client, role }) {
             )}
             {editors.has(role) && meeting.my_rsvp === null && meeting.status === 'active' && (
               <View style={styles.group}>
-                <Field
-                  label="Member account ID to invite"
+                <MemberPicker
+                  client={client}
+                  label="Member to invite"
+                  excludeSelf
                   value={invitees[meeting.meeting_id] ?? ''}
-                  maxLength={36}
-                  autoCapitalize="none"
-                  onChangeText={(value) =>
+                  onChange={(value) =>
                     setInvitees((current) => ({ ...current, [meeting.meeting_id]: value }))
                   }
                 />

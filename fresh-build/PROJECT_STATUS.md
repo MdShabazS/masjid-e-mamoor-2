@@ -11,7 +11,7 @@
 ### Foundation
 
 - [x] Clean npm workspace, CI on GitHub, lint, formatting, typecheck, 178 automated tests
-- [x] 34 database migrations; staging and production Supabase projects hold the schema with no real data
+- [x] 35 database migrations; staging and production Supabase projects hold the schema with no real data
 - [x] Protected Vercel previews; nothing is live
 - [x] 8-role permission system, wrong-role denial matrix, username login, temporary password flow
 
@@ -54,6 +54,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] Code fix, not exercised: a crash in one tab shows a retry card instead of closing the app
 - [x] Android app backup turned off for this finance app; keyboard resize set
 - [x] Members may submit payment references and one-time donations and replace their own rejected claims (owner decision 2 November; database, Android and web). Verification stays Treasurer-only
+- [x] Android member picker replaces typed account IDs for referrer and invitations; date, time and month pickers replace typed dates
 - [x] Web enrollment form now shows for Members too
 - [x] Web enrollment route returns an input error, not "service unavailable", for a bad amount
 
@@ -65,7 +66,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 | Salary records | No | No | No | Board visibility decision |
 | Advances and returns | No | No | No | — |
 | Member scores / performance | No | No | No | Board wording of metrics |
-| Member directory and picker (screens still ask for a typed account ID) | No | No | No | — |
+| Member directory screen, and member picker on web (Android has the picker) | Picker only | No | List function | Real names are not stored, only usernames |
 | Own contact edit | No | No | Check | — |
 | Force-update for old app versions | No | No | No | — |
 | Receipt PDF and send action | No | No | Partial | Masjid receipt layout |
@@ -81,7 +82,6 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [ ] Reports: request, view, download
 - [ ] Finance corrections
 - [ ] Announcements management
-- [ ] Date pickers instead of typed YYYY-MM-DD
 
 ## Pending — Android release quality
 
@@ -98,7 +98,8 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [ ] Official bank/UPI details and QR from the Treasurer; request is drafted but not sent
 - [ ] Opening balances and official contact details, checked by two people
 - [ ] Masjid coordinate
-- [ ] Decision on the 4 high dependency warnings in Expo tools (no compatible fix yet)
+- [ ] Decision on the dependency warnings in Expo tools (no compatible fix found on 30 October)
+- [ ] Review the audit findings new on 2 November (3 high, 12 moderate, 2 low, 0 critical; includes new glob, minimatch and node-forge advisories). The CI audit check will fail on the next push until they are fixed or reviewed
 
 ## Pending — hosted proof before launch
 

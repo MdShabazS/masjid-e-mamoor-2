@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
+import { DateField, indiaToday } from './Pickers';
 import { userMessage } from '../../../packages/api-client/messages.js';
 
 const slots = [
@@ -10,10 +11,6 @@ const slots = [
   ['maghrib', 'Maghrib'],
   ['isha', 'Isha'],
 ];
-
-function indiaToday() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
-}
 
 function nextDay(date) {
   return new Date(Date.parse(`${date}T00:00:00Z`) + 86400000).toISOString().slice(0, 10);
@@ -80,14 +77,7 @@ export default function HafizPrayer({ client }) {
   return (
     <View style={styles.card}>
       <Text style={styles.heading}>Hafiz prayer register</Text>
-      <Text style={styles.label}>Date (YYYY-MM-DD)</Text>
-      <TextInput
-        style={styles.input}
-        value={date}
-        maxLength={10}
-        accessibilityLabel="Prayer date"
-        onChangeText={setDate}
-      />
+      <DateField label="Prayer date" value={date} max={indiaToday()} onChange={setDate} />
       <View style={styles.confirm}>
         <Switch
           value={attested}
@@ -142,15 +132,6 @@ const styles = StyleSheet.create({
     borderColor: '#d9e1d9',
   },
   heading: { color: '#182e2a', fontSize: 21, fontWeight: '700' },
-  label: { color: '#182e2a', fontWeight: '600', fontSize: 14 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d9e1d9',
-    borderRadius: 10,
-    padding: 13,
-    fontSize: 16,
-    color: '#182e2a',
-  },
   confirm: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   body: { color: '#182e2a', flexShrink: 1, lineHeight: 21 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },

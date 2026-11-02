@@ -29,6 +29,7 @@ import WorkTasks from './lib/WorkTasks';
 import MemberInbox from './lib/MemberInbox';
 import MeetingInvites from './lib/MeetingInvites';
 import HafizPrayer from './lib/HafizPrayer';
+import { MemberPicker, MonthField } from './lib/Pickers';
 
 const colors = {
   ink: '#182e2a',
@@ -391,7 +392,7 @@ export default function App() {
     setNotice('');
     try {
       if (!/^\d{4}-\d{2}-01$/.test(period))
-        throw new Error('Enter the first day of the month as YYYY-MM-01.');
+        throw new Error('Confirm the month this payment is for.');
       await createManagementApi(client).submitMonthlyClaim({
         donorId: selectedDonor,
         periodDate: period,
@@ -693,11 +694,11 @@ export default function App() {
                             keyboardType="decimal-pad"
                             placeholder="500.00"
                           />
-                          <Field
-                            label="Referrer account ID (if referred)"
+                          <MemberPicker
+                            client={client}
+                            label="Referrer (if referred)"
                             value={referrerId}
-                            onChangeText={setReferrerId}
-                            autoCapitalize="none"
+                            onChange={setReferrerId}
                           />
                           <Text style={styles.label}>How the contributor agreed</Text>
                           <View style={styles.methodOptions}>
@@ -761,12 +762,10 @@ export default function App() {
                                 <Text style={styles.donor}>{d.donor_name}</Text>
                               </Pressable>
                             ))}
-                          <Field
-                            label="Month (YYYY-MM-01)"
+                          <MonthField
+                            label="Month this payment is for"
                             value={period}
-                            onChangeText={setPeriod}
-                            placeholder="2026-10-01"
-                            keyboardType="numbers-and-punctuation"
+                            onChange={setPeriod}
                           />
                           <Field
                             label="Transaction reference"

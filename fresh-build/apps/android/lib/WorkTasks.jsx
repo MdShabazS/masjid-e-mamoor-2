@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { userMessage } from '../../../packages/api-client/messages.js';
+import { DateField, MemberPicker, indiaToday } from './Pickers';
 import { formatPaiseINR } from '../../../packages/api-client/index.js';
 import {
   buildCashCountArgs,
@@ -296,11 +297,11 @@ export default function WorkTasks({ client, role }) {
               A member submits a numbered cash count; only Treasurer verification posts income.
             </Text>
           )}
-          <Field
-            label="Date (optional, YYYY-MM-DD)"
+          <DateField
+            label="Date (optional)"
+            optional
             value={draft.date}
-            maxLength={10}
-            onChangeText={(value) => updateDraft({ date: value })}
+            onChange={(value) => updateDraft({ date: value })}
           />
           <Field
             label="Location (optional)"
@@ -400,11 +401,11 @@ export default function WorkTasks({ client, role }) {
                           ? 'Use a new numbered correction slip. The rejected slip remains in the audit trail.'
                           : 'This pending count does not post income or issue a receipt.'}
                       </Text>
-                      <Field
-                        label="Count date in India (YYYY-MM-DD)"
+                      <DateField
+                        label="Count date in India"
+                        max={indiaToday()}
                         value={cashDraft.date ?? ''}
-                        maxLength={10}
-                        onChangeText={(value) => updateCashDraft(task.task_id, { date: value })}
+                        onChange={(value) => updateCashDraft(task.task_id, { date: value })}
                       />
                       <Field
                         label="Claimed amount (₹)"
@@ -566,12 +567,12 @@ export default function WorkTasks({ client, role }) {
                   <View style={styles.group}>
                     {task.mode !== 'open' && (
                       <View style={styles.group}>
-                        <Field
-                          label="Member account ID to invite"
+                        <MemberPicker
+                          client={client}
+                          label="Member to invite"
+                          excludeSelf
                           value={invitees[task.task_id] ?? ''}
-                          maxLength={36}
-                          autoCapitalize="none"
-                          onChangeText={(value) =>
+                          onChange={(value) =>
                             setInvitees((current) => ({ ...current, [task.task_id]: value }))
                           }
                         />
