@@ -56,6 +56,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] Members may submit payment references and one-time donations and replace their own rejected claims (owner decision 2 November; database, Android and web). Verification stays Treasurer-only
 - [x] Android member picker replaces typed account IDs for referrer and invitations; date, time and month pickers replace typed dates
 - [x] Upgraded to Expo 58 and React Native 0.88: all high and low audit findings cleared, 12 moderate build-tool entries remain and are pinned in the CI check
+- [x] Android screens for expense approval and payment, one-time donation review, direct cash posting, and report request, view and share (emulator journey below)
 - [x] Web enrollment form now shows for Members too
 - [x] Web enrollment route returns an input error, not "service unavailable", for a bad amount
 
@@ -78,9 +79,6 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 
 ## Pending — Android screens that exist on web only
 
-- [ ] Expense review, approval and payment
-- [ ] One-time donation review and direct cash posting
-- [ ] Reports: request, view, download
 - [ ] Finance corrections
 - [ ] Announcements management
 
@@ -89,9 +87,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [ ] App icon, adaptive icon and splash screen (none exist; needs the masjid logo)
 - [ ] Permanent package name; `.fresh` is a development identity
 - [ ] Signing key and who holds it; signed APK; upgrade test
-- [ ] Retest payment QR upload on Expo 58 (file API, not exercised since the upgrade)
 - [ ] Test on a real phone: login, roles, offline, keyboard. The emulator's floating keyboard did not prove the full on-screen keyboard
-- [ ] Trace the single `Error: undefined` warning logged at app start on 2 November; source not found
 - [ ] Accessibility check with a screen reader and large text
 
 ## Pending — owner and masjid inputs
@@ -108,6 +104,14 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [ ] Hosted backup: write-consistent, offsite, scheduled, clean-target restore
 - [ ] All 25 acceptance IDs, security and load tests, operator pilot
 - [ ] Monitoring and named alert recipient
+
+## Emulator journey on 2 November (Expo 58, fake data, local database)
+
+- President approved a Member's expense; Treasurer verified a ₹500 donation, paid the ₹200 expense and posted ₹75.50 cash. The database shows one effect each, on top of the ₹1,000 opening
+- Treasurer created a month report; PDF and CSV passed the digest check and reached the share sheet
+- President uploaded a QR image through the system picker, activated it and read it back
+- Not exercised on Android: rejecting a donation or expense, partial payment, year and date-range reports, opening a report by ID, the file's contents after sharing
+- The `Error: undefined` log line is the development server's reconnect notice, not an app error
 
 ## Audit coverage on 2 November
 

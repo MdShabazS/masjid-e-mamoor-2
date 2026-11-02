@@ -30,6 +30,8 @@ import MemberInbox from './lib/MemberInbox';
 import MeetingInvites from './lib/MeetingInvites';
 import HafizPrayer from './lib/HafizPrayer';
 import { MemberPicker, MonthField } from './lib/Pickers';
+import FinanceReview from './lib/FinanceReview';
+import FinanceReports from './lib/FinanceReports';
 
 const colors = {
   ink: '#182e2a',
@@ -666,6 +668,8 @@ export default function App() {
                     <ErrorBoundary>
                       {role === 'president' && <PaymentQrProfile client={client} />}
                       <FinanceAccounts client={client} role={role} />
+                      {donorStaffRoles.has(role) && <FinanceReview client={client} role={role} />}
+                      <FinanceReports client={client} role={role} />
                     </ErrorBoundary>
                   </View>
                 )}

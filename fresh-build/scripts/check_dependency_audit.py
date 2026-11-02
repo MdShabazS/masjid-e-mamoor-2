@@ -27,6 +27,7 @@ KNOWN_MODERATE_VIA = {
     "@expo/metro-config": {"@expo/config", "glob"},
     "@expo/prebuild-config": {"@expo/config", "@expo/config-plugins"},
     "@react-native-community/datetimepicker": {"expo"},
+    "expo-sharing": {"@expo/config-plugins"},
     "expo": {
         "@expo/cli",
         "@expo/config",
