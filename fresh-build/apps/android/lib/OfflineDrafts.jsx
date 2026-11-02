@@ -56,6 +56,7 @@ export default function OfflineDrafts({ client, actorId, role }) {
           'secretary',
           'treasurer',
           'committee_member',
+          'member',
           'data_entry',
         ].includes(role)
       : kind === 'expense'
@@ -92,17 +93,32 @@ export default function OfflineDrafts({ client, actorId, role }) {
     reload().catch(() => setMessage('Could not unlock saved drafts on this device.'));
     // Foreground return also covers restored connectivity. The button supports
     // a reconnect while the app remains open; failed sends retain the same ID.
+    const backgroundSync = async () => {
+      if (!queue) return;
+      try {
+        const saved = await queue.list();
+        if (!saved.some((draft) => draft.state === 'pending')) return;
+        const result = await queue.sync();
+        await reload();
+        if (result.sent || result.conflict || result.rejected)
+          setMessage(
+            `${result.sent} submitted · ${result.pending} pending · ${result.conflict} conflicts · ${result.rejected} rejected`,
+          );
+      } catch {
+        // Drafts stay on this device; the Sync button reports problems when asked.
+      }
+    };
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') sync();
+      if (state === 'active') backgroundSync();
     });
     const interval = setInterval(() => {
-      if (AppState.currentState === 'active') sync();
+      if (AppState.currentState === 'active') backgroundSync();
     }, 60000);
     return () => {
       subscription.remove();
       clearInterval(interval);
     };
-  }, [reload, sync]);
+  }, [queue, reload]);
   if (!queue) return null;
   async function save() {
     setBusy(true);

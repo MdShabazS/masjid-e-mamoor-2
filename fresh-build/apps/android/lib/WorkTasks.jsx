@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
+import { userMessage } from '../../../packages/api-client/messages.js';
 import { formatPaiseINR } from '../../../packages/api-client/index.js';
 import {
   buildCashCountArgs,
@@ -106,7 +107,7 @@ export default function WorkTasks({ client, role }) {
       )
       .catch((cause) => {
         if (active) {
-          setError(cause.message);
+          setError(userMessage(cause));
           setLoading(false);
         }
       });
@@ -125,7 +126,7 @@ export default function WorkTasks({ client, role }) {
       await rpc(name, { ...args, p_operation_id: operationId });
       operations.current.delete(key);
     } catch (cause) {
-      setError(cause.message || 'Task action failed. Retry the same action.');
+      setError(userMessage(cause, 'Task action failed. Retry the same action.'));
       setBusy(false);
       return false;
     }
@@ -147,7 +148,7 @@ export default function WorkTasks({ client, role }) {
       const rows = await rpc('list_work_task_participants', { p_task_id: taskId });
       setParticipants((current) => ({ ...current, [taskId]: rows ?? [] }));
     } catch (cause) {
-      setError(cause.message || 'Could not load participants.');
+      setError(userMessage(cause, 'Could not load participants.'));
     }
   }
 
@@ -162,7 +163,7 @@ export default function WorkTasks({ client, role }) {
       if (await action(name, args, `create:${name}:${JSON.stringify(args)}`, 'Task created.'))
         setDraft(emptyDraft);
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
 
@@ -182,7 +183,7 @@ export default function WorkTasks({ client, role }) {
           [taskId]: { date: '', amount: '', evidence: '' },
         }));
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
 
@@ -229,7 +230,7 @@ export default function WorkTasks({ client, role }) {
         ],
       );
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
 
@@ -246,7 +247,7 @@ export default function WorkTasks({ client, role }) {
       )
         setCashReviews((current) => ({ ...current, [count.count_id]: {} }));
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
 

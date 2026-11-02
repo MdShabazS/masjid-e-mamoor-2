@@ -12,6 +12,7 @@ const allowedToEnroll = new Set([
   'secretary',
   'treasurer',
   'committee_member',
+  'member',
   'data_entry',
 ]);
 const donorStaffRoles = new Set(['president', 'treasurer']);

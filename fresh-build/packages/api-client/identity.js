@@ -21,15 +21,20 @@ function identityError(code) {
 }
 
 async function post(path, body, fetchImpl = fetch, accessToken) {
-  const response = await fetchImpl(path, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    },
-    body: JSON.stringify(body),
-  });
-  const result = await response.json();
+  let response, result;
+  try {
+    response = await fetchImpl(path, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    result = await response.json();
+  } catch {
+    throw identityError('SERVICE_UNAVAILABLE');
+  }
   if (!response.ok || !result?.data)
     throw identityError(result?.error?.code || 'SERVICE_UNAVAILABLE');
   return result.data;
@@ -71,5 +76,6 @@ export async function changeInitialPassword({
   );
   // A server-side credential update may rotate the refresh token. Require a
   // fresh username login with the new password rather than reusing old state.
-  await client.auth.signOut();
+  const signedOut = await client.auth.signOut();
+  if (signedOut?.error) await client.auth.signOut({ scope: 'local' });
 }

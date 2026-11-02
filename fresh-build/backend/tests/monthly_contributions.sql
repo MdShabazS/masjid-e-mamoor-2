@@ -294,6 +294,7 @@ select set_config('request.jwt.claims',
   '{"sub":"a1000000-0000-0000-0000-000000000002","session_id":"a1000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 select public.reject_monthly_claim(:'rejected_claim_id'::uuid,'Reference not found in bank',
   'a3000000-0000-0000-0000-000000000009');
+select set_config('test.rejected_claim',:'rejected_claim_id',true);
 do $$ begin
   if (select count(*) from public.list_rejected_monthly_claims())<>1
     or (select count(*) from public.list_rejected_monthly_claims(1,1))<>0
@@ -313,10 +314,35 @@ end $$;
 select set_config('request.jwt.claims',
   '{"sub":"a1000000-0000-0000-0000-000000000005","session_id":"a1000000-0000-0000-0000-000000000005","role":"authenticated"}',true);
 do $$ begin
+  if exists(select 1 from public.list_rejected_monthly_claims()) then
+    raise exception 'Member saw a rejected claim they did not submit'; end if;
   begin
-    perform public.list_rejected_monthly_claims();
-    raise exception 'Member read rejected-claim references';
+    perform public.resubmit_rejected_monthly_claim(
+      current_setting('test.rejected_claim')::uuid,'TEST-MEMBER-OTHER');
+    raise exception 'Member replaced another submitter claim';
   exception when insufficient_privilege then null; end;
+  -- Allowed submissions post nothing. The subtransaction leaves later checks unchanged.
+  begin
+    declare v_effects bigint:=(select count(*) from public.finance_effects);
+      v_claim uuid; v_donation uuid;
+    begin
+      v_claim:=public.submit_monthly_claim(current_setting('test.donor')::uuid,
+        '2026-10-01','TEST-MEMBER-REF');
+      v_donation:=public.submit_one_time_donation('Member entered donor','other',null,
+        (now() at time zone 'Asia/Kolkata')::date,'cash',5000,'member slip',
+        'a4000000-0000-0000-0000-000000000001');
+      if (select status from public.payment_claims where id=v_claim)<>'pending'
+        or (select count(*) from public.finance_effects)<>v_effects then
+        raise exception 'Member submission was not pending-only'; end if;
+      begin
+        perform public.verify_monthly_claim(v_claim,
+          gen_random_uuid(),5000,
+          'a4000000-0000-0000-0000-000000000002');
+        raise exception 'Member verified a claim';
+      exception when insufficient_privilege then null; end;
+      raise exception using errcode='MEM01';
+    end;
+  exception when sqlstate 'MEM01' then null; end;
 end $$;
 select set_config('request.jwt.claims',
   '{"sub":"a1000000-0000-0000-0000-000000000001","session_id":"a1000000-0000-0000-0000-000000000001","role":"authenticated"}',true);

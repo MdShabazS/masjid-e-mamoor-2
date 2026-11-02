@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  BackHandler,
   FlatList,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,7 +18,8 @@ import * as Crypto from 'expo-crypto';
 import { createManagementApi, formatPaiseINR } from '../../packages/api-client/index.js';
 import { signInUsername, changeInitialPassword } from '../../packages/api-client/identity.js';
 import { enrollConsentedDonor } from '../../packages/api-client/donor-enrollment.js';
-import { getNativeClient } from './lib/supabase';
+import { userMessage } from '../../packages/api-client/messages.js';
+import { getNativeClient, signOutDevice } from './lib/supabase';
 import OfflineDrafts from './lib/OfflineDrafts';
 import FinanceAccounts from './lib/FinanceAccounts';
 import PaymentQrProfile from './lib/PaymentQrProfile';
@@ -27,6 +28,7 @@ import RejectedClaims from './lib/RejectedClaims';
 import WorkTasks from './lib/WorkTasks';
 import MemberInbox from './lib/MemberInbox';
 import MeetingInvites from './lib/MeetingInvites';
+import HafizPrayer from './lib/HafizPrayer';
 
 const colors = {
   ink: '#182e2a',
@@ -44,9 +46,18 @@ const enrollmentRoles = new Set([
   'secretary',
   'treasurer',
   'committee_member',
+  'member',
   'data_entry',
 ]);
 const claimRoles = enrollmentRoles;
+const prayerRoles = new Set(['president', 'vice_president', 'secretary', 'treasurer']);
+const financeRoles = new Set([
+  'system_admin',
+  'president',
+  'vice_president',
+  'secretary',
+  'treasurer',
+]);
 const donorStaffRoles = new Set(['president', 'treasurer']);
 
 function Button({ label, onPress, disabled = false, secondary = false }) {
@@ -77,7 +88,38 @@ function Field({ label, value, onChangeText, ...props }) {
   );
 }
 
+class ErrorBoundary extends React.Component {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <View style={styles.card}>
+        <Text style={styles.heading}>This screen could not open</Text>
+        <Text style={styles.muted}>
+          Your saved records are safe. Try again, and tell the System Admin if it keeps happening.
+        </Text>
+        <Button label="Try again" onPress={() => this.setState({ failed: false })} />
+      </View>
+    );
+  }
+}
+
+function tabsFor(role) {
+  return [
+    ['home', 'Home'],
+    ...(financeRoles.has(role) ? [['finance', 'Finance']] : []),
+    ['donors', 'Donors'],
+    ['work', role === 'system_admin' ? 'Meetings' : 'Work'],
+  ];
+}
+
 export default function App() {
+  const [tab, setTab] = useState('home');
+  const [openedTabs, setOpenedTabs] = useState(['home']);
+  const scroller = useRef(null);
   const [client, setClient] = useState(null);
   const [session, setSession] = useState(null);
   const [checking, setChecking] = useState(true);
@@ -131,20 +173,22 @@ export default function App() {
         })
         .catch((cause) => {
           if (mounted) {
-            setError(cause.message);
+            setError(userMessage(cause));
             setChecking(false);
           }
         });
       ({
         data: { subscription },
       } = nativeClient.auth.onAuthStateChange((_event, nextSession) => {
+        // A token refresh keeps the same user: leave screens, typed forms and
+        // retry IDs alone. The user-keyed effect below handles real changes.
         if (mounted) {
-          setIdentityStatus(nextSession ? 'checking' : 'signed_out');
+          if (!nextSession) setIdentityStatus('signed_out');
           setSession(nextSession);
         }
       }));
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
       setChecking(false);
     }
     return () => {
@@ -154,6 +198,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    setTab('home');
+    setOpenedTabs(['home']);
     if (!client || !session) {
       setRole(null);
       setDonors([]);
@@ -203,14 +249,54 @@ export default function App() {
       })
       .catch((cause) => {
         if (mounted) {
-          setError(cause.message);
+          setError(userMessage(cause));
           setIdentityStatus('denied');
         }
       });
     return () => {
       mounted = false;
     };
-  }, [client, session?.access_token]);
+  }, [client, session?.user?.id]);
+
+  // Each refreshed token silently rechecks the account, so a role change or
+  // deactivation still applies without disturbing the current screen.
+  useEffect(() => {
+    if (!client || identityStatus !== 'ready') return;
+    let mounted = true;
+    (async () => {
+      const { data, error: gateError } = await client.rpc('current_identity_gate');
+      if (gateError || !mounted) return;
+      const gate = Array.isArray(data) ? data[0] : data;
+      if (!gate?.account_active) setIdentityStatus('denied');
+      else if (gate.must_change_password) setIdentityStatus('temporary');
+      else {
+        const { data: nextRole, error: roleError } = await client.rpc('current_app_role');
+        if (mounted && !roleError && nextRole) setRole(nextRole);
+      }
+    })().catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [session?.access_token]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (tab === 'home' || identityStatus !== 'ready') return false;
+      openTab('home');
+      return true;
+    });
+    return () => subscription.remove();
+  }, [tab, identityStatus]);
+
+  function openTab(next) {
+    setTab(next);
+    setOpenedTabs((current) => (current.includes(next) ? current : [...current, next]));
+    scroller.current?.scrollTo({ y: 0, animated: false });
+  }
+
+  function tabStyle(id) {
+    return id === tab ? styles.tabContent : styles.hidden;
+  }
 
   async function signIn() {
     setBusy(true);
@@ -224,7 +310,7 @@ export default function App() {
       });
       setPassword('');
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setBusy(false);
     }
@@ -242,7 +328,7 @@ export default function App() {
       setNewPassword('');
       setNotice('Password changed. Sign in with the new password.');
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setBusy(false);
     }
@@ -252,12 +338,11 @@ export default function App() {
     setBusy(true);
     setError('');
     try {
-      const { error: signOutError } = await client.auth.signOut();
-      if (signOutError) throw signOutError;
+      await signOutDevice(client);
       setNewPassword('');
       setNotice('Signed out. Use your assigned username to sign in.');
     } catch (cause) {
-      setError(cause.message || 'Unable to sign out.');
+      setError(userMessage(cause, 'Unable to sign out.'));
     } finally {
       setBusy(false);
     }
@@ -294,7 +379,7 @@ export default function App() {
       setReferrerId('');
       setNotice('Contributor enrolled with consent recorded.');
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setBusy(false);
     }
@@ -319,7 +404,7 @@ export default function App() {
         setClaims(await createManagementApi(client).listPendingMonthlyClaims());
       setNotice('Reference submitted for Treasurer review. No money has been posted yet.');
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setBusy(false);
     }
@@ -350,7 +435,7 @@ export default function App() {
       setClaims(await createManagementApi(client).listPendingMonthlyClaims());
       setNotice(`Verified and posted. Receipt code: ${code}`);
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setBusy(false);
     }
@@ -387,7 +472,7 @@ export default function App() {
         setNotice('Claim rejected. Reopen the review list before taking another action.');
       }
     } catch (cause) {
-      setError(cause.message || 'Could not reject claim.');
+      setError(userMessage(cause, 'Could not reject claim.'));
     } finally {
       setBusy(false);
     }
@@ -411,7 +496,7 @@ export default function App() {
       }
       return true;
     } catch (cause) {
-      setError(cause.message || 'Could not save contributor change.');
+      setError(userMessage(cause, 'Could not save contributor change.'));
       return false;
     } finally {
       setBusy(false);
@@ -462,14 +547,19 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView style={styles.safe}>
         <StatusBar style="dark" />
-        <KeyboardAvoidingView
-          style={styles.fill}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <KeyboardAvoidingView style={styles.fill} behavior="padding">
+          <ScrollView
+            ref={scroller}
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+          >
             <Text style={styles.eyebrow}>MASJID E MAMOOR 2</Text>
-            <Text style={styles.title}>Community contributions</Text>
-            <Text style={styles.intro}>A clear record of monthly support for our masjid.</Text>
+            {!(session && identityStatus === 'ready') && (
+              <>
+                <Text style={styles.title}>Community contributions</Text>
+                <Text style={styles.intro}>A clear record of monthly support for our masjid.</Text>
+              </>
+            )}
             {checking && <ActivityIndicator color={colors.green} />}
             {!!error && (
               <Text accessibilityRole="alert" style={styles.error}>
@@ -482,7 +572,7 @@ export default function App() {
               </Text>
             )}
             {!checking && !client && (
-              <Text>Set the connection values in your environment to continue.</Text>
+              <Text style={styles.muted}>This build is missing its connection settings.</Text>
             )}
             {!checking && client && !session && (
               <View style={styles.card}>
@@ -552,343 +642,402 @@ export default function App() {
                   <Button
                     label="Sign out"
                     secondary
-                    onPress={async () => {
+                    onPress={() => {
                       setError('');
-                      const { error: signOutError } = await client.auth.signOut();
-                      if (signOutError) setError(signOutError.message);
+                      setNotice('');
+                      signOutDevice(client).catch((cause) => setError(userMessage(cause)));
                     }}
                   />
                 </View>
-                {role === 'president' && <PaymentQrProfile client={client} />}
-                <FinanceAccounts client={client} role={role} />
-                <WorkTasks client={client} role={role} />
-                <MemberInbox client={client} />
-                <MeetingInvites client={client} role={role} />
-                {enrollmentRoles.has(role) && (
-                  <View style={styles.card}>
-                    <Text style={styles.heading}>Enroll a contributor</Text>
-                    <Text style={styles.muted}>
-                      A suggested amount is voluntary. Record consent given by the contributor.
-                    </Text>
-                    <Field label="Name" value={name} onChangeText={setName} maxLength={200} />
-                    <Field
-                      label="WhatsApp number (+country code)"
-                      value={whatsapp}
-                      onChangeText={setWhatsapp}
-                      keyboardType="phone-pad"
-                      placeholder="+919876543210"
-                    />
-                    <Field
-                      label="Suggested monthly amount (₹)"
-                      value={amount}
-                      onChangeText={setAmount}
-                      keyboardType="decimal-pad"
-                      placeholder="500.00"
-                    />
-                    <Field
-                      label="Referrer account ID (if referred)"
-                      value={referrerId}
-                      onChangeText={setReferrerId}
-                      autoCapitalize="none"
-                    />
-                    <Text style={styles.label}>How the contributor agreed</Text>
-                    <View style={styles.methodOptions}>
-                      {[
-                        ['in-person', 'In person'],
-                        ['phone-call', 'Phone call'],
-                        ['message', 'Their message'],
-                      ].map(([value, label]) => (
-                        <Button
-                          key={value}
-                          label={label}
-                          secondary={consentMethod !== value}
-                          onPress={() => setConsentMethod(value)}
-                        />
-                      ))}
-                    </View>
-                    <Field
-                      label="Consent evidence reference"
-                      value={consentEvidence}
-                      onChangeText={setConsentEvidence}
-                      maxLength={240}
-                    />
-                    <View style={styles.consent}>
-                      <Switch
-                        value={consent}
-                        onValueChange={setConsent}
-                        trackColor={{ true: colors.green }}
-                        accessibilityLabel="Contributor agreement evidence recorded"
-                      />
-                      <Text style={styles.consentText}>
-                        I recorded the contributor’s agreement and evidence. WhatsApp messages
-                        require separate opt-in from the recipient.
-                      </Text>
-                    </View>
-                    <Button
-                      label={busy ? 'Saving…' : 'Save contributor'}
-                      onPress={enroll}
-                      disabled={busy}
-                    />
+                {openedTabs.includes('home') && (
+                  <View style={tabStyle('home')}>
+                    <ErrorBoundary>
+                      <MemberInbox client={client} />
+                      <OfflineDrafts client={client} actorId={session.user.id} role={role} />
+                      {(role === 'treasurer' || role === 'committee_member') && (
+                        <ReceiptHandoff client={client} />
+                      )}
+                    </ErrorBoundary>
                   </View>
                 )}
-                {claimRoles.has(role) && (
-                  <View style={styles.card}>
-                    <Text style={styles.heading}>Submit a payment reference</Text>
-                    <Text style={styles.muted}>
-                      Choose the contributor and month. Submission does not post money.
-                    </Text>
-                    {donors
-                      .filter((d) => d.active)
-                      .map((d) => (
-                        <Pressable
-                          key={d.donor_id}
-                          accessibilityRole="radio"
-                          accessibilityState={{ selected: selectedDonor === d.donor_id }}
-                          onPress={() => setSelectedDonor(d.donor_id)}
-                          style={[styles.choice, selectedDonor === d.donor_id && styles.selected]}
-                        >
-                          <Text style={styles.donor}>{d.donor_name}</Text>
-                        </Pressable>
-                      ))}
-                    <Field
-                      label="Month (YYYY-MM-01)"
-                      value={period}
-                      onChangeText={setPeriod}
-                      placeholder="2026-10-01"
-                      keyboardType="numbers-and-punctuation"
-                    />
-                    <Field
-                      label="Transaction reference"
-                      value={transaction}
-                      onChangeText={setTransaction}
-                      maxLength={200}
-                    />
-                    <Button
-                      label={busy ? 'Submitting…' : 'Submit for Treasurer review'}
-                      onPress={submitClaim}
-                      disabled={busy || !selectedDonor}
-                    />
+                {openedTabs.includes('finance') && financeRoles.has(role) && (
+                  <View style={tabStyle('finance')}>
+                    <ErrorBoundary>
+                      {role === 'president' && <PaymentQrProfile client={client} />}
+                      <FinanceAccounts client={client} role={role} />
+                    </ErrorBoundary>
                   </View>
                 )}
-                {role === 'treasurer' && (
-                  <View style={styles.card}>
-                    <Text style={styles.heading}>Pending review</Text>
-                    {claims.length === 0 && <Text style={styles.empty}>No pending claims.</Text>}
-                    {claims.map((claim) => (
-                      <View key={claim.claim_id} style={styles.review}>
-                        <Text style={styles.donor}>
-                          {claim.donor_name} · {claim.period_date}
-                        </Text>
-                        <Text style={styles.muted}>Reference: {claim.transaction_id}</Text>
-                        <Text style={styles.label}>Checked destination account</Text>
-                        {accounts.map((account) => (
-                          <Pressable
-                            key={account.account_id}
-                            accessibilityRole="radio"
-                            accessibilityState={{
-                              selected:
-                                verification[claim.claim_id]?.accountId === account.account_id,
-                            }}
-                            onPress={() =>
-                              setVerification((current) => ({
-                                ...current,
-                                [claim.claim_id]: {
-                                  ...current[claim.claim_id],
-                                  accountId: account.account_id,
-                                },
-                              }))
-                            }
-                            style={[
-                              styles.choice,
-                              verification[claim.claim_id]?.accountId === account.account_id &&
-                                styles.selected,
-                            ]}
-                          >
-                            <Text style={styles.donor}>
-                              {account.account_name} ({account.account_kind})
-                            </Text>
-                          </Pressable>
-                        ))}
-                        <Field
-                          label="Amount actually received (₹)"
-                          value={verification[claim.claim_id]?.amount ?? ''}
-                          onChangeText={(value) =>
-                            setVerification((current) => ({
-                              ...current,
-                              [claim.claim_id]: { ...current[claim.claim_id], amount: value },
-                            }))
-                          }
-                          keyboardType="decimal-pad"
-                        />
-                        <Button
-                          label={busy ? 'Verifying…' : 'Verify and issue receipt'}
-                          onPress={() => verifyClaim(claim.claim_id)}
-                          disabled={busy}
-                        />
-                        <Field
-                          label="Rejection reason"
-                          value={rejection[claim.claim_id]?.reason ?? ''}
-                          onChangeText={(value) =>
-                            setRejection((current) => ({
-                              ...current,
-                              [claim.claim_id]: { ...current[claim.claim_id], reason: value },
-                            }))
-                          }
-                          maxLength={500}
-                        />
-                        <View style={styles.consent}>
-                          <Switch
-                            value={rejection[claim.claim_id]?.confirmed ?? false}
-                            onValueChange={(value) =>
-                              setRejection((current) => ({
-                                ...current,
-                                [claim.claim_id]: { ...current[claim.claim_id], confirmed: value },
-                              }))
-                            }
-                            accessibilityLabel="Confirmed rejection without posting"
-                          />
-                          <Text style={styles.consentText}>
-                            I checked this reference and will not post payment from this claim.
+                {openedTabs.includes('donors') && (
+                  <View style={tabStyle('donors')}>
+                    <ErrorBoundary>
+                      {enrollmentRoles.has(role) && (
+                        <View style={styles.card}>
+                          <Text style={styles.heading}>Enroll a contributor</Text>
+                          <Text style={styles.muted}>
+                            A suggested amount is voluntary. Record consent given by the
+                            contributor.
                           </Text>
-                        </View>
-                        <Button
-                          label={busy ? 'Saving…' : 'Reject without posting'}
-                          secondary
-                          onPress={() => rejectClaim(claim.claim_id)}
-                          disabled={
-                            busy ||
-                            !rejection[claim.claim_id]?.confirmed ||
-                            (rejection[claim.claim_id]?.reason?.trim().length ?? 0) < 3
-                          }
-                        />
-                      </View>
-                    ))}
-                  </View>
-                )}
-                {claimRoles.has(role) && (
-                  <RejectedClaims
-                    client={client}
-                    revision={claimReviewRevision}
-                    onResubmitted={async () => {
-                      if (role === 'treasurer')
-                        setClaims(
-                          (await createManagementApi(client).listPendingMonthlyClaims()) ?? [],
-                        );
-                    }}
-                  />
-                )}
-                {donorStaffRoles.has(role) && (
-                  <View style={styles.card}>
-                    <Text style={styles.heading}>Contributor correction and opt-out</Text>
-                    <Text style={styles.muted}>
-                      Change only a voluntary suggestion or record the donor’s request to stop.
-                      Verified payments stay unchanged.
-                    </Text>
-                    {donors
-                      .filter((donor) => donor.active)
-                      .map((donor) => (
-                        <Pressable
-                          key={donor.donor_id}
-                          accessibilityRole="radio"
-                          accessibilityState={{ selected: staffDonorId === donor.donor_id }}
-                          onPress={() => {
-                            setStaffDonorId(donor.donor_id);
-                            setRevisedSuggestion('');
-                            setStaffReason('');
-                            setOptOutSource('');
-                            setOptOutConfirmed(false);
-                          }}
-                          style={[
-                            styles.choice,
-                            staffDonorId === donor.donor_id && styles.selected,
-                          ]}
-                        >
-                          <Text style={styles.donor}>{donor.donor_name}</Text>
-                        </Pressable>
-                      ))}
-                    {staffDonor && (
-                      <>
-                        <Text style={styles.muted}>
-                          Current suggestion: {formatPaiseINR(staffDonor.suggested_amount_paise)}
-                        </Text>
-                        <Field
-                          label="Revised suggestion (₹)"
-                          value={revisedSuggestion}
-                          onChangeText={setRevisedSuggestion}
-                          keyboardType="decimal-pad"
-                        />
-                        <Field
-                          label="Donor request or correction reference"
-                          value={staffReason}
-                          onChangeText={setStaffReason}
-                          maxLength={240}
-                        />
-                        <Button
-                          label={busy ? 'Saving…' : 'Save revised suggestion'}
-                          onPress={() => correctSuggestion(staffDonor)}
-                          disabled={
-                            busy || !revisedSuggestion.trim() || staffReason.trim().length < 3
-                          }
-                        />
-                        <Field
-                          label="Opt-out request reference"
-                          value={optOutSource}
-                          onChangeText={setOptOutSource}
-                          maxLength={240}
-                        />
-                        <View style={styles.consent}>
-                          <Switch
-                            value={optOutConfirmed}
-                            onValueChange={setOptOutConfirmed}
-                            trackColor={{ true: colors.green }}
-                            accessibilityLabel="Confirmed donor asked to stop future requests"
+                          <Field label="Name" value={name} onChangeText={setName} maxLength={200} />
+                          <Field
+                            label="WhatsApp number (+country code)"
+                            value={whatsapp}
+                            onChangeText={setWhatsapp}
+                            keyboardType="phone-pad"
+                            placeholder="+919876543210"
                           />
-                          <Text style={styles.consentText}>
-                            I verified this donor asked to stop future requests.
-                          </Text>
-                        </View>
-                        <Button
-                          label={busy ? 'Saving…' : 'Record donor opt-out'}
-                          onPress={() => optOutDonor(staffDonor)}
-                          disabled={busy || !optOutConfirmed || optOutSource.trim().length < 3}
-                        />
-                      </>
-                    )}
-                  </View>
-                )}
-                <OfflineDrafts client={client} actorId={session.user.id} role={role} />
-                {(role === 'treasurer' || role === 'committee_member') && (
-                  <ReceiptHandoff client={client} />
-                )}
-                <View style={styles.card}>
-                  <Text style={styles.heading}>Contributor roster</Text>
-                  <Text style={styles.muted}>
-                    Verified payments count at the amount actually received.
-                  </Text>
-                  {donors.length === 0 ? (
-                    <Text style={styles.empty}>No contributors are listed yet.</Text>
-                  ) : (
-                    <FlatList
-                      data={donors}
-                      scrollEnabled={false}
-                      keyExtractor={(item) => item.donor_id}
-                      renderItem={({ item }) => (
-                        <View style={styles.row}>
-                          <View style={styles.fill}>
-                            <Text style={styles.donor}>{item.donor_name}</Text>
-                            <Text style={styles.muted}>{item.active ? 'Active' : 'Inactive'}</Text>
+                          <Field
+                            label="Suggested monthly amount (₹)"
+                            value={amount}
+                            onChangeText={setAmount}
+                            keyboardType="decimal-pad"
+                            placeholder="500.00"
+                          />
+                          <Field
+                            label="Referrer account ID (if referred)"
+                            value={referrerId}
+                            onChangeText={setReferrerId}
+                            autoCapitalize="none"
+                          />
+                          <Text style={styles.label}>How the contributor agreed</Text>
+                          <View style={styles.methodOptions}>
+                            {[
+                              ['in-person', 'In person'],
+                              ['phone-call', 'Phone call'],
+                              ['message', 'Their message'],
+                            ].map(([value, label]) => (
+                              <Button
+                                key={value}
+                                label={label}
+                                secondary={consentMethod !== value}
+                                onPress={() => setConsentMethod(value)}
+                              />
+                            ))}
                           </View>
-                          <Text style={styles.money}>
-                            {formatPaiseINR(item.suggested_amount_paise)}
-                          </Text>
+                          <Field
+                            label="Consent evidence reference"
+                            value={consentEvidence}
+                            onChangeText={setConsentEvidence}
+                            maxLength={240}
+                          />
+                          <View style={styles.consent}>
+                            <Switch
+                              value={consent}
+                              onValueChange={setConsent}
+                              trackColor={{ true: colors.green }}
+                              accessibilityLabel="Contributor agreement evidence recorded"
+                            />
+                            <Text style={styles.consentText}>
+                              I recorded the contributor’s agreement and evidence. WhatsApp messages
+                              require separate opt-in from the recipient.
+                            </Text>
+                          </View>
+                          <Button
+                            label={busy ? 'Saving…' : 'Save contributor'}
+                            onPress={enroll}
+                            disabled={busy}
+                          />
                         </View>
                       )}
-                    />
-                  )}
-                </View>
+                      {claimRoles.has(role) && (
+                        <View style={styles.card}>
+                          <Text style={styles.heading}>Submit a payment reference</Text>
+                          <Text style={styles.muted}>
+                            Choose the contributor and month. Submission does not post money.
+                          </Text>
+                          {donors
+                            .filter((d) => d.active)
+                            .map((d) => (
+                              <Pressable
+                                key={d.donor_id}
+                                accessibilityRole="radio"
+                                accessibilityState={{ selected: selectedDonor === d.donor_id }}
+                                onPress={() => setSelectedDonor(d.donor_id)}
+                                style={[
+                                  styles.choice,
+                                  selectedDonor === d.donor_id && styles.selected,
+                                ]}
+                              >
+                                <Text style={styles.donor}>{d.donor_name}</Text>
+                              </Pressable>
+                            ))}
+                          <Field
+                            label="Month (YYYY-MM-01)"
+                            value={period}
+                            onChangeText={setPeriod}
+                            placeholder="2026-10-01"
+                            keyboardType="numbers-and-punctuation"
+                          />
+                          <Field
+                            label="Transaction reference"
+                            value={transaction}
+                            onChangeText={setTransaction}
+                            maxLength={200}
+                          />
+                          <Button
+                            label={busy ? 'Submitting…' : 'Submit for Treasurer review'}
+                            onPress={submitClaim}
+                            disabled={busy || !selectedDonor}
+                          />
+                        </View>
+                      )}
+                      {role === 'treasurer' && (
+                        <View style={styles.card}>
+                          <Text style={styles.heading}>Pending review</Text>
+                          {claims.length === 0 && (
+                            <Text style={styles.empty}>No pending claims.</Text>
+                          )}
+                          {claims.map((claim) => (
+                            <View key={claim.claim_id} style={styles.review}>
+                              <Text style={styles.donor}>
+                                {claim.donor_name} · {claim.period_date}
+                              </Text>
+                              <Text style={styles.muted}>Reference: {claim.transaction_id}</Text>
+                              <Text style={styles.label}>Checked destination account</Text>
+                              {accounts.map((account) => (
+                                <Pressable
+                                  key={account.account_id}
+                                  accessibilityRole="radio"
+                                  accessibilityState={{
+                                    selected:
+                                      verification[claim.claim_id]?.accountId ===
+                                      account.account_id,
+                                  }}
+                                  onPress={() =>
+                                    setVerification((current) => ({
+                                      ...current,
+                                      [claim.claim_id]: {
+                                        ...current[claim.claim_id],
+                                        accountId: account.account_id,
+                                      },
+                                    }))
+                                  }
+                                  style={[
+                                    styles.choice,
+                                    verification[claim.claim_id]?.accountId ===
+                                      account.account_id && styles.selected,
+                                  ]}
+                                >
+                                  <Text style={styles.donor}>
+                                    {account.account_name} ({account.account_kind})
+                                  </Text>
+                                </Pressable>
+                              ))}
+                              <Field
+                                label="Amount actually received (₹)"
+                                value={verification[claim.claim_id]?.amount ?? ''}
+                                onChangeText={(value) =>
+                                  setVerification((current) => ({
+                                    ...current,
+                                    [claim.claim_id]: { ...current[claim.claim_id], amount: value },
+                                  }))
+                                }
+                                keyboardType="decimal-pad"
+                              />
+                              <Button
+                                label={busy ? 'Verifying…' : 'Verify and issue receipt'}
+                                onPress={() => verifyClaim(claim.claim_id)}
+                                disabled={busy}
+                              />
+                              <Field
+                                label="Rejection reason"
+                                value={rejection[claim.claim_id]?.reason ?? ''}
+                                onChangeText={(value) =>
+                                  setRejection((current) => ({
+                                    ...current,
+                                    [claim.claim_id]: { ...current[claim.claim_id], reason: value },
+                                  }))
+                                }
+                                maxLength={500}
+                              />
+                              <View style={styles.consent}>
+                                <Switch
+                                  value={rejection[claim.claim_id]?.confirmed ?? false}
+                                  onValueChange={(value) =>
+                                    setRejection((current) => ({
+                                      ...current,
+                                      [claim.claim_id]: {
+                                        ...current[claim.claim_id],
+                                        confirmed: value,
+                                      },
+                                    }))
+                                  }
+                                  accessibilityLabel="Confirmed rejection without posting"
+                                />
+                                <Text style={styles.consentText}>
+                                  I checked this reference and will not post payment from this
+                                  claim.
+                                </Text>
+                              </View>
+                              <Button
+                                label={busy ? 'Saving…' : 'Reject without posting'}
+                                secondary
+                                onPress={() => rejectClaim(claim.claim_id)}
+                                disabled={
+                                  busy ||
+                                  !rejection[claim.claim_id]?.confirmed ||
+                                  (rejection[claim.claim_id]?.reason?.trim().length ?? 0) < 3
+                                }
+                              />
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                      {claimRoles.has(role) && (
+                        <RejectedClaims
+                          client={client}
+                          revision={claimReviewRevision}
+                          onResubmitted={async () => {
+                            if (role === 'treasurer')
+                              setClaims(
+                                (await createManagementApi(client).listPendingMonthlyClaims()) ??
+                                  [],
+                              );
+                          }}
+                        />
+                      )}
+                      {donorStaffRoles.has(role) && (
+                        <View style={styles.card}>
+                          <Text style={styles.heading}>Contributor correction and opt-out</Text>
+                          <Text style={styles.muted}>
+                            Change only a voluntary suggestion or record the donor’s request to
+                            stop. Verified payments stay unchanged.
+                          </Text>
+                          {donors
+                            .filter((donor) => donor.active)
+                            .map((donor) => (
+                              <Pressable
+                                key={donor.donor_id}
+                                accessibilityRole="radio"
+                                accessibilityState={{ selected: staffDonorId === donor.donor_id }}
+                                onPress={() => {
+                                  setStaffDonorId(donor.donor_id);
+                                  setRevisedSuggestion('');
+                                  setStaffReason('');
+                                  setOptOutSource('');
+                                  setOptOutConfirmed(false);
+                                }}
+                                style={[
+                                  styles.choice,
+                                  staffDonorId === donor.donor_id && styles.selected,
+                                ]}
+                              >
+                                <Text style={styles.donor}>{donor.donor_name}</Text>
+                              </Pressable>
+                            ))}
+                          {staffDonor && (
+                            <>
+                              <Text style={styles.muted}>
+                                Current suggestion:{' '}
+                                {formatPaiseINR(staffDonor.suggested_amount_paise)}
+                              </Text>
+                              <Field
+                                label="Revised suggestion (₹)"
+                                value={revisedSuggestion}
+                                onChangeText={setRevisedSuggestion}
+                                keyboardType="decimal-pad"
+                              />
+                              <Field
+                                label="Donor request or correction reference"
+                                value={staffReason}
+                                onChangeText={setStaffReason}
+                                maxLength={240}
+                              />
+                              <Button
+                                label={busy ? 'Saving…' : 'Save revised suggestion'}
+                                onPress={() => correctSuggestion(staffDonor)}
+                                disabled={
+                                  busy || !revisedSuggestion.trim() || staffReason.trim().length < 3
+                                }
+                              />
+                              <Field
+                                label="Opt-out request reference"
+                                value={optOutSource}
+                                onChangeText={setOptOutSource}
+                                maxLength={240}
+                              />
+                              <View style={styles.consent}>
+                                <Switch
+                                  value={optOutConfirmed}
+                                  onValueChange={setOptOutConfirmed}
+                                  trackColor={{ true: colors.green }}
+                                  accessibilityLabel="Confirmed donor asked to stop future requests"
+                                />
+                                <Text style={styles.consentText}>
+                                  I verified this donor asked to stop future requests.
+                                </Text>
+                              </View>
+                              <Button
+                                label={busy ? 'Saving…' : 'Record donor opt-out'}
+                                onPress={() => optOutDonor(staffDonor)}
+                                disabled={
+                                  busy || !optOutConfirmed || optOutSource.trim().length < 3
+                                }
+                              />
+                            </>
+                          )}
+                        </View>
+                      )}
+                      <View style={styles.card}>
+                        <Text style={styles.heading}>Contributor roster</Text>
+                        <Text style={styles.muted}>
+                          Verified payments count at the amount actually received.
+                        </Text>
+                        {donors.length === 0 ? (
+                          <Text style={styles.empty}>No contributors are listed yet.</Text>
+                        ) : (
+                          <FlatList
+                            data={donors}
+                            scrollEnabled={false}
+                            keyExtractor={(item) => item.donor_id}
+                            renderItem={({ item }) => (
+                              <View style={styles.row}>
+                                <View style={styles.fill}>
+                                  <Text style={styles.donor}>{item.donor_name}</Text>
+                                  <Text style={styles.muted}>
+                                    {item.active ? 'Active' : 'Inactive'}
+                                  </Text>
+                                </View>
+                                <Text style={styles.money}>
+                                  {formatPaiseINR(item.suggested_amount_paise)}
+                                </Text>
+                              </View>
+                            )}
+                          />
+                        )}
+                      </View>
+                    </ErrorBoundary>
+                  </View>
+                )}
+                {openedTabs.includes('work') && (
+                  <View style={tabStyle('work')}>
+                    <ErrorBoundary>
+                      {role !== 'system_admin' && <WorkTasks client={client} role={role} />}
+                      <MeetingInvites client={client} role={role} />
+                      {prayerRoles.has(role) && <HafizPrayer client={client} />}
+                    </ErrorBoundary>
+                  </View>
+                )}
               </>
             )}
           </ScrollView>
+          {!!session && identityStatus === 'ready' && (
+            <View style={styles.tabBar} accessibilityRole="tablist">
+              {tabsFor(role).map(([id, label]) => (
+                <Pressable
+                  key={id}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: tab === id }}
+                  onPress={() => openTab(id)}
+                  style={[styles.tabItem, tab === id && styles.tabItemActive]}
+                >
+                  <Text style={[styles.tabLabel, tab === id && styles.tabLabelActive]}>
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </SafeAreaProvider>
@@ -897,6 +1046,18 @@ export default function App() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.cream },
+  tabContent: { gap: 15 },
+  hidden: { display: 'none' },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  tabItem: { flex: 1, minHeight: 56, alignItems: 'center', justifyContent: 'center' },
+  tabItemActive: { backgroundColor: colors.pale },
+  tabLabel: { color: colors.muted, fontWeight: '600', fontSize: 14 },
+  tabLabelActive: { color: colors.green, fontWeight: '800' },
   fill: { flex: 1 },
   content: {
     padding: 24,

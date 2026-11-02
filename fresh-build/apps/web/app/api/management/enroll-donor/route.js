@@ -54,6 +54,7 @@ export async function POST(request) {
       body.evidenceReference.length > 240
     )
       return output(400, 'INVALID_INPUT');
+    parseINRToPaise(body.suggestedAmountINR);
   } catch {
     return output(400, 'INVALID_INPUT');
   }

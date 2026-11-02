@@ -94,6 +94,8 @@ Each ID is defined in `../../docs/PRODUCT_ACCEPTANCE_CRITERIA_2026-10-15.md`. Th
 | A-MSG1, A-OFF1 | Authenticated deduped webhook/outbox; offline draft→server pending | STOP wins retry race; replay posts once; offline approval denied |
 | A-BAK1, A-REL1 | Staged DB+object restore by L; SA release policy after signed upload | Clean restore and signed upgrade; old client retains public recovery path |
 
+**2 November 2026:** Migration `20261102120000` lets Members submit payment claims and one-time donations and replace their own rejected claims, as the matrix above states; Android and web screens follow. Verification stays Treasurer-only.
+
 **Known implementation delta (rechecked 17 October):** Fresh SQL now includes M donor enrollment behind approved consent, but does not implement P/T-only existing-donor edit history, approved consent/recipient opt-in activation or the accepted donor-month referral cap. The approved consent-version table is empty; donor enrollment remains gated. Web and Android now use username sign-in, and local President/Treasurer issued sessions passed a signed-in web account/opening/transfer journey. Several later workflows and full client acceptance are still open. A product-rule acceptance is not a claim that every SQL/UI path already enforces it.
 
 ## Owner/external gates, not silently approved by this document

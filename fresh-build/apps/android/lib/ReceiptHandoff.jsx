@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
+import { userMessage } from '../../../packages/api-client/messages.js';
 import { prepareManualReceiptHandoff } from '../../../packages/api-client/receipt-handoff.js';
 
 const channels = [
@@ -100,7 +101,7 @@ export default function ReceiptHandoff({ client }) {
         result,
       });
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
       return;
     }
     const key = JSON.stringify(args);
@@ -119,7 +120,7 @@ export default function ReceiptHandoff({ client }) {
       setConfirmed(false);
       setNotice('Manual handoff outcome recorded. This app did not send a message.');
     } catch (cause) {
-      setError(cause.message || 'Handoff could not be recorded. Check the receipt status.');
+      setError(userMessage(cause, 'Handoff could not be recorded. Check the receipt status.'));
     } finally {
       setBusy(false);
     }

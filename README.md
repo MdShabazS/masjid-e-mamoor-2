@@ -2,7 +2,8 @@
 
 The active implementation is in [`fresh-build/`](fresh-build/README.md). Run its
 Node, web, Android and database commands from that directory as documented there.
-The current release checklist is [`fresh-build/tasks.md`](fresh-build/tasks.md).
+Current status is in [`fresh-build/PROJECT_STATUS.md`](fresh-build/PROJECT_STATUS.md);
+the detailed evidence log is [`fresh-build/tasks.md`](fresh-build/tasks.md).
 
 The root `docs/` directory retains the requirements baseline, decision register
 and acceptance criteria used by the new build. Superseded root app, database,

@@ -6,11 +6,9 @@ in. Never put a service-role key in an app environment variable.
 
 Install dependencies from the fresh-build root with `npm ci`, then run
 `npm run start` here and open Android.
-`npm run export:android` checks the JavaScript bundle. The current screens
-cover sign in, contributor enrollment with consent, the roster, claim submission,
-and Treasurer verification with receipt-code confirmation. Receipt rendering,
-offline submission drafts, notifications, and device QA are tracked in `../../docs/PHASE_12_CHECKPOINT.md`. The runtime calls the draft RPCs in `../../backend/`; that SQL
-has not yet been executed against a development database.
+`npm run export:android` checks the JavaScript bundle. The app has Home, Finance,
+Donors and Work tabs, shown by role. Status and missing screens are in
+`../../PROJECT_STATUS.md`.
 
 `eas.json` has installable APK preview and release profiles. The current
 `org.masjidemamoor.app.fresh` Android package is a development identity; do

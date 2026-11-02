@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { userMessage } from '../../../packages/api-client/messages.js';
 
 export default function MemberInbox({ client }) {
   const [items, setItems] = useState([]);
@@ -25,7 +26,7 @@ export default function MemberInbox({ client }) {
       })
       .catch((cause) => {
         if (active) {
-          setError(cause.message || 'Could not load notifications.');
+          setError(userMessage(cause, 'Could not load notifications.'));
           setLoading(false);
         }
       });
@@ -40,7 +41,7 @@ export default function MemberInbox({ client }) {
     try {
       await reload();
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setLoading(false);
     }
@@ -65,7 +66,7 @@ export default function MemberInbox({ client }) {
         setError('Marked read, but the list could not refresh.');
       }
     } catch (cause) {
-      setError(cause.message || 'Could not mark notification read.');
+      setError(userMessage(cause, 'Could not mark notification read.'));
     } finally {
       setBusyId(null);
     }

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
+import { userMessage } from '../../../packages/api-client/messages.js';
 import { formatPaiseINR, parseINRToPaise } from '../../../packages/api-client/index.js';
 import {
   appendFinancePage,
@@ -148,7 +149,7 @@ export default function FinanceAccounts({ client, role }) {
       setHistory((previous) => appendFinancePage(previous, page ?? [], 'effect_id'));
       setHistoryHasMore((page?.length ?? 0) === HISTORY_LIMIT);
     } catch (cause) {
-      if (request === accountRequest.current) setError(cause.message);
+      if (request === accountRequest.current) setError(userMessage(cause));
     } finally {
       if (request === accountRequest.current) setHistoryLoading(false);
     }
@@ -168,7 +169,7 @@ export default function FinanceAccounts({ client, role }) {
       setObservations((previous) => appendFinancePage(previous, page ?? [], 'reconciliation_id'));
       setObservationHasMore((page?.length ?? 0) === OBSERVATION_LIMIT);
     } catch (cause) {
-      if (request === accountRequest.current) setError(cause.message);
+      if (request === accountRequest.current) setError(userMessage(cause));
     } finally {
       if (request === accountRequest.current) setObservationLoading(false);
     }
@@ -192,7 +193,7 @@ export default function FinanceAccounts({ client, role }) {
         }
       })
       .catch((cause) => {
-        if (active) setError(cause.message);
+        if (active) setError(userMessage(cause));
       });
     return () => {
       active = false;
@@ -218,7 +219,7 @@ export default function FinanceAccounts({ client, role }) {
       }
       return true;
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
       return false;
     } finally {
       setBusy(false);
@@ -247,7 +248,7 @@ export default function FinanceAccounts({ client, role }) {
       )}
       <Button
         label="Refresh accounts"
-        onPress={() => refresh().catch((cause) => setError(cause.message))}
+        onPress={() => refresh().catch((cause) => setError(userMessage(cause)))}
         disabled={busy}
       />
       {accounts.length === 0 && <Text style={styles.muted}>No accounts configured.</Text>}
@@ -258,7 +259,7 @@ export default function FinanceAccounts({ client, role }) {
           selected={selected === account.account_id}
           onPress={() => {
             setSelected(account.account_id);
-            refreshSelected(account.account_id).catch((cause) => setError(cause.message));
+            refreshSelected(account.account_id).catch((cause) => setError(userMessage(cause)));
           }}
           disabled={busy}
         />
@@ -453,7 +454,7 @@ export default function FinanceAccounts({ client, role }) {
                   setOpeningProof('');
                 }
               } catch (cause) {
-                setError(cause.message);
+                setError(userMessage(cause));
               }
             }}
           />
@@ -518,14 +519,14 @@ export default function FinanceAccounts({ client, role }) {
                   setTransferProof('');
                 }
               } catch (cause) {
-                setError(cause.message);
+                setError(userMessage(cause));
               }
             }}
           />
         </View>
       )}
 
-      {role === 'treasurer' && selected && (
+      {role === 'treasurer' && !!selected && (
         <View style={styles.section}>
           <Text style={styles.subheading}>Record account observation</Text>
           <Field
@@ -569,7 +570,7 @@ export default function FinanceAccounts({ client, role }) {
                   setExplanation('');
                 }
               } catch (cause) {
-                setError(cause.message);
+                setError(userMessage(cause));
               }
             }}
           />

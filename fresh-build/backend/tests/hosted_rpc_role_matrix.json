@@ -720,6 +720,7 @@
         "secretary",
         "treasurer",
         "committee_member",
+        "member",
         "data_entry"
       ]
     },
@@ -800,6 +801,7 @@
         "secretary",
         "treasurer",
         "committee_member",
+        "member",
         "data_entry"
       ]
     },
@@ -821,6 +823,7 @@
         "secretary",
         "treasurer",
         "committee_member",
+        "member",
         "data_entry"
       ]
     },

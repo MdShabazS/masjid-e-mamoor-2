@@ -12,7 +12,7 @@ export async function enrollConsentedDonor({ client, baseUrl = '', input, fetchI
     },
     body: JSON.stringify(input),
   });
-  const result = await response.json();
+  const result = await response.json().catch(() => null);
   if (!response.ok) throw new Error(result?.error?.code || 'ENROLLMENT_REJECTED');
   return result.data.donorId;
 }

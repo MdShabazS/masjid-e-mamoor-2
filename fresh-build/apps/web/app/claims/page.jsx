@@ -11,6 +11,7 @@ const submitRoles = new Set([
   'secretary',
   'treasurer',
   'committee_member',
+  'member',
   'data_entry',
 ]);
 

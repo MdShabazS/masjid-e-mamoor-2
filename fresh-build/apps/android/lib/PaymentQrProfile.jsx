@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
+import { userMessage } from '../../../packages/api-client/messages.js';
 import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -73,7 +74,7 @@ export default function PaymentQrProfile({ client }) {
           );
       })
       .catch((cause) => {
-        if (active) setError(cause.message || 'Payment accounts unavailable.');
+        if (active) setError(userMessage(cause, 'Payment accounts unavailable.'));
       });
     return () => {
       active = false;
@@ -120,7 +121,7 @@ export default function PaymentQrProfile({ client }) {
       setConfirmed(false);
       operation.current = null;
     } catch (cause) {
-      setError(cause.message || 'Could not select a QR image.');
+      setError(userMessage(cause, 'Could not select a QR image.'));
     }
   }
 
@@ -135,7 +136,7 @@ export default function PaymentQrProfile({ client }) {
         headers: { Authorization: `Bearer ${await token()}` },
       });
       if (!response.ok) {
-        const result = await response.json();
+        const result = await response.json().catch(() => null);
         if (result?.error?.code === 'QR_NOT_FOUND') {
           setNotice('No active QR for this account.');
           return;
@@ -147,7 +148,7 @@ export default function PaymentQrProfile({ client }) {
       setCurrent({ image, versionId: response.headers.get('X-QR-Version-ID') });
       setNotice('Showing the active QR for this account.');
     } catch (cause) {
-      setError(cause.message || 'Could not load the current QR.');
+      setError(userMessage(cause, 'Could not load the current QR.'));
     } finally {
       setBusy(false);
     }
@@ -173,7 +174,7 @@ export default function PaymentQrProfile({ client }) {
         headers: { Authorization: `Bearer ${await token()}` },
         body: form,
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => null);
       if (!response.ok) throw new Error(result?.error?.code || 'QR update failed.');
       setAsset(null);
       setConfirmed(false);
@@ -181,7 +182,7 @@ export default function PaymentQrProfile({ client }) {
       operation.current = null;
       setNotice('New QR is active for future requests. Earlier requests keep their saved QR.');
     } catch (cause) {
-      setError(cause.message || 'QR update failed.');
+      setError(userMessage(cause, 'QR update failed.'));
     } finally {
       setBusy(false);
     }

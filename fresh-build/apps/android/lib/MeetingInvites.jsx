@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
+import { userMessage } from '../../../packages/api-client/messages.js';
 import { buildMeetingArgs } from '../../../packages/api-client/meeting-input.js';
 
 const editors = new Set(['president', 'vice_president', 'secretary', 'data_entry']);
@@ -37,7 +38,7 @@ export default function MeetingInvites({ client, role }) {
       })
       .catch((cause) => {
         if (active) {
-          setError(cause.message || 'Could not load meetings.');
+          setError(userMessage(cause, 'Could not load meetings.'));
           setLoading(false);
         }
       });
@@ -52,7 +53,7 @@ export default function MeetingInvites({ client, role }) {
     try {
       await reload();
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setLoading(false);
     }
@@ -76,7 +77,7 @@ export default function MeetingInvites({ client, role }) {
       if (rpcError) throw new Error(rpcError.message || 'Could not save response.');
       operations.current.delete(key);
     } catch (cause) {
-      setError(cause.message || 'Could not save response. Retry the same response.');
+      setError(userMessage(cause, 'Could not save response. Retry the same response.'));
       setBusy(false);
       return;
     }
@@ -107,7 +108,7 @@ export default function MeetingInvites({ client, role }) {
       if (rpcError) throw new Error(rpcError.message || 'Meeting action unavailable.');
       operations.current.delete(key);
     } catch (cause) {
-      setError(cause.message || 'Meeting action failed. Retry the same action.');
+      setError(userMessage(cause, 'Meeting action failed. Retry the same action.'));
       setBusy(false);
       return false;
     }
@@ -134,7 +135,7 @@ export default function MeetingInvites({ client, role }) {
       )
         setDraft(emptyDraft);
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
 

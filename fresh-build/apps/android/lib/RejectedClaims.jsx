@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { userMessage } from '../../../packages/api-client/messages.js';
 import { createManagementApi } from '../../../packages/api-client/index.js';
 
 export default function RejectedClaims({ client, revision, onResubmitted }) {
@@ -47,7 +48,7 @@ export default function RejectedClaims({ client, revision, onResubmitted }) {
       });
       setMore(rows.length === 50);
     } catch (cause) {
-      setError(cause.message || 'Could not load older rejected claims.');
+      setError(userMessage(cause, 'Could not load older rejected claims.'));
     } finally {
       setBusy(false);
     }
@@ -75,7 +76,7 @@ export default function RejectedClaims({ client, revision, onResubmitted }) {
         setNotice('Replacement submitted. Reopen the claim lists before another action.');
       }
     } catch (cause) {
-      setError(cause.message || 'Could not resubmit rejected claim.');
+      setError(userMessage(cause, 'Could not resubmit rejected claim.'));
     } finally {
       setBusy(false);
     }

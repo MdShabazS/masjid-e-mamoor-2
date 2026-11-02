@@ -8,7 +8,9 @@
     "userInterfaceStyle": "light",
     "android": {
       "package": "org.masjidemamoor.app.fresh",
-      "versionCode": 1
+      "versionCode": 1,
+      "allowBackup": false,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       "expo-secure-store",

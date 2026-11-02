@@ -10,6 +10,7 @@ const donationActors = new Set([
   'secretary',
   'treasurer',
   'committee_member',
+  'member',
   'data_entry',
 ]);
 const expenseActors = new Set([
