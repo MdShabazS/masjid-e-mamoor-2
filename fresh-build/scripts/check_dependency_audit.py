@@ -8,32 +8,35 @@ import pathlib
 import sys
 
 
-KNOWN_HIGH_VIA = {
+# Reviewed 2 November 2026 on Expo 58: build-tool paths only. See
+# docs/DEPENDENCY_RELEASE_DECISION_2026-10-26.md. Anything else fails CI, at any severity.
+KNOWN_MODERATE_VIA = {
     "@expo/cli": {
-        "@expo/code-signing-certificates",
         "@expo/config",
+        "@expo/config-plugins",
+        "@expo/inline-modules",
         "@expo/metro-config",
         "@expo/prebuild-config",
-        "node-forge",
-        "zod",
+        "glob",
     },
-    "@expo/code-signing-certificates": {"node-forge"},
+    "@expo/config": {"@expo/config-plugins", "glob"},
+    "@expo/config-plugins": {"glob"},
+    "@expo/fingerprint": {"glob", "minimatch"},
+    "@expo/inline-modules": {"@expo/config-plugins"},
+    "@expo/local-build-cache-provider": {"@expo/config"},
+    "@expo/metro-config": {"@expo/config", "glob"},
+    "@expo/prebuild-config": {"@expo/config", "@expo/config-plugins"},
+    "@react-native-community/datetimepicker": {"expo"},
     "expo": {
         "@expo/cli",
         "@expo/config",
+        "@expo/config-plugins",
+        "@expo/fingerprint",
         "@expo/local-build-cache-provider",
         "@expo/metro-config",
     },
-    "node-forge": {"https://github.com/advisories/GHSA-86w9-cpqp-85rv"},
-    "zod": {"https://github.com/advisories/GHSA-mrhx-c7xc-m3w5"},
-}
-
-KNOWN_LOW_VIA = {
-    "@expo/config": {"deepmerge"},
-    "@expo/local-build-cache-provider": {"@expo/config"},
-    "@expo/metro-config": {"@expo/config"},
-    "@expo/prebuild-config": {"@expo/config"},
-    "deepmerge": {"https://github.com/advisories/GHSA-gcqx-w48m-w2h4"},
+    "glob": {"https://github.com/advisories/GHSA-3g3m-2fjr-6pw4", "minimatch"},
+    "minimatch": {"https://github.com/advisories/GHSA-g3hv-75wg-m249"},
 }
 
 
@@ -64,7 +67,7 @@ def check_audit(audit: object) -> list[str]:
         if severity == "critical":
             errors.append(f"Critical dependency finding: {name}")
         elif severity in ("high", "moderate", "low"):
-            known = KNOWN_HIGH_VIA if severity == "high" else KNOWN_LOW_VIA if severity == "low" else {}
+            known = KNOWN_MODERATE_VIA if severity == "moderate" else {}
             allowed_via = known.get(name)
             if allowed_via is None:
                 errors.append(f"New {severity} dependency finding: {name}")
@@ -106,8 +109,8 @@ def main() -> int:
         return 1
     counts = audit["metadata"]["vulnerabilities"]
     print(
-        f"npm audit baseline passed: {counts['high']} known high, "
-        f"{counts['low']} known low, {counts['critical']} critical, no new advisories. "
+        f"npm audit baseline passed: {counts['moderate']} known moderate, "
+        f"{counts['high']} high, {counts['low']} low, {counts['critical']} critical, no new advisories. "
         "Known findings still require release-owner review."
     )
     return 0

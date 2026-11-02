@@ -55,6 +55,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] Android app backup turned off for this finance app; keyboard resize set
 - [x] Members may submit payment references and one-time donations and replace their own rejected claims (owner decision 2 November; database, Android and web). Verification stays Treasurer-only
 - [x] Android member picker replaces typed account IDs for referrer and invitations; date, time and month pickers replace typed dates
+- [x] Upgraded to Expo 58 and React Native 0.88: all high and low audit findings cleared, 12 moderate build-tool entries remain and are pinned in the CI check
 - [x] Web enrollment form now shows for Members too
 - [x] Web enrollment route returns an input error, not "service unavailable", for a bad amount
 
@@ -88,6 +89,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [ ] App icon, adaptive icon and splash screen (none exist; needs the masjid logo)
 - [ ] Permanent package name; `.fresh` is a development identity
 - [ ] Signing key and who holds it; signed APK; upgrade test
+- [ ] Retest payment QR upload on Expo 58 (file API, not exercised since the upgrade)
 - [ ] Test on a real phone: login, roles, offline, keyboard. The emulator's floating keyboard did not prove the full on-screen keyboard
 - [ ] Trace the single `Error: undefined` warning logged at app start on 2 November; source not found
 - [ ] Accessibility check with a screen reader and large text
@@ -98,8 +100,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [ ] Official bank/UPI details and QR from the Treasurer; request is drafted but not sent
 - [ ] Opening balances and official contact details, checked by two people
 - [ ] Masjid coordinate
-- [ ] Decision on the dependency warnings in Expo tools (no compatible fix found on 30 October)
-- [ ] Review the audit findings new on 2 November (3 high, 12 moderate, 2 low, 0 critical; includes new glob, minimatch and node-forge advisories). The CI audit check will fail on the next push until they are fixed or reviewed
+- [ ] Release owner's sign-off on the 2 remaining moderate build-tool advisories (`glob`, `minimatch`), or a compatible fix
 
 ## Pending — hosted proof before launch
 

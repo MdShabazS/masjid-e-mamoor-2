@@ -3,80 +3,62 @@ import unittest
 
 from check_dependency_audit import check_audit
 
+GLOB = "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4"
+
 
 def sample():
     return {
-        "metadata": {"vulnerabilities": {"info": 0, "low": 0, "moderate": 0, "high": 2, "critical": 0, "total": 2}},
+        "metadata": {"vulnerabilities": {"info": 0, "low": 0, "moderate": 2, "high": 0, "critical": 0, "total": 2}},
         "vulnerabilities": {
-            "node-forge": {"severity": "high", "via": [{"url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv"}]},
-            "@expo/cli": {"severity": "high", "via": ["node-forge"]},
+            "glob": {"severity": "moderate", "via": [{"url": GLOB}]},
+            "@expo/config-plugins": {"severity": "moderate", "via": ["glob"]},
         },
     }
 
 
 class DependencyAuditTests(unittest.TestCase):
-    def test_known_highs_and_clean_audit_pass(self):
+    def test_reviewed_moderates_and_clean_audit_pass(self):
         self.assertEqual(check_audit(sample()), [])
         clean = sample()
-        clean["metadata"]["vulnerabilities"].update(high=0, total=0)
+        clean["metadata"]["vulnerabilities"].update(moderate=0, total=0)
         clean["vulnerabilities"] = {}
         self.assertEqual(check_audit(clean), [])
 
-    def test_current_expo_transitive_paths_pass(self):
-        audit = sample()
-        audit["vulnerabilities"]["@expo/cli"]["via"] = [
-            "@expo/config", "@expo/metro-config", "@expo/prebuild-config", "zod"
-        ]
-        audit["vulnerabilities"]["expo"] = {
-            "severity": "high",
-            "via": [
-                "@expo/cli",
-                "@expo/config",
-                "@expo/local-build-cache-provider",
-                "@expo/metro-config",
-            ],
-        }
-        audit["metadata"]["vulnerabilities"].update(high=3, total=3)
-        self.assertEqual(check_audit(audit), [])
-
     def test_new_advisory_or_package_fails(self):
         unknown = sample()
-        unknown["vulnerabilities"]["node-forge"]["via"][0]["url"] = "https://github.com/advisories/GHSA-new"
+        unknown["vulnerabilities"]["glob"]["via"][0]["url"] = "https://github.com/advisories/GHSA-new"
         self.assertTrue(check_audit(unknown))
         package = sample()
-        package["vulnerabilities"]["other"] = {"severity": "high", "via": []}
-        package["metadata"]["vulnerabilities"].update(high=3, total=3)
+        package["vulnerabilities"]["other"] = {"severity": "moderate", "via": ["glob"]}
+        package["metadata"]["vulnerabilities"].update(moderate=3, total=3)
         self.assertTrue(check_audit(package))
 
-    def test_current_low_paths_pass_and_new_low_or_moderate_fails(self):
-        audit = sample()
-        audit["vulnerabilities"].update({
-            "@expo/config": {"severity": "low", "via": ["deepmerge"]},
-            "@expo/local-build-cache-provider": {"severity": "low", "via": ["@expo/config"]},
-            "@expo/metro-config": {"severity": "low", "via": ["@expo/config"]},
-            "@expo/prebuild-config": {"severity": "low", "via": ["@expo/config"]},
-            "deepmerge": {"severity": "low", "via": [{"url": "https://github.com/advisories/GHSA-gcqx-w48m-w2h4"}]},
-        })
-        audit["metadata"]["vulnerabilities"].update(low=5, total=7)
-        self.assertEqual(check_audit(audit), [])
-        changed = copy.deepcopy(audit)
-        changed["vulnerabilities"]["deepmerge"]["via"][0]["url"] = "https://github.com/advisories/GHSA-new"
-        self.assertTrue(check_audit(changed))
-        moderate = copy.deepcopy(audit)
-        moderate["vulnerabilities"]["other"] = {"severity": "moderate", "via": ["deepmerge"]}
-        moderate["metadata"]["vulnerabilities"].update(moderate=1, total=8)
-        self.assertTrue(check_audit(moderate))
+    def test_any_high_or_low_fails_even_for_a_reviewed_package(self):
+        for level in ("high", "low"):
+            audit = sample()
+            audit["vulnerabilities"]["glob"]["severity"] = level
+            audit["metadata"]["vulnerabilities"].update({"moderate": 1, level: 1})
+            self.assertTrue(check_audit(audit))
+
+    def test_old_expo_57_findings_no_longer_pass(self):
+        audit = {
+            "metadata": {"vulnerabilities": {"info": 0, "low": 0, "moderate": 0, "high": 1, "critical": 0, "total": 1}},
+            "vulnerabilities": {
+                "node-forge": {"severity": "high", "via": [{"url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv"}]},
+            },
+        }
+        self.assertTrue(check_audit(audit))
 
     def test_critical_or_audit_error_fails(self):
         critical = copy.deepcopy(sample())
-        critical["vulnerabilities"]["node-forge"]["severity"] = "critical"
-        critical["metadata"]["vulnerabilities"].update(high=1, critical=1)
+        critical["vulnerabilities"]["glob"]["severity"] = "critical"
+        critical["metadata"]["vulnerabilities"].update(moderate=1, critical=1)
         self.assertTrue(check_audit(critical))
         self.assertTrue(check_audit({"error": {"code": "ENOTFOUND"}}))
 
     def test_inconsistent_counts_fail(self):
         audit = sample()
-        audit["metadata"]["vulnerabilities"]["high"] = 1
+        audit["metadata"]["vulnerabilities"]["moderate"] = 1
         self.assertTrue(check_audit(audit))
         low = sample()
         low["metadata"]["vulnerabilities"]["low"] = 1

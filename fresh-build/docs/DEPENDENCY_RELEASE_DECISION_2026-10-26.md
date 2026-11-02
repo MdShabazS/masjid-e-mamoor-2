@@ -32,3 +32,13 @@ The installed Expo 57 tree was inspected without changing the lockfile. Expo CLI
 The two direct `zod` imports found in the installed CLI build are `build/src/start/server/DevToolsPlugin.schema.js` and `build/src/start/server/createMCPDevToolsExtensionSchema.js`, both development-server plugin schemas. The installed `@expo/config/build/Config.js` calls `deepmerge` when applying configuration modifications or merging existing plugin options. The Android `app.json` lists only SecureStore and ImagePicker plugins, has no `updates` code-signing configuration, and `eas.json` defines internal APK builds. These findings help identify the likely inputs and operators to review; a source search cannot establish that every transitive call path is unreachable during a signed build.
 
 Before the release owner decides on any temporary exception, restrict build and signing access to named operators, keep untrusted Expo config/plugins and signing material out of that environment, record the exact locked versions and advisories, and repeat the audit and signed-device regression when a compatible fix appears. No exception or release approval is recorded here.
+
+## 2 November upgrade to Expo 58
+
+New advisories had appeared since 30 October. The same 17 findings (3 high, 12 moderate, 2 low, zero critical) appeared with the earlier committed lockfile, so they did not come from a dependency change. The project moved to `expo@58.0.22` and `react-native@0.88.1`, the versions Expo pairs. This cleared every high and low finding, including `node-forge` and `zod`.
+
+**Remaining:** 12 moderate entries from two advisories, `glob` (GHSA-3g3m-2fjr-6pw4) and `minimatch` (GHSA-g3hv-75wg-m249), through Expo's build tools. `npm audit --omit=dev` for the web workspace finds nothing. Fixed versions are a major version above the ranges Expo requires, and a trial override did not resolve cleanly, so no override is used. CI now allows only these exact paths and fails on anything else.
+
+**Evidence:** Expo doctor 20/20, clean debug native build under JDK 21, signed-in emulator journey (login, date and time pickers, meeting creation, invitation, session kept after restart).
+
+**Still open:** this is an engineering review, not a release owner's signed acceptance. Not yet repeated on Expo 58: signed release build, real device, payment QR upload through the file API, and hosted CI.
