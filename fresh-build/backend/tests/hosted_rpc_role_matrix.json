@@ -1,6 +1,6 @@
 {
   "project_id": "necattvpncnsrfcrwpjn",
-  "guarded_rpc_count": 65,
+  "guarded_rpc_count": 71,
   "cases": [
     {
       "rpc": "activate_payment_qr",
@@ -864,6 +864,78 @@
       ],
       "roles": [
         "treasurer"
+      ]
+    },
+    {
+      "rpc": "set_masjid_site",
+      "args": [
+        "p_latitude",
+        "p_longitude",
+        "p_evidence",
+        "p_operation_id"
+      ],
+      "roles": [
+        "system_admin"
+      ]
+    },
+    {
+      "rpc": "get_masjid_site",
+      "args": [],
+      "roles": [
+        "system_admin"
+      ]
+    },
+    {
+      "rpc": "mark_committee_attendance",
+      "args": [
+        "p_meeting_id",
+        "p_member_id",
+        "p_latitude",
+        "p_longitude",
+        "p_accuracy_m",
+        "p_captured_at",
+        "p_mocked",
+        "p_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "finalize_committee_meeting",
+      "args": [
+        "p_meeting_id",
+        "p_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "list_committee_meeting_roster",
+      "args": [
+        "p_meeting_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "list_meetings_pending_finalization",
+      "args": [],
+      "roles": [
+        "data_entry"
       ]
     }
   ]

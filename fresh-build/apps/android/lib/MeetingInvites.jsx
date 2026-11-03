@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 import * as Crypto from 'expo-crypto';
 import { userMessage } from '../../../packages/api-client/messages.js';
 import { DateField, MemberPicker, TimeField, indiaToday } from './Pickers';
+import MeetingAttendance, { FinalizationFallback } from './MeetingAttendance';
 import { buildMeetingArgs } from '../../../packages/api-client/meeting-input.js';
 
 const editors = new Set(['president', 'vice_president', 'secretary', 'data_entry']);
@@ -20,6 +21,45 @@ export default function MeetingInvites({ client, role }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const operations = useRef(new Map());
+  const [attendance, setAttendance] = useState({});
+  const [attendanceVersion, setAttendanceVersion] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    client.rpc('my_committee_attendance').then(({ data, error: rpcError }) => {
+      if (active && !rpcError)
+        setAttendance(Object.fromEntries((data ?? []).map((row) => [row.meeting_id, row])));
+    });
+    return () => {
+      active = false;
+    };
+  }, [client, meetings]);
+
+  /** Location is read inside the runner, so a failed fix never reaches the server. */
+  async function attendanceCommand(prepare, success) {
+    setBusy(true);
+    setError('');
+    setNotice('');
+    let saved = false;
+    try {
+      const { name, args, key } = await prepare();
+      const operationId = operations.current.get(key) ?? Crypto.randomUUID();
+      operations.current.set(key, operationId);
+      const { error: rpcError } = await client.rpc(name, { ...args, p_operation_id: operationId });
+      if (rpcError) throw rpcError;
+      operations.current.delete(key);
+      saved = true;
+      setNotice(success);
+      setAttendanceVersion((current) => current + 1);
+      await reload();
+    } catch (cause) {
+      if (saved) setError('Saved, but the meeting list could not refresh.');
+      else setError(userMessage(cause, 'Could not save attendance.'));
+    } finally {
+      setBusy(false);
+    }
+    return saved;
+  }
 
   async function reload() {
     const { data, error: rpcError } = await client.rpc('list_visible_committee_meetings');
@@ -143,6 +183,7 @@ export default function MeetingInvites({ client, role }) {
   return (
     <View style={styles.card}>
       <Text style={styles.heading}>Committee meetings</Text>
+      {role === 'data_entry' && <FinalizationFallback client={client} />}
       {editors.has(role) && (
         <View style={styles.group}>
           <Text style={styles.title}>Schedule a meeting</Text>
@@ -222,6 +263,14 @@ export default function MeetingInvites({ client, role }) {
               {meeting.location_label ? ` · ${meeting.location_label}` : ''}
             </Text>
             <Text style={styles.muted}>My response: {meeting.my_rsvp ?? 'Organizer'}</Text>
+            <MeetingAttendance
+              client={client}
+              meeting={meeting}
+              mine={attendance[meeting.meeting_id]}
+              busy={busy}
+              command={attendanceCommand}
+              refreshKey={attendanceVersion}
+            />
             {canRespond && (
               <View style={styles.group}>
                 <Pressable

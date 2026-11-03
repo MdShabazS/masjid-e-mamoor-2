@@ -29,6 +29,7 @@ import WorkTasks from './lib/WorkTasks';
 import MemberInbox from './lib/MemberInbox';
 import MeetingInvites from './lib/MeetingInvites';
 import HafizPrayer from './lib/HafizPrayer';
+import { MasjidSiteSetting } from './lib/MeetingAttendance';
 import { MemberPicker, MonthField } from './lib/Pickers';
 import FinanceReview from './lib/FinanceReview';
 import FinanceReports from './lib/FinanceReports';
@@ -1018,6 +1019,7 @@ export default function App() {
                       {role !== 'system_admin' && <WorkTasks client={client} role={role} />}
                       <MeetingInvites client={client} role={role} />
                       {prayerRoles.has(role) && <HafizPrayer client={client} />}
+                      {role === 'system_admin' && <MasjidSiteSetting client={client} />}
                     </ErrorBoundary>
                   </View>
                 )}

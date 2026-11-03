@@ -11,7 +11,7 @@
 ### Foundation
 
 - [x] Clean npm workspace, CI on GitHub, lint, formatting, typecheck, 178 automated tests
-- [x] 35 database migrations; staging and production Supabase projects hold the schema with no real data
+- [x] 36 database migrations; staging and production Supabase projects hold the schema with no real data
 - [x] Protected Vercel previews; nothing is live
 - [x] 8-role permission system, wrong-role denial matrix, username login, temporary password flow
 
@@ -57,6 +57,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] Android member picker replaces typed account IDs for referrer and invitations; date, time and month pickers replace typed dates
 - [x] Upgraded to Expo 58 and React Native 0.88: all high and low audit findings cleared, 12 moderate build-tool entries remain and are pinned in the CI check
 - [x] Android screens for expense approval and payment, one-time donation review, direct cash posting, and report request, view and share (emulator journey below)
+- [x] Meeting attendance: 100 m GPS check-in on the meeting day, organizer onsite marking with reason, post-day finalization, data entry fallback that cannot create presence, System Admin masjid point (database and Android)
 - [x] Web enrollment form now shows for Members too
 - [x] Web enrollment route returns an input error, not "service unavailable", for a bad amount
 
@@ -64,7 +65,9 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 
 | Item | Android | Web | Database | Blocked on |
 |---|---|---|---|---|
-| Meeting attendance / GPS check-in, finalization | No | No | No | Masjid coordinate for field test |
+| Meeting attendance on web (Android and database are built) | Yes | No | Yes | — |
+| Absence notice delivery (outbox row is written, no sender yet) | No | No | Outbox only | Scheduler |
+| Attendance field test at the real 100 m boundary | Not done | n/a | n/a | Masjid coordinate |
 | Salary records | No | No | No | Board visibility decision |
 | Advances and returns | No | No | No | — |
 | Member scores / performance | No | No | No | Board wording of metrics |
@@ -112,6 +115,15 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - President uploaded a QR image through the system picker, activated it and read it back
 - Not exercised on Android: rejecting a donation or expense, partial payment, year and date-range reports, opening a report by ID, the file's contents after sharing
 - The `Error: undefined` log line is the development server's reconnect notice, not an app error
+
+## Attendance emulator journey on 3 November (Expo 58, fake data, emulator GPS)
+
+- System Admin saved the masjid point; the app requests foreground location only
+- Member refused about 6.7 km away; checked in at 33 m. Only distance and accuracy were stored
+- Organizer saw the roster, marked a second member present from 11 m with a reason, and finalized yesterday's meeting: the invited member who never checked in became absent
+- Data entry finalized a meeting the organizer left open, with a recorded reason, and created no presence
+- Two absence notices were queued. Nothing sends them yet
+- Not exercised on the emulator: mock-location rejection (the database tests cover it), denied permission, location turned off, and a real field test at the 100 m boundary
 
 ## Audit coverage on 2 November
 
