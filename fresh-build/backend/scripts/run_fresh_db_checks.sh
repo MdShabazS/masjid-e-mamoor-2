@@ -21,7 +21,7 @@ for fixture in tests/identity_roles.sql tests/monthly_contributions.sql \
   tests/phase6_money.sql tests/phase6_cash_tasks.sql tests/phase7_report.sql tests/phase8_tasks.sql \
   tests/receipt_handoff_audit.sql \
   tests/phase9_meetings.sql tests/phase10_content.sql \
-  tests/security_catalog.sql tests/eight_role_reads.sql tests/member_directory.sql tests/meeting_attendance.sql; do
+  tests/security_catalog.sql tests/eight_role_reads.sql tests/member_directory.sql tests/meeting_attendance.sql tests/salary_advances.sql; do
   echo "Running $fixture"
   psql -X "$FRESH_BUILD_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f "$fixture"
 done

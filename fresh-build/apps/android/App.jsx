@@ -32,6 +32,7 @@ import HafizPrayer from './lib/HafizPrayer';
 import { MasjidSiteSetting } from './lib/MeetingAttendance';
 import { MemberPicker, MonthField } from './lib/Pickers';
 import FinanceReview from './lib/FinanceReview';
+import { Advances, SalaryRecords } from './lib/SalaryAdvances';
 import FinanceReports from './lib/FinanceReports';
 
 const colors = {
@@ -657,6 +658,10 @@ export default function App() {
                   <View style={tabStyle('home')}>
                     <ErrorBoundary>
                       <MemberInbox client={client} />
+                      {!financeRoles.has(role) && <SalaryRecords client={client} role={role} />}
+                      {['committee_member', 'member'].includes(role) && (
+                        <Advances client={client} role={role} />
+                      )}
                       <OfflineDrafts client={client} actorId={session.user.id} role={role} />
                       {(role === 'treasurer' || role === 'committee_member') && (
                         <ReceiptHandoff client={client} />
@@ -671,6 +676,8 @@ export default function App() {
                       <FinanceAccounts client={client} role={role} />
                       {donorStaffRoles.has(role) && <FinanceReview client={client} role={role} />}
                       <FinanceReports client={client} role={role} />
+                      <SalaryRecords client={client} role={role} />
+                      <Advances client={client} role={role} />
                     </ErrorBoundary>
                   </View>
                 )}

@@ -6,7 +6,15 @@ const KINDS = new Set([
   'expense_payment',
   'transfer',
   'correction',
+  'salary_payment',
+  'advance_disbursement',
+  'advance_return',
+  'advance_settlement',
 ]);
+// Salary and settled advance bills are spending; an advance paid or returned only moves money
+// between a real account and the reserved advance account, so it is reported like a transfer.
+const EXPENSE_KINDS = new Set(['expense_payment', 'salary_payment', 'advance_settlement']);
+const TRANSFER_KINDS = new Set(['transfer', 'advance_disbursement', 'advance_return']);
 const integer = (value) => {
   if (typeof value !== 'string' || !/^-?(0|[1-9]\d*)$/.test(value))
     throw new Error('invalid_amount_paise');
@@ -37,7 +45,7 @@ export function summarizeAccount(lines, accountId, openingPaise = '0') {
     ) {
       if (amount <= 0n) throw new Error('invalid_effect_sign');
       totals.incomePaise += amount;
-    } else if (line.sourceType === 'expense_payment') {
+    } else if (EXPENSE_KINDS.has(line.sourceType)) {
       if (amount >= 0n) throw new Error('invalid_effect_sign');
       totals.expensePaise -= amount;
     } else if (line.sourceType === 'correction') {
@@ -72,11 +80,12 @@ export function summarizeAccount(lines, accountId, openingPaise = '0') {
 export function verifyTransferPairs(lines) {
   const transfers = new Map();
   for (const line of lines) {
-    if (line.sourceType !== 'transfer') continue;
-    const transfer = transfers.get(line.sourceId) ?? new Map();
+    if (!TRANSFER_KINDS.has(line.sourceType)) continue;
+    const key = `${line.sourceType}:${line.sourceId}`;
+    const transfer = transfers.get(key) ?? new Map();
     if (!line.sourceId || transfer.has(line.leg)) throw new Error('invalid_transfer_pair');
     transfer.set(line.leg, integer(line.amountPaise));
-    transfers.set(line.sourceId, transfer);
+    transfers.set(key, transfer);
   }
   for (const transfer of transfers.values()) {
     if (

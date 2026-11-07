@@ -445,7 +445,7 @@ export default function FinanceAccountsPage() {
       setError(cause.message);
     }
   }
-  const active = accounts.filter((account) => account.active);
+  const active = accounts.filter((account) => account.active && account.account_kind !== 'advance');
   const selectedAccount = accounts.find((account) => account.account_id === selected);
   return (
     <main className="management">

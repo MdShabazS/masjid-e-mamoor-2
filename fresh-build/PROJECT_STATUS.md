@@ -11,7 +11,7 @@
 ### Foundation
 
 - [x] Clean npm workspace, CI on GitHub, lint, formatting, typecheck, 178 automated tests
-- [x] 36 database migrations; staging and production Supabase projects hold the schema with no real data
+- [x] 37 database migrations; staging and production Supabase projects hold the schema with no real data
 - [x] Protected Vercel previews; nothing is live
 - [x] 8-role permission system, wrong-role denial matrix, username login, temporary password flow
 
@@ -58,27 +58,29 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] Upgraded to Expo 58 and React Native 0.88: all high and low audit findings cleared, 12 moderate build-tool entries remain and are pinned in the CI check
 - [x] Android screens for expense approval and payment, one-time donation review, direct cash posting, and report request, view and share (emulator journey below)
 - [x] Meeting attendance: 100 m GPS check-in on the meeting day, organizer onsite marking with reason, post-day finalization, data entry fallback that cannot create presence, System Admin masjid point (database and Android)
+- [x] Salary and advances: staff list, monthly payments, advance request, approval, payment, bills and returns, with reports reconciling through an "Advances outstanding" account (database and Android). Members see salaries only after the Board flag is set
 - [x] Web enrollment form now shows for Members too
 - [x] Web enrollment route returns an input error, not "service unavailable", for a bad amount
 
 ## Pending — features not built
 
-| Item | Android | Web | Database | Blocked on |
-|---|---|---|---|---|
-| Meeting attendance on web (Android and database are built) | Yes | No | Yes | — |
-| Absence notice delivery (outbox row is written, no sender yet) | No | No | Outbox only | Scheduler |
-| Attendance field test at the real 100 m boundary | Not done | n/a | n/a | Masjid coordinate |
-| Salary records | No | No | No | Board visibility decision |
-| Advances and returns | No | No | No | — |
-| Member scores / performance | No | No | No | Board wording of metrics |
-| Member directory screen, and member picker on web (Android has the picker) | Picker only | No | List function | Real names are not stored, only usernames |
-| Own contact edit | No | No | Check | — |
-| Force-update for old app versions | No | No | No | — |
-| Receipt PDF and send action | No | No | Partial | Masjid receipt layout |
-| Meeting memo and private media | No | No | No | — |
-| Push notifications | No | n/a | No | — |
-| Scheduler for reminders and report worker | n/a | Route only | Yes | Hosting decision |
-| Hafiz prayer register on web | Yes | No | Yes | — |
+| Item                                                                       | Android     | Web        | Database      | Blocked on                                |
+| -------------------------------------------------------------------------- | ----------- | ---------- | ------------- | ----------------------------------------- |
+| Meeting attendance on web (Android and database are built)                 | Yes         | No         | Yes           | —                                         |
+| Absence notice delivery (outbox row is written, no sender yet)             | No          | No         | Outbox only   | Scheduler                                 |
+| Attendance field test at the real 100 m boundary                           | Not done    | n/a        | n/a           | Masjid coordinate                         |
+| Salary on web (Android and database are built)                             | Yes         | No         | Yes           | Board approval to show amounts to members |
+| Advances on web (Android and database are built)                           | Yes         | No         | Yes           | —                                         |
+| Correcting a posted salary or advance entry                                | No          | No         | No            | —                                         |
+| Member scores / performance                                                | No          | No         | No            | Board wording of metrics                  |
+| Member directory screen, and member picker on web (Android has the picker) | Picker only | No         | List function | Real names are not stored, only usernames |
+| Own contact edit                                                           | No          | No         | Check         | —                                         |
+| Force-update for old app versions                                          | No          | No         | No            | —                                         |
+| Receipt PDF and send action                                                | No          | No         | Partial       | Masjid receipt layout                     |
+| Meeting memo and private media                                             | No          | No         | No            | —                                         |
+| Push notifications                                                         | No          | n/a        | No            | —                                         |
+| Scheduler for reminders and report worker                                  | n/a         | Route only | Yes           | Hosting decision                          |
+| Hafiz prayer register on web                                               | Yes         | No         | Yes           | —                                         |
 
 ## Pending — Android screens that exist on web only
 
@@ -124,6 +126,14 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - Data entry finalized a meeting the organizer left open, with a recorded reason, and created no presence
 - Two absence notices were queued. Nothing sends them yet
 - Not exercised on the emulator: mock-location rejection (the database tests cover it), denied permission, location turned off, and a real field test at the 100 m boundary
+
+## Salary and advances emulator journey on 3 November (fake data)
+
+- Member requested a ₹500 advance; Vice President approved it
+- Treasurer added a Hafiz at ₹300 a month and paid the month once
+- Treasurer paid the advance, recorded ₹300 of bills and ₹200 returned: the advance shows settled, "Advances outstanding" is back to ₹0 and cash is ₹10,000 − ₹300 − ₹500 + ₹200 = ₹9,400
+- Found and fixed: the settlement form kept its old values after saving, so the next entry was appended to them
+- Not exercised on the emulator: rejecting an advance, editing or stopping a salary, a member viewing salaries after the Board flag (database tests cover it), and a report containing these lines
 
 ## Audit coverage on 2 November
 

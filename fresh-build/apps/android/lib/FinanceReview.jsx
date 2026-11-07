@@ -82,7 +82,11 @@ export default function FinanceReview({ client, role }) {
     const failure = nextExpenses.error || nextAccounts.error || nextDonations.error;
     if (failure) throw failure;
     setExpenses(nextExpenses.data ?? []);
-    setAccounts((nextAccounts.data ?? []).filter((account) => account.active));
+    setAccounts(
+      (nextAccounts.data ?? []).filter(
+        (account) => account.active && account.account_kind !== 'advance',
+      ),
+    );
     setDonations(nextDonations.data ?? []);
   }, [client, isTreasurer]);
 

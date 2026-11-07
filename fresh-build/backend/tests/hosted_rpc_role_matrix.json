@@ -1,6 +1,6 @@
 {
   "project_id": "necattvpncnsrfcrwpjn",
-  "guarded_rpc_count": 71,
+  "guarded_rpc_count": 79,
   "cases": [
     {
       "rpc": "activate_payment_qr",
@@ -936,6 +936,118 @@
       "args": [],
       "roles": [
         "data_entry"
+      ]
+    },
+    {
+      "rpc": "add_salary_staff",
+      "args": [
+        "p_name",
+        "p_role",
+        "p_monthly_amount_paise",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "update_salary_staff",
+      "args": [
+        "p_staff_id",
+        "p_monthly_amount_paise",
+        "p_active",
+        "p_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "record_salary_payment",
+      "args": [
+        "p_staff_id",
+        "p_month",
+        "p_account_id",
+        "p_amount_paise",
+        "p_date",
+        "p_proof",
+        "p_operation_id"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "submit_advance_request",
+      "args": [
+        "p_recipient",
+        "p_purpose",
+        "p_amount_paise",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member"
+      ]
+    },
+    {
+      "rpc": "decide_advance_request",
+      "args": [
+        "p_id",
+        "p_decision",
+        "p_reason",
+        "p_operation_id"
+      ],
+      "roles": [
+        "president",
+        "vice_president"
+      ]
+    },
+    {
+      "rpc": "pay_advance",
+      "args": [
+        "p_id",
+        "p_account_id",
+        "p_date",
+        "p_proof",
+        "p_operation_id"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "settle_advance",
+      "args": [
+        "p_id",
+        "p_kind",
+        "p_amount_paise",
+        "p_account_id",
+        "p_reference",
+        "p_operation_id"
+      ],
+      "roles": [
+        "treasurer"
+      ]
+    },
+    {
+      "rpc": "list_advances",
+      "args": [],
+      "roles": [
+        "system_admin",
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member"
       ]
     }
   ]

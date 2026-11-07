@@ -227,7 +227,9 @@ export default function FinanceAccounts({ client, role }) {
   }
 
   if (!readers.has(role)) return null;
-  const activeAccounts = accounts.filter((account) => account.active);
+  const activeAccounts = accounts.filter(
+    (account) => account.active && account.account_kind !== 'advance',
+  );
   const selectedAccount = accounts.find((account) => account.account_id === selected);
 
   return (
@@ -419,47 +421,49 @@ export default function FinanceAccounts({ client, role }) {
         </View>
       )}
 
-      {role === 'treasurer' && selectedAccount?.active && (
-        <View style={styles.section}>
-          <Text style={styles.subheading}>Submit opening</Text>
-          <Field
-            label="Counted amount (₹)"
-            value={openingAmount}
-            onChangeText={setOpeningAmount}
-            keyboardType="decimal-pad"
-          />
-          <Field
-            label="Evidence reference"
-            value={openingProof}
-            onChangeText={setOpeningProof}
-            maxLength={240}
-          />
-          <Button
-            label="Submit for President verification"
-            disabled={busy || !openingAmount || !openingProof.trim()}
-            onPress={async () => {
-              try {
-                if (
-                  await execute(
-                    'submit_account_opening',
-                    {
-                      p_account_id: selected,
-                      p_amount_paise: openingPaise(openingAmount),
-                      p_evidence_reference: openingProof.trim(),
-                    },
-                    'Opening submitted. Balance is unchanged until verification.',
-                  )
-                ) {
-                  setOpeningAmount('');
-                  setOpeningProof('');
+      {role === 'treasurer' &&
+        selectedAccount?.active &&
+        selectedAccount.account_kind !== 'advance' && (
+          <View style={styles.section}>
+            <Text style={styles.subheading}>Submit opening</Text>
+            <Field
+              label="Counted amount (₹)"
+              value={openingAmount}
+              onChangeText={setOpeningAmount}
+              keyboardType="decimal-pad"
+            />
+            <Field
+              label="Evidence reference"
+              value={openingProof}
+              onChangeText={setOpeningProof}
+              maxLength={240}
+            />
+            <Button
+              label="Submit for President verification"
+              disabled={busy || !openingAmount || !openingProof.trim()}
+              onPress={async () => {
+                try {
+                  if (
+                    await execute(
+                      'submit_account_opening',
+                      {
+                        p_account_id: selected,
+                        p_amount_paise: openingPaise(openingAmount),
+                        p_evidence_reference: openingProof.trim(),
+                      },
+                      'Opening submitted. Balance is unchanged until verification.',
+                    )
+                  ) {
+                    setOpeningAmount('');
+                    setOpeningProof('');
+                  }
+                } catch (cause) {
+                  setError(userMessage(cause));
                 }
-              } catch (cause) {
-                setError(userMessage(cause));
-              }
-            }}
-          />
-        </View>
-      )}
+              }}
+            />
+          </View>
+        )}
 
       {role === 'treasurer' && (
         <View style={styles.section}>

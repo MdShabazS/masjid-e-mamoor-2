@@ -88,3 +88,52 @@ test('correction reversal and replacement reconcile by source category', () => {
     /invalid_correction_line/,
   );
 });
+
+test('salary and advance effects reconcile like spending and transfers', () => {
+  const effects = [
+    { effectId: 'o', accountId: 'cash', sourceType: 'account_opening', amountPaise: '10000' },
+    { effectId: 's', accountId: 'cash', sourceType: 'salary_payment', amountPaise: '-3500' },
+    {
+      effectId: 'p1',
+      accountId: 'cash',
+      sourceType: 'advance_disbursement',
+      sourceId: 'a',
+      leg: 1,
+      amountPaise: '-5000',
+    },
+    {
+      effectId: 'p2',
+      accountId: 'adv',
+      sourceType: 'advance_disbursement',
+      sourceId: 'a',
+      leg: 2,
+      amountPaise: '5000',
+    },
+    { effectId: 'b', accountId: 'adv', sourceType: 'advance_settlement', amountPaise: '-3000' },
+    {
+      effectId: 'r1',
+      accountId: 'adv',
+      sourceType: 'advance_return',
+      sourceId: 'a',
+      leg: 1,
+      amountPaise: '-2000',
+    },
+    {
+      effectId: 'r2',
+      accountId: 'cash',
+      sourceType: 'advance_return',
+      sourceId: 'a',
+      leg: 2,
+      amountPaise: '2000',
+    },
+  ];
+  // The same source ID under two types must stay two separate pairs.
+  assert.equal(verifyTransferPairs(effects), true);
+  assert.equal(summarizeAccount(effects, 'cash').closingPaise, '3500');
+  assert.equal(summarizeAccount(effects, 'cash').expensePaise, '3500');
+  assert.deepEqual(
+    [summarizeAccount(effects, 'adv').expensePaise, summarizeAccount(effects, 'adv').closingPaise],
+    ['3000', '0'],
+  );
+  assert.throws(() => verifyTransferPairs(effects.slice(0, 3)), /invalid_transfer_pair/);
+});

@@ -40,7 +40,9 @@ export default function FinanceReviewPage() {
       currentRole === 'treasurer' ? rpc('list_pending_one_time_donations') : Promise.resolve([]),
     ]);
     setExpenses(nextExpenses ?? []);
-    setAccounts((nextAccounts ?? []).filter((item) => item.active));
+    setAccounts(
+      (nextAccounts ?? []).filter((item) => item.active && item.account_kind !== 'advance'),
+    );
     setDonations(nextDonations ?? []);
   }
   useEffect(() => {
