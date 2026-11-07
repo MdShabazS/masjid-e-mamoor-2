@@ -60,6 +60,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] Meeting attendance: 100 m GPS check-in on the meeting day, organizer onsite marking with reason, post-day finalization, data entry fallback that cannot create presence, System Admin masjid point (database and Android)
 - [x] Salary and advances: staff list, monthly payments, advance request, approval, payment, bills and returns, with reports reconciling through an "Advances outstanding" account (database and Android). Members see salaries only after the Board flag is set
 - [x] Activity points: verified tasks + attended finalized meetings + one referral point per donor per month, each with its count out of the total, no ranking (database and Android)
+- [x] 8 November: the five new migrations are applied to staging (history repaired first); all 18 database test files pass there. Production is paused and untouched
 - [x] Web enrollment form now shows for Members too
 - [x] Web enrollment route returns an input error, not "service unavailable", for a bad amount
 

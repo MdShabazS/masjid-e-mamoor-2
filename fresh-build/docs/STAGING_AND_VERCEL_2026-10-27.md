@@ -51,3 +51,15 @@ The Vercel connector identified READY Preview `dpl_7xx5krkfNjfioetpJpXEJjpZwVFS`
 The owner approved deletion of the three stale **Production-only** Vercel variables after the configured Production URL was found to point to none of the approved development, staging or production Supabase projects. The dashboard deleted `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from the Production scope. Connector readback lists exactly five remaining variables, all Preview-scoped: the branch-scoped sensitive service key plus `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. No variable values were copied into this record.
 
 Vercel project readback still reports `live: false` and zero project domains. The latest branch Preview `dpl_E3HRgh7QgkwLN5ASAcwXjw9PQfAZ` at `669329e` is READY; the earlier nine retained Preview deployments also report READY. Deleting environment variables affects new deployments, so this inventory alone does not retest the deployed application. Before any Production deployment, provision verified values from the approved production project, run the release preflight and hosted acceptance, and meet the Board, finance and recovery gates. Deleting Vercel's copy of the old service key does not revoke it at its unknown source project; do not assume source-side revocation. No Production deployment was triggered.
+
+## 8 November 2026: five new migrations applied to staging
+
+The free plan had paused staging; the owner restored it and linked the CLI from their own terminal. Staging recorded the original 33 migrations under their 27 October apply times, not the file versions, because the connector assigned new versions. All 33 recorded names matched the 33 files in order, and none of those files had changed since. With the owner's approval, the history was rewritten to the file versions (only the history table; schema and data untouched). A dry run then listed exactly the five new files, which were applied with `supabase db push`:
+
+`20261102120000_member_donation_submissions`, `20261102130000_active_member_picker`, `20261102140000_meeting_attendance`, `20261103120000_salary_and_advances`, `20261107120000_member_activity_points`.
+
+Readback: 38 recorded migrations, none pending; public tables 48 → 61; one account, the reserved "Advances outstanding"; zero Auth users, app users, finance effects, meetings, salary staff and Storage objects. All 18 rollback-only fixtures passed against staging through the CLI's linked query path, and a deliberate failing probe confirmed failures are detected. Counts were unchanged afterwards.
+
+Security advisor: the only anonymous security-definer function is still `list_published_community_posts`. Signed-in security-definer notices rose from 80 to 100; the 20 new ones are the new role-guarded RPCs.
+
+Production (`ifyluztozjetusholoaw`) is paused and was not touched. It has the same connector-style history and will need the same history repair before any push.
