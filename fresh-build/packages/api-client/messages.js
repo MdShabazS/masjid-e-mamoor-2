@@ -42,6 +42,8 @@ const MESSAGES = {
   advance_not_outstanding: 'This advance has nothing left to settle.',
   advance_oversettled: 'That is more than the amount still outstanding.',
   advance_account_reserved: 'The advances account cannot be used for this.',
+  member_not_found: 'That member is not active.',
+  invalid_activity_period: 'Choose a month or a year.',
   unchanged_prayer_mark: 'This prayer already has that mark.',
   operation_id_conflict: 'This request changed while retrying. Check the list and try again.',
   AUTH_REQUIRED: 'Your sign-in has expired. Sign in again.',

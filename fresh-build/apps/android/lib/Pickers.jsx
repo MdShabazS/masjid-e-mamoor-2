@@ -150,7 +150,14 @@ export function MonthField({ label, value, onChange }) {
 }
 
 /** Loads the directory only when opened. Value is the chosen member's account ID. */
-export function MemberPicker({ client, label, value, onChange, excludeSelf = false }) {
+export function MemberPicker({
+  client,
+  label,
+  value,
+  onChange,
+  excludeSelf = false,
+  placeholder = 'Choose member',
+}) {
   const [open, setOpen] = useState(false);
   const [members, setMembers] = useState(null);
   const [query, setQuery] = useState('');
@@ -176,7 +183,7 @@ export function MemberPicker({ client, label, value, onChange, excludeSelf = fal
       <Control
         label={label}
         text={chosen ? `${chosen.username} · ${chosen.role.replaceAll('_', ' ')}` : ''}
-        placeholder="Choose member"
+        placeholder={placeholder}
         onPress={toggle}
         onClear={value ? () => onChange('') : undefined}
       />

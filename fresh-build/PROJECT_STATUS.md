@@ -11,7 +11,7 @@
 ### Foundation
 
 - [x] Clean npm workspace, CI on GitHub, lint, formatting, typecheck, 178 automated tests
-- [x] 37 database migrations; staging and production Supabase projects hold the schema with no real data
+- [x] 38 database migrations; staging and production Supabase projects hold the schema with no real data
 - [x] Protected Vercel previews; nothing is live
 - [x] 8-role permission system, wrong-role denial matrix, username login, temporary password flow
 
@@ -59,6 +59,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] Android screens for expense approval and payment, one-time donation review, direct cash posting, and report request, view and share (emulator journey below)
 - [x] Meeting attendance: 100 m GPS check-in on the meeting day, organizer onsite marking with reason, post-day finalization, data entry fallback that cannot create presence, System Admin masjid point (database and Android)
 - [x] Salary and advances: staff list, monthly payments, advance request, approval, payment, bills and returns, with reports reconciling through an "Advances outstanding" account (database and Android). Members see salaries only after the Board flag is set
+- [x] Activity points: verified tasks + attended finalized meetings + one referral point per donor per month, each with its count out of the total, no ranking (database and Android)
 - [x] Web enrollment form now shows for Members too
 - [x] Web enrollment route returns an input error, not "service unavailable", for a bad amount
 
@@ -72,7 +73,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 | Salary on web (Android and database are built)                             | Yes         | No         | Yes           | Board approval to show amounts to members |
 | Advances on web (Android and database are built)                           | Yes         | No         | Yes           | —                                         |
 | Correcting a posted salary or advance entry                                | No          | No         | No            | —                                         |
-| Member scores / performance                                                | No          | No         | No            | Board wording of metrics                  |
+| Activity points on web (Android and database are built)                    | Yes         | No         | Yes           | —                                         |
 | Member directory screen, and member picker on web (Android has the picker) | Picker only | No         | List function | Real names are not stored, only usernames |
 | Own contact edit                                                           | No          | No         | Check         | —                                         |
 | Force-update for old app versions                                          | No          | No         | No            | —                                         |
@@ -134,6 +135,11 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - Treasurer paid the advance, recorded ₹300 of bills and ₹200 returned: the advance shows settled, "Advances outstanding" is back to ₹0 and cash is ₹10,000 − ₹300 − ₹500 + ₹200 = ₹9,400
 - Found and fixed: the settlement form kept its old values after saving, so the next entry was appended to them
 - Not exercised on the emulator: rejecting an advance, editing or stopping a salary, a member viewing salaries after the Board flag (database tests cover it), and a report containing these lines
+
+## Activity points on the emulator, 8 November (fake data)
+
+- A member's October card showed 1 task, 1 of 2 finalized meetings (1 absent) and 2 of 3 referral months: 4 points, matching the database test. November showed the opted-out donor's later point
+- Found and fixed: the Member box said "Choose member" while showing your own points
 
 ## Audit coverage on 2 November
 

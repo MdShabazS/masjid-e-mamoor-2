@@ -22,7 +22,7 @@ begin
   from pg_proc p join pg_namespace n on n.oid=p.pronamespace
   where n.nspname='public' and p.prosecdef;
 
-  if v_total<>126 or v_anon<>1 or v_auth<>99 or v_unpinned<>0 then
+  if v_total<>127 or v_anon<>1 or v_auth<>100 or v_unpinned<>0 then
     raise exception 'public definer grant/search_path inventory drift: %, %, %, %',
       v_total,v_anon,v_auth,v_unpinned;
   end if;

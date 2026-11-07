@@ -33,6 +33,7 @@ import { MasjidSiteSetting } from './lib/MeetingAttendance';
 import { MemberPicker, MonthField } from './lib/Pickers';
 import FinanceReview from './lib/FinanceReview';
 import { Advances, SalaryRecords } from './lib/SalaryAdvances';
+import ActivityPoints from './lib/ActivityPoints';
 import FinanceReports from './lib/FinanceReports';
 
 const colors = {
@@ -658,6 +659,7 @@ export default function App() {
                   <View style={tabStyle('home')}>
                     <ErrorBoundary>
                       <MemberInbox client={client} />
+                      <ActivityPoints client={client} actorId={session.user.id} role={role} />
                       {!financeRoles.has(role) && <SalaryRecords client={client} role={role} />}
                       {['committee_member', 'member'].includes(role) && (
                         <Advances client={client} role={role} />
