@@ -408,9 +408,16 @@ export default function FinancePage() {
             </p>
           )}
           {financeReaders.has(role) && (
-            <p>
-              <Link href="/finance/reports">Private finance reports →</Link>
-            </p>
+            <>
+              <p>
+                <Link href="/finance/reports">Private finance reports →</Link>
+              </p>
+              <p>
+                <Link href="/salary">Staff salaries →</Link>
+                {' · '}
+                <Link href="/advances">Advances →</Link>
+              </p>
+            </>
           )}
           {['treasurer', 'committee_member'].includes(role) && (
             <p>

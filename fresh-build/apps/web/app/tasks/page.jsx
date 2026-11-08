@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { parseINRToPaise } from '../../../../packages/api-client/index.js';
 import { runTaskCommand } from '../../../../packages/api-client/task-command.js';
 import { getBrowserClient } from '../../lib/supabase.js';
+import { MemberSelect } from '../../lib/management.js';
 
 const creators = new Set(['president', 'vice_president', 'secretary']);
 const taskReaders = new Set([
@@ -541,10 +542,12 @@ export default function TasksPage() {
                       )}
                       {task.status === 'active' && (
                         <>
-                          <label className="field">
-                            Invite member account ID
-                            <input value={invitee} onChange={(e) => setInvitee(e.target.value)} />
-                          </label>
+                          <MemberSelect
+                            label="Member to invite"
+                            excludeSelf
+                            value={invitee}
+                            onChange={setInvitee}
+                          />
                           <button
                             disabled={busy || stale || !invitee}
                             onClick={async () => {

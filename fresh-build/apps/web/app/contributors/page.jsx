@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { createManagementApi, formatPaiseINR } from '../../../../packages/api-client/index.js';
 import { getBrowserClient } from '../../lib/supabase.js';
+import { MemberSelect } from '../../lib/management.js';
 import { enrollConsentedDonor } from '../../../../packages/api-client/donor-enrollment.js';
 
 const allowedToEnroll = new Set([
@@ -248,6 +249,10 @@ export default function ContributorsPage() {
         <Link href="/meetings">Meetings</Link> · <Link href="/inbox">Notifications</Link>
         {' · '}
         <Link href="/profile">My profile</Link>
+        {' · '}
+        <Link href="/activity">Activity points</Link> · <Link href="/salary">Salaries</Link>
+        {' · '}
+        <Link href="/advances">Advances</Link> · <Link href="/prayers">Prayer register</Link>
       </p>
       <p className="muted">
         Suggested amounts are voluntary. A verified contribution records the amount received; no
@@ -312,10 +317,11 @@ export default function ContributorsPage() {
                     required
                   />
                 </label>
-                <label className="field">
-                  Referrer account ID (if referred)
-                  <input name="referrer" />
-                </label>
+                <MemberSelect
+                  label="Referrer (if referred)"
+                  name="referrer"
+                  emptyLabel="No referrer"
+                />
                 <label className="field">
                   How the contributor agreed
                   <select name="consentMethod" required defaultValue="">

@@ -61,28 +61,24 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] Salary and advances: staff list, monthly payments, advance request, approval, payment, bills and returns, with reports reconciling through an "Advances outstanding" account (database and Android). Members see salaries only after the Board flag is set
 - [x] Activity points: verified tasks + attended finalized meetings + one referral point per donor per month, each with its count out of the total, no ranking (database and Android)
 - [x] 8 November: the five new migrations are applied to staging (history repaired first); all 18 database test files pass there. Production is paused and untouched
+- [x] Web pages for attendance (check-in, roster, finalize, fallback, masjid point), salary, advances, Activity points and the prayer register; member pickers replace typed account IDs on web meetings, tasks and contributors
 - [x] Web enrollment form now shows for Members too
 - [x] Web enrollment route returns an input error, not "service unavailable", for a bad amount
 
 ## Pending — features not built
 
-| Item                                                                       | Android     | Web        | Database      | Blocked on                                |
-| -------------------------------------------------------------------------- | ----------- | ---------- | ------------- | ----------------------------------------- |
-| Meeting attendance on web (Android and database are built)                 | Yes         | No         | Yes           | —                                         |
-| Absence notice delivery (outbox row is written, no sender yet)             | No          | No         | Outbox only   | Scheduler                                 |
-| Attendance field test at the real 100 m boundary                           | Not done    | n/a        | n/a           | Masjid coordinate                         |
-| Salary on web (Android and database are built)                             | Yes         | No         | Yes           | Board approval to show amounts to members |
-| Advances on web (Android and database are built)                           | Yes         | No         | Yes           | —                                         |
-| Correcting a posted salary or advance entry                                | No          | No         | No            | —                                         |
-| Activity points on web (Android and database are built)                    | Yes         | No         | Yes           | —                                         |
-| Member directory screen, and member picker on web (Android has the picker) | Picker only | No         | List function | Real names are not stored, only usernames |
-| Own contact edit                                                           | No          | No         | Check         | —                                         |
-| Force-update for old app versions                                          | No          | No         | No            | —                                         |
-| Receipt PDF and send action                                                | No          | No         | Partial       | Masjid receipt layout                     |
-| Meeting memo and private media                                             | No          | No         | No            | —                                         |
-| Push notifications                                                         | No          | n/a        | No            | —                                         |
-| Scheduler for reminders and report worker                                  | n/a         | Route only | Yes           | Hosting decision                          |
-| Hafiz prayer register on web                                               | Yes         | No         | Yes           | —                                         |
+| Item                                                           | Android  | Web        | Database      | Blocked on                                |
+| -------------------------------------------------------------- | -------- | ---------- | ------------- | ----------------------------------------- |
+| Absence notice delivery (outbox row is written, no sender yet) | No       | No         | Outbox only   | Scheduler                                 |
+| Attendance field test at the real 100 m boundary               | Not done | n/a        | n/a           | Masjid coordinate                         |
+| Correcting a posted salary or advance entry                    | No       | No         | No            | —                                         |
+| Member directory screen (pickers exist on web and Android)     | No       | No         | List function | Real names are not stored, only usernames |
+| Own contact edit                                               | No       | No         | Check         | —                                         |
+| Force-update for old app versions                              | No       | No         | No            | —                                         |
+| Receipt PDF and send action                                    | No       | No         | Partial       | Masjid receipt layout                     |
+| Meeting memo and private media                                 | No       | No         | No            | —                                         |
+| Push notifications                                             | No       | n/a        | No            | —                                         |
+| Scheduler for reminders and report worker                      | n/a      | Route only | Yes           | Hosting decision                          |
 
 ## Pending — Android screens that exist on web only
 
@@ -141,6 +137,14 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 
 - A member's October card showed 1 task, 1 of 2 finalized meetings (1 absent) and 2 of 3 referral months: 4 points, matching the database test. November showed the opted-out donor's later point
 - Found and fixed: the Member box said "Choose member" while showing your own points
+
+## Web pages in the browser, 8 November (fake data, local database)
+
+- Member: requested a ₹400 advance; Activity points page and member list loaded; prayer register refused; salaries hidden until the Board flag; check-in showed the browser location prompt message (the test browser blocks location)
+- Vice President: approved the advance and marked Fajr present
+- Treasurer: added a ₹250 Hafiz and paid the month, paid the advance and settled it with bills. Cash ₹10,000 − ₹250 − ₹400 = ₹9,350 and "Advances outstanding" ₹0 in the database
+- Fixed: double data load when salary and prayer pages open; prayer buttons ran together and had no prayer name for screen readers
+- Not exercised in a browser: GPS check-in with real location, organizer roster and finalize, data entry fallback, System Admin masjid point, the payment confirmation dialogs (accepted automatically in the test)
 
 ## Audit coverage on 2 November
 

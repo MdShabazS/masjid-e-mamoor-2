@@ -3,6 +3,16 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { buildMeetingArgs } from '../../../../packages/api-client/meeting-input.js';
 import { getBrowserClient } from '../../lib/supabase.js';
+import { MemberSelect } from '../../lib/management.js';
+import { FinalizationFallback, MasjidSiteSetting, MeetingAttendance } from './attendance.jsx';
+
+const LOCATION_FIELDS = new Set([
+  'p_latitude',
+  'p_longitude',
+  'p_accuracy_m',
+  'p_captured_at',
+  'p_mocked',
+]);
 
 const editors = new Set(['president', 'vice_president', 'secretary', 'data_entry']);
 export default function MeetingsPage() {
@@ -19,6 +29,9 @@ export default function MeetingsPage() {
   const [invitees, setInvitees] = useState({});
   const [declineReasons, setDeclineReasons] = useState({});
   const [cancelReasons, setCancelReasons] = useState({});
+  const [attendance, setAttendance] = useState({});
+  const [notice, setNotice] = useState('');
+  const [version, setVersion] = useState(0);
   const operations = useRef(new Map());
   async function rpc(name, args) {
     const { data, error } = await getBrowserClient().rpc(name, args);
@@ -26,12 +39,15 @@ export default function MeetingsPage() {
     return data;
   }
   async function load() {
-    const [currentRole, list] = await Promise.all([
+    const [currentRole, list, mine] = await Promise.all([
       rpc('current_app_role', {}),
       rpc('list_visible_committee_meetings', {}),
+      rpc('my_committee_attendance', {}),
     ]);
     setRole(currentRole);
     setMeetings(list ?? []);
+    setAttendance(Object.fromEntries((mine ?? []).map((row) => [row.meeting_id, row])));
+    setVersion((current) => current + 1);
   }
   useEffect(() => {
     let active = true;
@@ -80,6 +96,16 @@ export default function MeetingsPage() {
     setBusy(false);
     return true;
   }
+  /** Attendance commands keep one retry ID per action; a fresh location reading does not change it. */
+  async function runAttendance(name, args, success) {
+    setNotice('');
+    const stable = Object.fromEntries(
+      Object.entries(args).filter(([field]) => !LOCATION_FIELDS.has(field)),
+    );
+    const saved = await command(name, args, `${name}:${JSON.stringify(stable)}`);
+    if (saved) setNotice(success);
+    return saved;
+  }
   async function create(event) {
     event.preventDefault();
     setError('');
@@ -111,8 +137,24 @@ export default function MeetingsPage() {
           {error}
         </p>
       )}
+      {notice && (
+        <p role="status" className="notice">
+          {notice}
+        </p>
+      )}
       {session === 'ready' && (
         <>
+          {role === 'system_admin' && (
+            <MasjidSiteSetting
+              busy={busy}
+              run={runAttendance}
+              setError={setError}
+              version={version}
+            />
+          )}
+          {role === 'data_entry' && (
+            <FinalizationFallback busy={busy} run={runAttendance} version={version} />
+          )}
           {editors.has(role) && (
             <form className="panel" onSubmit={create}>
               <h2>Schedule a meeting</h2>
@@ -177,6 +219,14 @@ export default function MeetingsPage() {
                   <p className="muted">
                     {meeting.meeting_date} · {meeting.status}
                   </p>
+                  <MeetingAttendance
+                    meeting={meeting}
+                    mine={attendance[meeting.meeting_id]}
+                    busy={busy}
+                    run={runAttendance}
+                    setError={setError}
+                    version={version}
+                  />
                   {meeting.my_rsvp === 'invited' &&
                     meeting.status === 'active' &&
                     new Date(meeting.starts_at).getTime() > Date.now() && (
@@ -230,18 +280,14 @@ export default function MeetingsPage() {
                     )}
                   {editors.has(role) && meeting.my_rsvp === null && meeting.status === 'active' && (
                     <>
-                      <label className="field">
-                        Invitee account ID
-                        <input
-                          value={invitees[meeting.meeting_id] ?? ''}
-                          onChange={(e) =>
-                            setInvitees((current) => ({
-                              ...current,
-                              [meeting.meeting_id]: e.target.value,
-                            }))
-                          }
-                        />
-                      </label>
+                      <MemberSelect
+                        label="Member to invite"
+                        excludeSelf
+                        value={invitees[meeting.meeting_id] ?? ''}
+                        onChange={(value) =>
+                          setInvitees((current) => ({ ...current, [meeting.meeting_id]: value }))
+                        }
+                      />
                       <button
                         disabled={
                           busy ||

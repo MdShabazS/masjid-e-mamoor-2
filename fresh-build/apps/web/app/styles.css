@@ -9,3 +9,4 @@
 a:focus-visible,button:focus-visible{outline:3px solid #a2712f;outline-offset:3px}
 @media(max-width:720px){.site-header{flex-wrap:wrap}.site-header nav{width:100%;justify-content:space-between;gap:12px}.public-section{padding:20px 0 60px}.section-heading h2{font-size:29px}}
 .report-scroll{overflow-x:auto;margin:18px 0}.report-scroll table{border-collapse:collapse;width:100%;min-width:700px;text-align:left}.report-scroll th,.report-scroll td{padding:10px;border-bottom:1px solid #d8ded5;white-space:nowrap}.report-scroll td:last-child{text-align:right}.report-scroll th{font-weight:700}.management>.panel{margin:20px 0}
+.button-row{display:flex;gap:8px;flex-wrap:wrap}
