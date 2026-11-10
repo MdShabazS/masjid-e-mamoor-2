@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createIdentityService, IdentityError } from './service.js';
+import { createIdentityService, IdentityError, readableTemporaryPassword } from './service.js';
 
 function fixture({
   role = 'system_admin',
@@ -176,7 +176,7 @@ test('password gate clears only after Auth success; failed Auth reset leaves gat
   );
 });
 
-test('role and active state changes are SA-only commands', async () => {
+test('role and active state changes go through the database command', async () => {
   const { service, calls } = fixture();
   await service.setAccountState({
     actorToken: 't',
@@ -192,4 +192,32 @@ test('role and active state changes are SA-only commands', async () => {
       p_active: false,
     },
   ]);
+});
+
+test('a President may create managed roles but not a President, before any account is made', async () => {
+  const allowed = fixture({ role: 'president' });
+  await allowed.service.provision({ actorToken: 't', username: 'newtreasurer', role: 'treasurer' });
+  assert.ok(allowed.calls.some((x) => x[0] === 'admin_register_identity'));
+  const denied = fixture({ role: 'president' });
+  await assert.rejects(
+    denied.service.provision({ actorToken: 't', username: 'otherpres', role: 'president' }),
+    (e) => e.code === 'FORBIDDEN',
+  );
+  assert.equal(
+    denied.calls.some((x) => x[0] === 'create'),
+    false,
+  );
+  const member = fixture({ role: 'member' });
+  await assert.rejects(
+    member.service.resetPassword({ actorToken: 't', targetId: 'new-1' }),
+    (e) => e.code === 'FORBIDDEN',
+  );
+});
+
+test('temporary passwords are grouped and avoid look-alike characters', () => {
+  for (let i = 0; i < 200; i++) {
+    const password = readableTemporaryPassword();
+    assert.match(password, /^[A-HJKMNP-Z2-9]{4}(-[A-HJKMNP-Z2-9]{4}){3}$/);
+  }
+  assert.notEqual(readableTemporaryPassword(), readableTemporaryPassword());
 });

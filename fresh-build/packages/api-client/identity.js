@@ -79,3 +79,55 @@ export async function changeInitialPassword({
   const signedOut = await client.auth.signOut();
   if (signedOut?.error) await client.auth.signOut({ scope: 'local' });
 }
+
+async function accountCommand({ client, baseUrl = '', path, body, fetchImpl = fetch }) {
+  const { data, error } = await client.auth.getSession();
+  if (error || !data?.session?.access_token) throw identityError('AUTH_REQUIRED');
+  return post(`${baseUrl}/api/v1/users${path}`, body, fetchImpl, data.session.access_token);
+}
+
+/** Returns the one-time temporary password the new person must change at first sign-in. */
+export function createAccount({ client, baseUrl = '', username, role, fetchImpl = fetch }) {
+  return accountCommand({ client, baseUrl, fetchImpl, path: '', body: { username, role } });
+}
+
+export function resetAccountPassword({ client, baseUrl = '', targetId, fetchImpl = fetch }) {
+  return accountCommand({ client, baseUrl, fetchImpl, path: `/${targetId}/reset`, body: {} });
+}
+
+export function setAccountStatus({
+  client,
+  baseUrl = '',
+  targetId,
+  role,
+  active,
+  fetchImpl = fetch,
+}) {
+  return accountCommand({
+    client,
+    baseUrl,
+    fetchImpl,
+    path: `/${targetId}/state`,
+    body: { role, active },
+  });
+}
+
+export const ROLE_LABELS = {
+  system_admin: 'System Admin',
+  president: 'President',
+  vice_president: 'Vice President',
+  secretary: 'Secretary',
+  treasurer: 'Treasurer',
+  committee_member: 'Committee Member',
+  member: 'Member',
+  data_entry: 'Data Entry (masjid laptop)',
+};
+
+/** Roles a manager may assign: a System Admin any, a President only the roles they manage. */
+export function assignableRoles(managerRole) {
+  const all = Object.keys(ROLE_LABELS);
+  if (managerRole === 'system_admin') return all;
+  if (managerRole === 'president')
+    return all.filter((role) => !['system_admin', 'president'].includes(role));
+  return [];
+}

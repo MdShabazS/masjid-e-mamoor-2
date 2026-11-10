@@ -34,6 +34,7 @@ import { MemberPicker, MonthField } from './lib/Pickers';
 import FinanceReview from './lib/FinanceReview';
 import { Advances, SalaryRecords } from './lib/SalaryAdvances';
 import ActivityPoints from './lib/ActivityPoints';
+import AccountManagement from './lib/AccountManagement';
 import FinanceReports from './lib/FinanceReports';
 
 const colors = {
@@ -658,6 +659,9 @@ export default function App() {
                 {openedTabs.includes('home') && (
                   <View style={tabStyle('home')}>
                     <ErrorBoundary>
+                      {['system_admin', 'president'].includes(role) && (
+                        <AccountManagement client={client} role={role} actorId={session.user.id} />
+                      )}
                       <MemberInbox client={client} />
                       <ActivityPoints client={client} actorId={session.user.id} role={role} />
                       {!financeRoles.has(role) && <SalaryRecords client={client} role={role} />}

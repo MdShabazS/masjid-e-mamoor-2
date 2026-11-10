@@ -1,6 +1,6 @@
 {
   "project_id": "necattvpncnsrfcrwpjn",
-  "guarded_rpc_count": 79,
+  "guarded_rpc_count": 80,
   "cases": [
     {
       "rpc": "activate_payment_qr",
@@ -32,7 +32,8 @@
         "p_role"
       ],
       "roles": [
-        "system_admin"
+        "system_admin",
+        "president"
       ]
     },
     {
@@ -41,7 +42,8 @@
         "p_target_id"
       ],
       "roles": [
-        "system_admin"
+        "system_admin",
+        "president"
       ]
     },
     {
@@ -52,7 +54,8 @@
         "p_active"
       ],
       "roles": [
-        "system_admin"
+        "system_admin",
+        "president"
       ]
     },
     {
@@ -1048,6 +1051,14 @@
         "treasurer",
         "committee_member",
         "member"
+      ]
+    },
+    {
+      "rpc": "list_managed_accounts",
+      "args": [],
+      "roles": [
+        "system_admin",
+        "president"
       ]
     }
   ]

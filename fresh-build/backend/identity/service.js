@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomInt } from 'node:crypto';
 
 const ROLES = new Set([
   'system_admin',
@@ -11,6 +11,25 @@ const ROLES = new Set([
   'data_entry',
 ]);
 const USERNAME = /^[a-z][a-z0-9._-]{2,31}$/;
+// No 0/O, 1/I/L or similar pairs, so it can be read aloud or over the phone without mistakes.
+const READABLE = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+/** Four groups of four from 31 symbols: about 79 bits, single use, changed at first sign-in. */
+export function readableTemporaryPassword(pick = randomInt) {
+  return Array.from({ length: 4 }, () =>
+    Array.from({ length: 4 }, () => READABLE[pick(READABLE.length)]).join(''),
+  ).join('-');
+}
+
+// Owner decision 10 Nov 2026: a President manages these roles; a System Admin manages all.
+const PRESIDENT_MANAGED = new Set([
+  'vice_president',
+  'secretary',
+  'treasurer',
+  'committee_member',
+  'member',
+  'data_entry',
+]);
 
 export function normalizeUsername(input) {
   const value = typeof input === 'string' ? input.trim().toLowerCase() : '';
@@ -45,14 +64,17 @@ export function createIdentityService({
   publicAuth,
   clientForToken,
   internalDomain = 'accounts.masjid.invalid',
-  generatePassword = () => randomBytes(24).toString('base64url'),
+  generatePassword = readableTemporaryPassword,
 }) {
-  async function requireAdmin(token) {
+  // The database repeats every target-role rule; this check only fails fast.
+  async function requireManager(token, targetRole = null) {
     const client = clientForToken(token);
     const actor = data(await client.auth.getUser(token), 'AUTH_REQUIRED')?.user;
     if (!actor?.id) throw new IdentityError('AUTH_REQUIRED');
     const role = data(await client.rpc('current_app_role'), 'FORBIDDEN');
-    if (role !== 'system_admin') throw new IdentityError('FORBIDDEN');
+    if (role !== 'system_admin' && role !== 'president') throw new IdentityError('FORBIDDEN');
+    if (role === 'president' && targetRole && !PRESIDENT_MANAGED.has(targetRole))
+      throw new IdentityError('FORBIDDEN');
     return client;
   }
 
@@ -71,7 +93,7 @@ export function createIdentityService({
     async provision({ actorToken, username, role }) {
       const normalized = normalizeUsername(username);
       if (!ROLES.has(role)) throw new IdentityError('VALIDATION_FAILED');
-      const actor = await requireAdmin(actorToken);
+      const actor = await requireManager(actorToken, role);
       const temporaryPassword = generatePassword();
       const created = data(
         await authAdmin.createUser({
@@ -154,7 +176,7 @@ export function createIdentityService({
     },
 
     async resetPassword({ actorToken, targetId }) {
-      const actor = await requireAdmin(actorToken);
+      const actor = await requireManager(actorToken);
       data(await actor.rpc('admin_require_password_reset', { p_target_id: targetId }), 'FORBIDDEN');
       const temporaryPassword = generatePassword();
       data(await authAdmin.updateUserById(targetId, { password: temporaryPassword }));
@@ -164,7 +186,7 @@ export function createIdentityService({
     async setAccountState({ actorToken, targetId, role, active }) {
       if (!ROLES.has(role) || typeof active !== 'boolean')
         throw new IdentityError('VALIDATION_FAILED');
-      const actor = await requireAdmin(actorToken);
+      const actor = await requireManager(actorToken);
       data(
         await actor.rpc('admin_set_account_state', {
           p_target_id: targetId,

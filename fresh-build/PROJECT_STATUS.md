@@ -11,7 +11,7 @@
 ### Foundation
 
 - [x] Clean npm workspace, CI on GitHub, lint, formatting, typecheck, 178 automated tests
-- [x] 38 database migrations; staging and production Supabase projects hold the schema with no real data
+- [x] 39 database migrations; staging and production Supabase projects hold the schema with no real data
 - [x] Protected Vercel previews; nothing is live
 - [x] 8-role permission system, wrong-role denial matrix, username login, temporary password flow
 
@@ -62,6 +62,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] Activity points: verified tasks + attended finalized meetings + one referral point per donor per month, each with its count out of the total, no ranking (database and Android)
 - [x] 8 November: the five new migrations are applied to staging (history repaired first); all 18 database test files pass there. Production is paused and untouched
 - [x] Web pages for attendance (check-in, roster, finalize, fallback, masjid point), salary, advances, Activity points and the prayer register; member pickers replace typed account IDs on web meetings, tasks and contributors
+- [x] People and roles screen (web and Android): System Admin creates Presidents and backs up every role; President adds, resets, changes and deactivates the other roles. Temporary passwords are readable groups (e.g. KKNN-P9HW-ZE8H-WREZ), shown once and changed at first sign-in
 - [x] Web enrollment form now shows for Members too
 - [x] Web enrollment route returns an input error, not "service unavailable", for a bad amount
 
@@ -145,6 +146,13 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - Treasurer: added a ₹250 Hafiz and paid the month, paid the advance and settled it with bills. Cash ₹10,000 − ₹250 − ₹400 = ₹9,350 and "Advances outstanding" ₹0 in the database
 - Fixed: double data load when salary and prayer pages open; prayer buttons ran together and had no prayer name for screen readers
 - Not exercised in a browser: GPS check-in with real location, organizer roster and finalize, data entry fallback, System Admin masjid point, the payment confirmation dialogs (accepted automatically in the test)
+
+## People and roles in the browser, 10 November (local database)
+
+- System Admin created a President; the President was forced to set a new password, then saw only the six roles they manage and the System Admin as read-only
+- President created a Treasurer, reset the password and deactivated and reactivated the account. Every step is in the audit trail under the right person
+- Fixed: a shown temporary password stayed on screen after a later action; temporary passwords were 32 random characters and hard to read aloud
+- Not tested on the Android emulator yet; the phone test will cover it
 
 ## Audit coverage on 2 November
 

@@ -44,6 +44,11 @@ const MESSAGES = {
   advance_account_reserved: 'The advances account cannot be used for this.',
   member_not_found: 'That member is not active.',
   invalid_activity_period: 'Choose a month or a year.',
+  role_not_manageable: 'You cannot manage that role.',
+  OPERATION_CONFLICT:
+    'That username is taken or this request is out of date. Try another username.',
+  VALIDATION_FAILED:
+    'Check the username: 3–32 letters, numbers, dot, dash or underscore, starting with a letter.',
   unchanged_prayer_mark: 'This prayer already has that mark.',
   operation_id_conflict: 'This request changed while retrying. Check the list and try again.',
   AUTH_REQUIRED: 'Your sign-in has expired. Sign in again.',

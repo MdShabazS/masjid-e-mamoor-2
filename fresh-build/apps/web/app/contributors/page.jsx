@@ -253,6 +253,8 @@ export default function ContributorsPage() {
         <Link href="/activity">Activity points</Link> · <Link href="/salary">Salaries</Link>
         {' · '}
         <Link href="/advances">Advances</Link> · <Link href="/prayers">Prayer register</Link>
+        {' · '}
+        <Link href="/accounts">People and roles</Link>
       </p>
       <p className="muted">
         Suggested amounts are voluntary. A verified contribution records the amount received; no
