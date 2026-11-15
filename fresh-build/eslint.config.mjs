@@ -21,6 +21,10 @@ export default [
     },
   },
   {
+    files: ['apps/web/public/sw.js'],
+    languageOptions: { globals: { ...globals.serviceworker } },
+  },
+  {
     files: ['apps/**/*.jsx'],
     rules: {
       'no-unused-vars': ['error', { args: 'none', varsIgnorePattern: '^(React|_)' }],
