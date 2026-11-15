@@ -50,7 +50,11 @@ npm audit --json > /tmp/audit.json; python3 scripts/check_dependency_audit.py /t
 python3 backend/scripts/db_fixture_preflight.py
 ```
 
-`npm run export:android` checks the JavaScript bundle, not an installable APK.
+`npm run check:bundle` scans the built web and Android files for server secrets.
+Build and scan with the fake `BUNDLE_SECRET_CANARIES`, `SUPABASE_SERVICE_ROLE_KEY`,
+`META_APP_SECRET` and `QUEUE_CRON_SECRET` values from the workflow file, or it
+stops and asks for them. `npm run export:android` checks the JavaScript bundle,
+not an installable APK.
 The APK profiles are in `apps/android/eas.json`.
 
 Database tests run against a disposable database only. Set
