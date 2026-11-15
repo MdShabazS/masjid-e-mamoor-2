@@ -1,0 +1,7 @@
+# Configuration and public-bundle preflight — 25 October 2026
+
+The environment-template check covers statically referenced web and Android variables and rejects secret-looking public names. A new CI canary check builds the web and Android clients with three synthetic server-only values in `SUPABASE_SERVICE_ROLE_KEY`, `META_APP_SECRET` and `QUEUE_CRON_SECRET`. `scripts/check_public_bundle.py` scans the exported web static files and Android bundle for those values; its regression test proves a planted leak fails without echoing the value. Missing or empty exports fail the check.
+
+The unconfigured production-web HTTP smoke now checks identity, both queue jobs, donor enrollment, payment QR upload/read, private PDF/CSV reports, public receipt lookup and WhatsApp POST. It also checks report capabilities remain disabled, webhook verification is denied, and public HTML does not contain the canaries. The smoke process clears all backend credentials before starting the web server.
+
+**Result:** the production web build, Android bundle export, 48-file public asset scan and expanded HTTP smoke passed. Six Python environment/bundle regression tests, 142 Node tests, lint, typecheck and formatting passed. The canaries are synthetic. This proves only the tested build artifacts and unconfigured local HTTP paths; it does not validate actual development/staging/production secret values, HTTPS, hosted runtime settings or signing key custody. Those remain release gates.

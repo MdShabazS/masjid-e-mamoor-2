@@ -1,0 +1,7 @@
+# Phase 8 Android task participation — 26 October 2026
+
+The Android signed-in screen now loads the role-scoped work-task list. A participant can accept an invitation or join an open task, leave an active task, and submit a completion note. The task creator can create a regular task, invite a member by account ID, view participants, accept or return a submitted completion with a reason, and cancel a task after a confirmation prompt. The component uses the existing guarded RPCs and preserves an operation ID across a failed same-input retry. A failed refresh after a successful mutation is reported as a refresh problem, without encouraging a second mutation.
+
+This is client coverage, not a signed-in device acceptance result. Cash collection task creation and count handling remain in the web client. The Android task screen does not display the proposed score until the Board approves an explanation and policy. A future signed-in Android test must check create, invite, join, waitlist, promotion, completion, review, returned completion and cancellation against the database, including weak-network retries and screen-reader labels.
+
+Verification: 160 Node tests passed, including three new task-input checks for exact RPC argument names and invalid date/capacity combinations. ESLint, TypeScript and Prettier checks passed, and the Android bundle exported. The existing local and hosted database task capacity and review races were proved separately in the earlier Phase 8 records. No Android device or staging journey was run for this change.

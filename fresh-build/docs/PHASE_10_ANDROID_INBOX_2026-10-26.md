@@ -1,0 +1,5 @@
+# Android member inbox — 26 October 2026
+
+The signed-in Android screen now lists up to 25 recent member-inbox notices, allows a manual refresh, and marks a notice read through the existing `list_my_member_inbox` and `mark_my_member_notification_read` functions. The database scopes both functions to the current active actor; anonymous callers lack `EXECUTE`. The UI never calls the service-only enqueue function and does not send a device push notification. A successful mark remains visible even if the follow-up list refresh fails.
+
+Verification: the existing Phase 10 rollback-only SQL fixture covers owner-scoped inbox creation/read and the protected RPCs were included in the earlier issued-session role matrix. For this client change, 160 Node tests, lint, typecheck, format and Android bundle export passed. A signed-in phone journey, reconnect/refetch behavior, accessibility check, push permission/delivery and staging acceptance remain open. Public content must stay behind the Board's publication approval.

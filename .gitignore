@@ -23,3 +23,16 @@ web-build/
 # Local database backups
 .local-backups/
 .vercel/
+backups/
+
+# Device, service and signing credentials
+google-services.json
+GoogleService-Info.plist
+credentials.json
+service-account.json
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key

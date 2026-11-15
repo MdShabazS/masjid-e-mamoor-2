@@ -1,0 +1,15 @@
+# Hosted rate-limit isolation — 29 October 2026
+
+The previous Next.js identity route assigned every caller the literal `shared` IP. An anonymous caller who knew a username could consume its five-attempt, five-minute sign-in bucket and temporarily block that person's normal web login. The prepared public receipt route similarly used a single 60-request/minute bucket for every visitor, so one caller could exhaust it before another person checked a receipt. Public receipt lookup remains disabled pending Board approval.
+
+On Vercel, the routes now use the platform's overwritten `x-forwarded-for` client IP when it is one valid IPv4 or IPv6 address. Vercel's [request-header documentation](https://vercel.com/docs/headers/request-headers#x-forwarded-for) says it overwrites the inbound header to prevent spoofing. A missing or malformed header on a Vercel invocation fails closed. Outside Vercel, the original shared fallback remains; other hosts must establish their own trusted ingress before using a forwarded address. The receipt route also keeps its separate per-code limiter.
+
+The regression test sends five failed logins from one client IP, proves its next login is limited, and proves another client IP can sign in. Another test exhausts 60 invalid receipt lookups from one IP while a second IP can still query. It also checks that a caller-supplied forwarding header is ignored outside Vercel and that malformed Vercel headers fail closed. The complete 176-test Node suite, backup test, lint, typecheck, formatting and web build passed locally.
+
+Hosted verification still needs two independently observed client IPs exercising the protected Preview's sign-in limiter and a denied malformed-header request where the platform permits safe testing. This fix reduces shared-bucket denial; it does not eliminate distributed abuse, people behind one public NAT sharing a bucket, or the optional per-code limit. Keep receipt publication disabled until Board fields and enumeration testing pass.
+
+## Hosted delivery check
+
+Owner-approved commit `ef74308` was pushed to `feat/fresh-build-readiness`. [Hosted source CI run 40879811530](https://github.com/MdShabazS/masjid-e-mamoor-2/actions/runs/40879811530) completed successfully for that exact SHA. Vercel Preview deployment `dpl_FVZo13vuJ1Nm8MHM3rUpAbHfYAac` reached READY from the same SHA. A protected browser request to its `/api/v1/me` returned the app's expected `AUTH_REQUIRED` JSON, showing the route remains reachable and rejects an anonymous identity read. The Vercel project's Environment Variables page showed **Enable access to System Environment Variables** checked, the setting that supplies the `VERCEL` runtime marker; no secret values were revealed.
+
+The connector could inspect the deployment but could not create its temporary protected share link (403), so the browser was used for the app response. This check did not issue sign-in attempts from two real client IPs or prove a per-IP bucket split on the hosted database. The automated two-IP regression test remains local evidence; live isolation and broader abuse/load testing stay open.

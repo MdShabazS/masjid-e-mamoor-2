@@ -1,0 +1,15 @@
+# Dependency release recheck — 25 October 2026
+
+The locked fresh-build workspace was audited against the live npm registry on 25 October 2026. `npm audit --json` returned **five high, zero critical** entries: `@expo/cli`, `@expo/code-signing-certificates`, `expo`, `node-forge` and `zod`. Those entries trace to the same two underlying advisories documented in `DEPENDENCY_ADVISORY_TRIAGE_2026-10-24.md`. `npm audit --omit=dev --workspace=@masjid/fresh-web --json` returned zero findings for the web production dependency set.
+
+The published npm `node-forge` version is still 1.4.0. [GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv) lists no patched version. [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) lists patched Zod 4.6.6, while published `@expo/cli@58.1.15` still declares `zod: ^3.25.76` and `node-forge: ^1.4.0`. No compatible dependency change was available from these published package contracts. The `npm audit` suggestion of Expo 44 is a major downgrade and was not applied.
+
+CI now runs `scripts/check_dependency_audit.py` against fresh npm audit JSON. It fails on a new high package/advisory path, any critical finding, malformed audit output, or a registry/audit error. It permits only the five currently known high entry paths, so a CI pass does **not** accept their release risk. Four focused tests and the live audit baseline check passed. The web production audit separately passed with zero findings.
+
+**Release status:** the dependency release gate remains open. A named release/security owner must either take a compatible upstream fix through clean install, native signed build, device regression and hosted CI, or sign a dated residual-risk decision covering the exact build-process exposure and controls. That decision is not present. This evidence does not authorize the public real-money launch.
+
+## 26 October upstream check
+
+The GitHub advisory still lists [no patched `node-forge` version](https://github.com/advisories/GHSA-86w9-cpqp-85rv). The npm package page lists [`@expo/cli` 57.0.32](https://www.npmjs.com/package/%40expo/cli?activeTab=versions) for SDK 57, matching the locked version, and the [Expo remediation request](https://github.com/expo/expo/issues/51773) remains open. The [Zod advisory](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) lists 4.6.6 as patched, but the locked SDK 57 CLI requires Zod 3. These published sources do not provide a compatible upstream remediation for this workspace. The release gate remains open; this check is not a fresh live `npm audit` result.
+
+Later on 26 October, a fresh live `npm audit --json` of the locked workspace returned the same five high and zero critical package entries: `@expo/cli`, `@expo/code-signing-certificates`, `expo`, `node-forge` and `zod`. A separate `npm audit --omit=dev --workspace=@masjid/fresh-web --json` returned zero findings. The live result confirms that the Android build dependency gate remains open; the web-only result does not clear that gate. No forced override or incompatible SDK change was made.

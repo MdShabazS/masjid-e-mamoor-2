@@ -1,0 +1,1437 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Masjid E Mamoor 2 management API — first vertical slice",
+    "version": "0.1.0-draft",
+    "description": "Target versioned contract with identity and finance drafts. The donor POST uses server-approved consent wording and is not the current /api/management/enroll-donor adapter. No deployed server; owner-gated donor actions stay disabled."
+  },
+  "servers": [
+    {
+      "url": "https://example.invalid/v1",
+      "description": "Placeholder; configure verified environment URL"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "summary": "Current active actor and password-change state",
+        "responses": {
+          "200": {
+            "description": "Current actor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    },
+    "/donors": {
+      "get": {
+        "operationId": "listDonors",
+        "summary": "Scoped roster without WhatsApp or consent evidence",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contributor roster",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DonorListResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "enrollDonor",
+        "summary": "Record consent and enroll a contributor; owner-gated role grant",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollDonorInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Enrolled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DonorCreatedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    },
+    "/monthly-claims": {
+      "post": {
+        "operationId": "submitMonthlyClaim",
+        "summary": "Submit a reference as pending evidence, never a ledger posting",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitClaimInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pending claim",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimCreatedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    },
+    "/monthly-claims/pending": {
+      "get": {
+        "operationId": "listPendingMonthlyClaims",
+        "summary": "Treasurer-only review projection",
+        "responses": {
+          "200": {
+            "description": "Pending claims",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingClaimsResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    },
+    "/monthly-claims/{claimId}/verify": {
+      "post": {
+        "operationId": "verifyMonthlyClaim",
+        "summary": "Treasurer confirms actual funds and posts once",
+        "parameters": [
+          {
+            "name": "claimId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyClaimInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Posted result, including identical retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifiedClaimResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "422": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    },
+    "/session": {
+      "post": {
+        "operationId": "createSession",
+        "summary": "Username/password sign-in",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Typed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        },
+        "security": []
+      }
+    },
+    "/session/change-password": {
+      "post": {
+        "operationId": "changePassword",
+        "summary": "Change temporary password with current session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Typed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    },
+    "/users": {
+      "post": {
+        "operationId": "provisionUser",
+        "summary": "SA creates a named account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Typed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserCreatedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    },
+    "/users/{userId}/reset": {
+      "post": {
+        "operationId": "resetUserPassword",
+        "summary": "SA issues new temporary credential",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Typed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    },
+    "/users/{userId}/state": {
+      "post": {
+        "operationId": "setUserState",
+        "summary": "SA changes role or activation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Typed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    },
+    "/accounts": {
+      "get": {
+        "operationId": "listAccounts",
+        "summary": "Leadership account balances, no private beneficiary identifiers",
+        "responses": {
+          "200": {
+            "description": "Balances",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountListResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAccount",
+        "summary": "President creates account with private beneficiary validation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountCreateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Typed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentifierResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    },
+    "/accounts/openings": {
+      "post": {
+        "operationId": "submitOpening",
+        "summary": "Treasurer submits pending opening",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpeningInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Typed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentifierResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    },
+    "/transfers": {
+      "post": {
+        "operationId": "postTransfer",
+        "summary": "Treasurer posts paired transfer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Typed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentifierResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    },
+    "/reconciliations": {
+      "post": {
+        "operationId": "recordReconciliation",
+        "summary": "Treasurer records balance observation and variance explanation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconciliationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Typed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentifierResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "401": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ApiError"
+          },
+          "429": {
+            "$ref": "#/components/responses/ApiError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Current active actor is rechecked server-side. Browser may use equivalent secure session cookie."
+      }
+    },
+    "responses": {
+      "ApiError": {
+        "description": "Safe error; no SQL or private data",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "OperationId": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "PositivePaise": {
+        "type": "string",
+        "pattern": "^[1-9][0-9]*$",
+        "description": "Positive integer paise as decimal text; server checks signed bigint bound."
+      },
+      "MonthDate": {
+        "type": "string",
+        "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-01$"
+      },
+      "MeResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "actorId",
+              "role",
+              "mustChangePassword"
+            ],
+            "properties": {
+              "actorId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "role": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Null until temporary password gate is cleared"
+              },
+              "mustChangePassword": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "DonorRosterItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "donorId",
+          "name",
+          "suggestedAmountPaise",
+          "active"
+        ],
+        "properties": {
+          "donorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "suggestedAmountPaise": {
+            "$ref": "#/components/schemas/PositivePaise"
+          },
+          "referrerId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DonorListResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DonorRosterItem"
+            }
+          }
+        }
+      },
+      "EnrollDonorInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operationId",
+          "name",
+          "whatsapp",
+          "suggestedAmountPaise",
+          "consentMethod",
+          "consentRecordedAt",
+          "evidenceReference"
+        ],
+        "properties": {
+          "operationId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "whatsapp": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{7,14}$"
+          },
+          "suggestedAmountPaise": {
+            "$ref": "#/components/schemas/PositivePaise"
+          },
+          "referrerId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "consentMethod": {
+            "type": "string",
+            "enum": ["in-person", "phone-call", "message"]
+          },
+          "consentRecordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "evidenceReference": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 240
+          }
+        }
+      },
+      "DonorCreatedResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "donorId"
+            ],
+            "properties": {
+              "donorId": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        }
+      },
+      "SubmitClaimInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operationId",
+          "donorId",
+          "periodDate",
+          "transactionReference"
+        ],
+        "properties": {
+          "operationId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "donorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "periodDate": {
+            "$ref": "#/components/schemas/MonthDate"
+          },
+          "transactionReference": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200
+          }
+        }
+      },
+      "ClaimCreatedResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "claimId",
+              "status"
+            ],
+            "properties": {
+              "claimId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "status": {
+                "const": "pending"
+              }
+            }
+          }
+        }
+      },
+      "PendingClaimsResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "claimId",
+                "donorName",
+                "periodDate",
+                "transactionReference",
+                "submittedAt",
+                "revision"
+              ],
+              "properties": {
+                "claimId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "donorName": {
+                  "type": "string"
+                },
+                "periodDate": {
+                  "$ref": "#/components/schemas/MonthDate"
+                },
+                "transactionReference": {
+                  "type": "string"
+                },
+                "submittedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "revision": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "VerifyClaimInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operationId",
+          "expectedRevision",
+          "accountId",
+          "actualAmountPaise",
+          "evidenceReference"
+        ],
+        "properties": {
+          "operationId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actualAmountPaise": {
+            "$ref": "#/components/schemas/PositivePaise"
+          },
+          "evidenceReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      },
+      "VerifiedClaimResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "receiptCode",
+              "postedAmountPaise",
+              "periodDate"
+            ],
+            "properties": {
+              "receiptCode": {
+                "type": "string",
+                "pattern": "^MEM2-R-[0-9A-F]{32}$"
+              },
+              "postedAmountPaise": {
+                "$ref": "#/components/schemas/PositivePaise"
+              },
+              "periodDate": {
+                "$ref": "#/components/schemas/MonthDate"
+              }
+            }
+          }
+        }
+      },
+      "ErrorResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "retryable"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "requestId": {
+                "type": "string"
+              },
+              "retryable": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "NonNegativePaise": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]*)$",
+        "description": "Signed bigint bounded at server"
+      },
+      "OpeningInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "accountId",
+          "amountPaise",
+          "evidenceReference",
+          "operationId"
+        ],
+        "properties": {
+          "accountId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "amountPaise": {
+            "$ref": "#/components/schemas/NonNegativePaise"
+          },
+          "evidenceReference": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 240
+          },
+          "operationId": {
+            "$ref": "#/components/schemas/OperationId"
+          }
+        }
+      },
+      "TransferInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fromAccountId",
+          "toAccountId",
+          "amountPaise",
+          "evidenceReference",
+          "operationId"
+        ],
+        "properties": {
+          "fromAccountId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "toAccountId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "amountPaise": {
+            "$ref": "#/components/schemas/PositivePaise"
+          },
+          "evidenceReference": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 240
+          },
+          "operationId": {
+            "$ref": "#/components/schemas/OperationId"
+          }
+        }
+      },
+      "AccountCreateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "kind",
+          "operationId"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "upi",
+              "bank"
+            ]
+          },
+          "upiId": {
+            "type": "string"
+          },
+          "bankAccountNumber": {
+            "type": "string"
+          },
+          "ifsc": {
+            "type": "string"
+          },
+          "operationId": {
+            "$ref": "#/components/schemas/OperationId"
+          }
+        }
+      },
+      "ReconciliationInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "accountId",
+          "observedBalancePaise",
+          "evidenceReference",
+          "operationId"
+        ],
+        "properties": {
+          "accountId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "observedBalancePaise": {
+            "$ref": "#/components/schemas/NonNegativePaise"
+          },
+          "evidenceReference": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 240
+          },
+          "explanation": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "operationId": {
+            "$ref": "#/components/schemas/OperationId"
+          }
+        }
+      },
+      "IdentifierResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/OperationId"
+              }
+            }
+          }
+        }
+      },
+      "AccountProjection": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "accountId",
+          "accountName",
+          "accountKind",
+          "active",
+          "balancePaise"
+        ],
+        "properties": {
+          "accountId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "accountKind": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "upi",
+              "bank"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "balancePaise": {
+            "type": "string",
+            "pattern": "^-?(0|[1-9][0-9]*)$"
+          }
+        }
+      },
+      "AccountListResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccountProjection"
+            }
+          }
+        }
+      },
+      "SessionInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 32
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      },
+      "SessionResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "session",
+              "mustChangePassword",
+              "credentialVersion"
+            ],
+            "properties": {
+              "session": {
+                "type": "object",
+                "description": "Sensitive token envelope; native client secure store; browser server cookie",
+                "additionalProperties": true
+              },
+              "mustChangePassword": {
+                "type": "boolean"
+              },
+              "credentialVersion": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      },
+      "ChangePasswordInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "refreshToken",
+          "newPassword"
+        ],
+        "properties": {
+          "refreshToken": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128
+          }
+        }
+      },
+      "UserCreateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "username",
+          "role"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9._-]{2,31}$"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "system_admin",
+              "president",
+              "vice_president",
+              "secretary",
+              "treasurer",
+              "committee_member",
+              "member",
+              "data_entry"
+            ]
+          }
+        }
+      },
+      "UserCreatedResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "userId",
+              "username",
+              "temporaryPassword",
+              "mustChangePassword"
+            ],
+            "properties": {
+              "userId": {
+                "$ref": "#/components/schemas/OperationId"
+              },
+              "username": {
+                "type": "string"
+              },
+              "temporaryPassword": {
+                "type": "string"
+              },
+              "mustChangePassword": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "EmptyInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {}
+      },
+      "StateInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "active"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "system_admin",
+              "president",
+              "vice_president",
+              "secretary",
+              "treasurer",
+              "committee_member",
+              "member",
+              "data_entry"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CommandResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "requestId"
+        ],
+        "properties": {
+          "requestId": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

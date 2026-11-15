@@ -1,0 +1,49 @@
+# Phase 1–13 recheck — 16 October 2026 (India time)
+
+**Later Phase 0 progress:** the dependency symlink/lockfile finding below was
+addressed after this snapshot. An isolated clean `npm ci` passed 66 tests, web
+build and Android export; a locked workspace install replaced both local legacy
+dependency links. A CI workflow and source-restore verifier were added. Hosted
+CI and real database/device/provider acceptance remain unverified. See the
+Phase 0 section of `MASTER_BUILD_PLAN.md` for current status.
+
+**Verdict:** no phase from 1 through 13 has met its full exit criteria. This is an evidence audit of the fresh-build worktree, not a claim that the drafted source is defect-free. There are 15 ordered SQL migrations, 9 SQL scenarios, 16 operations in the first OpenAPI slice, 66 passing Node tests, a passing Next production build, a passing Android Metro export, and one passing encrypted-backup preflight test. None of the migrations/scenarios has run on real Postgres. The connected Supabase account still lists **zero projects** at this recheck. No signed APK/device, Meta send, onsite geofence, live DB/object restore or field pilot has passed. The 25 acceptance IDs are all **pending release-wide acceptance** in `PHASE_13_EXECUTION_2026-10-16.md`.
+
+The historical Phase 1–4 and Phase 4–12 audits capture earlier source states. This document reconciles them with the current web screens, correction migration, worker skeleton and Phase 13 matrix. “Source present” means locally drafted or built, not accepted.
+
+| Phase | Source/evidence present | Missing from phase exit | Status |
+|---|---|---|---|
+| **1 — rules/research** | Baseline reconciliation, eight-role target matrix, 25 individually traced acceptance IDs, privacy/consent review packet and primary-source log. | Owner decisions on multi-payment referral points, combined score wording, laptop expense sequence and M/L donor management; masjid privacy/retention, salary and public receipt approval; account-specific Meta classification/rates and hosting budget. | **Partial — policy not signed off** |
+| **2 — architecture/contracts** | Architecture/threat/migration documents, conceptual permission and transaction contracts, 16-operation OpenAPI first slice with resolved references. | Full machine-readable request/response/event contracts, reviewed physical schema and permission matrix, actual Supabase Auth/Data API behavior, error mapping and rollback design sign-off after owner decisions. | **Partial — contracts not frozen** |
+| **3 — identity/backend** | Server `/api/v1/*` identity route, hashed DB-backed limiter, username/first-change web and Android UI, gate and SA command SQL, role fixtures. | Isolated dev/staging DB, fresh migration reset, real Auth/bootstrap users, server/session/device journeys, direct REST/RPC/Storage denial and stale/deactivated token/race proof. No configured credentials. | **Partial — no live trust-boundary proof** |
+| **4 — accounts/ledger** | Account/opening/transfer/history/reconciliation and correction SQL; web account/verification/transfer/correction screen; pure paise tests. | Real transaction/concurrency and reversal-chain SQL pass, beneficiary version controls, corrected receipt/report linkage, Android parity and independent account reconciliation. | **Partial — money source unverified** |
+| **5 — monthly donors** | Versioned consent route, donor/claim/verification clients, QR/request/reminder snapshot SQL and receipt/referral provenance. | Owner-approved consent, actual QR byte/digest/beneficiary path, profile/edit/dedupe UI, multiple/late payments, referral/opt-out correction and provider/DB races. Enrollment stays gated. | **Partial — activation gated** |
+| **6 — other money** | One-time donation/expense commands and web submission/review/payment queue source. | Collection-task counters, direct Treasurer cash path, bill validation/private upload, expense revision/reapproval, advances/returns, salary and scoped member reads, Android parity and independent DB payment races. | **Partial** |
+| **7 — receipts/reports** | Immutable queued report source, correction-aware lines/balances, internal receipt-state projection and local report math. | Public exact-code rate-limited lookup, private PDF/CSV worker/download, ready/failed status, salary/advance sections, period/account output comparison, correction revisions and role tests. | **Partial — no published document** |
+| **8 — tasks/performance** | Capacity/FIFO/invite/review SQL; web direct/open/mixed, participant review/return/cancel controls; pure rules. | Android online journeys, full metrics/profile/appeal, durable notices, last-slot concurrent DB tests and owner-approved score wording. | **Partial** |
+| **9 — meetings/attendance** | Meeting create/invite/RSVP/cancel/reminder SQL, prayer history and basic web meeting UI; pure GPS/date rule. | Edit/private memo/media; live onsite check-in/manual proof/finalization/absence; location coordinate, device boundary/mock GPS and field roster trial. | **Partial — onsite attendance disabled** |
+| **10 — public/member UI** | Text public listing, versioned editor create/revise/schedule/archive UI, member inbox and enqueue tick. | Approved copy/logo/contact/privacy/APK links, safe private image pipeline, member profile/directory, Android inbox/push, accessibility/browser checks and delivered edit notices. | **Partial** |
+| **11 — WhatsApp** | Signed webhook, STOP/status dedupe, leased outbox and fail-closed transport, local tests. | Masjid Business number/approved templates/rates, dispatch route/scheduler/renderer, receipt/meeting templates, ambiguous-send recovery/monitoring and real provider tests. Outbound remains disabled. | **Partial — provider gate** |
+| **12 — offline/recovery** | Encrypted, actor-scoped Android drafts with stable IDs; verified source archive and encrypted data-archive preflight. | Device kill/update/two-phone replay, daily real DB+private object capture, 30 daily/12 monthly retention, Drive/alerts, authorized staged `pg_restore`/Storage replay and measured clean cutover. | **Partial — no data restore** |
+| **13 — integration/QA** | 66 local tests, Next build, Android export, backup-preflight test, clean source restore, scoped source review and all 25 acceptance IDs listed in an evidence matrix. | Every release-wide ID still lacks full environment-backed pass; direct role/object abuse, report/account reconciliation, p50/p95/load, signed device matrix, real provider/onsite/restore and operator pilot. | **Started — exit not met** |
+
+## Cross-phase omissions and contradictions
+
+1. **Phase 0 prerequisite:** the fresh apps use symlinked legacy `node_modules`; no fresh lockfile or clean-install/CI proof exists. A compiling local checkout is not a reproducible build. Create a pinned workspace install, CI checks, environment ownership and source-restore gate before release.
+2. **Database execution gate:** the connected account has zero Supabase projects; local Docker/Postgres/`psql` was unavailable at the prior check. Apply all 15 migrations to an isolated database, run all 9 SQL scenarios, inspect advisors, then test different actor sessions and concurrency. No pass can be inferred from SQL files or mocks.
+3. **Owner policy gate:** Phase 1 open decisions propagate into Phase 2 grants and Phases 5–7, 9–11 and 13 acceptance. Preserve fail-closed consent, public receipts, salary visibility and WhatsApp send until reviewed.
+4. **Private media and documents:** QR, bills/proofs, memo, receipt/report all lack a fully verified object-byte lifecycle: upload, type/size/digest, scoped reads, retention, backup and restore. SQL references alone do not protect or recover them.
+5. **Queued is not delivered:** the protected tick enqueues requests, reminders and inbox work, but actual scheduling, PDF rendering, push and Meta dispatch/reconciliation are absent. The provider's Business number can be added later; the independent transport/operator code can continue now.
+6. **Finance correction cascade:** replacement-chain balances and expense unpaid amounts are drafted; public receipt validity, referral-score changes, report revision and operator-visible document recovery remain unproved end to end.
+7. **Field and release:** confirmed masjid coordinate, owner content, test roster, signing environment, signed upgrade, device network/permission matrix, real backup and named operator pilot remain unavailable. These are not replaced by Metro export.
+8. **Documentation drift:** older Phase 1–4 checkpoints still describe pre-remediation email clients and fewer migrations; treat this audit and the current source as the latest state. All eight parent-worktree document references checked from the fresh-build docs directory resolve correctly with `../../docs/`.
+
+## Priority order to close the gaps
+
+1. Obtain the remaining **policy/permission/privacy** decisions and make Phase 0 reproducible (lockfile, clean install and CI).
+2. Provision an isolated development DB after the required organization/cost choice; apply and repair the migrations, run role/RLS/Storage/finance races, and validate live identity/consent on both clients.
+3. Complete private object/media lifecycle, money correction/receipt/report cascade and missing advance/salary/collection flows; then finish task/meeting/profile/mobile parity.
+4. Complete scheduled delivery/monitoring and real DB+object backup/restore. Activate WhatsApp only when the masjid number/templates are available.
+5. Repeat all 25 Phase 13 scenarios with dated DB/provider/device/field/performance artifacts. Phase 14 begins only after the exit criteria pass or the accountable owner explicitly accepts a documented residual risk.
+
+**No phase is falsely marked complete.** Independent source development can continue while external inputs are gathered.
