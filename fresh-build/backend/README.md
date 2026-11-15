@@ -1,26 +1,23 @@
 # Fresh backend
 
-This backend uses its own Supabase `config.toml` and 31 ordered migrations in
-`supabase/migrations/`. The older root `supabase/` tree is preserved in Git history
-and must never be applied to this project. The ordered migration tree is the
-only executable schema source; the initial prototype is retained in Git history.
+This folder holds the Supabase project (`supabase/config.toml`) and its 39
+ordered migrations in `supabase/migrations/`, applied in file-name order. They
+are the only schema source. The old root `supabase/` tree is in Git history only
+and must never be applied.
 
-The isolated hosted development project has applied all 31 migrations. Its
-expanded monthly-contribution rollback fixture passed after migration 31;
-the local disposable stack needs a clean repeat at this version. Earlier
-database checks used real PostgreSQL roles. Eight distinct issued sessions passed 48 direct API
-role/read checks and 288 wrong-role calls across 65 guarded RPCs locally and on
-hosted development. Local expiry, role change and deactivation, and hosted
-President/Treasurer finance and independent-session task races also pass. These are development checks;
-staging, production, signed-in client journeys and recovery remain open.
+Every app action goes through a `SECURITY DEFINER` function that checks the
+caller's role. Direct table access is revoked, money is stored in paise, finance
+history cannot be edited, and repeated requests are made safe by operation IDs.
 
-For exact local start, fixture, reset, source backup and environment custody
-instructions, see `../docs/PHASE_0_LOCAL_OPERATIONS_2026-10-17.md`. For
-observed database and money results, see
-`../docs/PHASE_3_DATABASE_EXECUTION_2026-10-16.md` and
-`../docs/PHASE_4_EXECUTION_2026-10-17.md`.
+- `tests/`: 19 rollback-only SQL test files. Run them with `scripts/run_fresh_db_checks.sh` against a disposable database (see `../README.md`). `scripts/db_fixture_preflight.py` checks the list is complete and that every file rolls back.
+- `identity/`, `api/`: username sign-in, account creation and reset (used by the web `/api/v1` route).
+- `reports/`, `receipts/`, `qr/`, `jobs/`, `whatsapp/`, `backup/`, `ops/`: server services. Each is switched off by an environment flag until the owner approves it.
+- `scripts/`: operator and test scripts.
 
-Owner-dependent donor enrollment remains server-only and inactive until an
-approved consent version exists. No public report/PDF or message dispatch is
-enabled merely by applying these migrations. The source archive is not a
-database or private-object backup.
+State on 15 November 2026: staging has 38 of the 39 migrations (the 10 November
+account management migration is next). Production is paused and untouched. See
+`../PROJECT_STATUS.md`.
+
+For local start, reset and environment custody, see
+`../docs/PHASE_0_LOCAL_OPERATIONS_2026-10-17.md`. Applying migrations does not
+turn on donor enrollment, public receipts, reports or messaging.

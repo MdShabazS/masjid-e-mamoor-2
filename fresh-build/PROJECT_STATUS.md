@@ -1,6 +1,6 @@
 # Masjid E Mamoor 2 — project status
 
-**Updated:** 2 November 2026 (India time). This is the short, current list of what is done and what is left. `tasks.md` remains the detailed dated evidence log.
+**Updated:** 15 November 2026 (India time). This is the short, current list of what is done and what is left. `tasks.md` is the older dated evidence log, up to 29 October.
 
 **Overall:** not ready for release. Real-money launch is NO-GO.
 
@@ -10,8 +10,8 @@
 
 ### Foundation
 
-- [x] Clean npm workspace, CI on GitHub, lint, formatting, typecheck, 178 automated tests
-- [x] 39 database migrations; staging and production Supabase projects hold the schema with no real data
+- [x] Clean npm workspace, CI on GitHub, lint, formatting, typecheck, 188 automated tests and 19 rollback-only database test files
+- [x] 39 database migrations. Staging holds 38 of them with test data only; production is paused, holds no real data, and its migration history needs repair before use
 - [x] Protected Vercel previews; nothing is live
 - [x] 8-role permission system, wrong-role denial matrix, username login, temporary password flow
 
@@ -65,6 +65,20 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] People and roles screen (web and Android): System Admin creates Presidents and backs up every role; President adds, resets, changes and deactivates the other roles. Temporary passwords are readable groups (e.g. KKNN-P9HW-ZE8H-WREZ), shown once and changed at first sign-in
 - [x] Web enrollment form now shows for Members too
 - [x] Web enrollment route returns an input error, not "service unavailable", for a bad amount
+
+### Verified on 15 November 2026
+
+- [x] All 188 automated tests, lint, format, typecheck, web build and Android export passed again. Device-level proof is only what the emulator and browser journeys below record; items marked "code fix, not exercised" are still unproven on a device
+- [x] Documentation brought up to date: setup after cloning, environments, current counts. Unused local files and old backups removed; everything else is in Git
+- [x] A fresh clone of the repository installed, tested, linted, type-checked and built for web and Android
+
+## Pending — before the phone ground test
+
+- [ ] Make the web app reachable from phones: Vercel previews need a Vercel login (choose a public staging deploy or remove preview protection)
+- [ ] Apply the 10 November account management migration to staging
+- [ ] Remove staging test accounts (`stgtest*`) and the "STAGING TEST cash" account, then create the real first System Admin
+- [ ] Build an installable APK from `eas.json` and write the tester checklist
+- [ ] Set a test check-in location for attendance
 
 ## Pending — features not built
 

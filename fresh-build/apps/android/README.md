@@ -1,8 +1,10 @@
 # Fresh Android client
 
-Copy `.env.example` to `.env` and fill in a **development** Supabase URL and
-publishable key. Provision an active user in the fresh backend before signing
-in. Never put a service-role key in an app environment variable.
+Copy `.env.example` to `.env` and fill in the Supabase URL and publishable key
+of a development or staging project, and `EXPO_PUBLIC_WEB_API_URL` with the web
+app's address (sign-in and account management go through it). The first System
+Admin is created on the server; after that the System Admin and President add
+everyone else from People and roles on the Home tab. Never put a service-role key in an app environment variable.
 
 Install dependencies from the fresh-build root with `npm ci`, then run
 `npm run start` here and open Android.

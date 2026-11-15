@@ -1,3 +1,5 @@
+> **Historical log.** This file stopped being updated on 29 October 2026. The current status is in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). Keep this file for the dated evidence.
+
 # Masjid E Mamoor 2 — remaining work to usable release
 
 **Updated:** 29 October 2026 (India time). **Scope:** this `fresh-build/` worktree. `docs/MASTER_BUILD_PLAN.md` is the full phase definition; `docs/PHASE_13_EXECUTION_2026-10-16.md` tracks the 25 acceptance IDs. A checked item means only its stated proof passed, not that a whole phase is accepted. No release-wide ID has passed.

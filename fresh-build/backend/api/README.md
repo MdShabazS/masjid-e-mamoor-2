@@ -3,8 +3,9 @@
 `openapi.v1.json` is a 16-operation machine-readable draft for identity,
 donor/claim and initial finance flows. `identity-handler.js` is a server-only
 Fetch Request handler for the identity subset; it requires an injected durable
-shared rate limiter, trusted proxy IP reader, and the server Auth service.
-Unit tests do not make it a deployed endpoint.
+shared rate limiter, trusted proxy IP reader, and the server Auth service. The
+web app serves it at `/api/v1/[...path]` (sign-in, password change, and account
+creation, reset and role/state changes for the President and System Admin).
 
 `../../packages/contracts/` carries shared exact-paise, UUID, error and signed
 cursor validation and target donor/claim parsers. The donor POST contract uses

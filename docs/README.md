@@ -1,11 +1,8 @@
-# Historical requirements and design records
+# Requirements and design records
 
-The three documents here preserve the earlier requirements baseline, decision
-register and acceptance criteria used to design `fresh-build/`. They are
-reference material. Later explicit masjid decisions and the fresh-build records
-take precedence when rules differ.
+These three documents are the requirements baseline, decision register and
+acceptance criteria that `fresh-build/` was designed from. Later owner decisions
+are recorded in `../fresh-build/docs/PHASE_1_PRODUCT_RULES.md` and override these
+documents where they differ.
 
-For current work, use [`../fresh-build/tasks.md`](../fresh-build/tasks.md),
-the fresh-build decision records, and the latest explicit masjid decisions.
-Superseded app, migration and design files remain recoverable from Git history
-and the verified local pre-cleanup backup.
+For current status, use [`../fresh-build/PROJECT_STATUS.md`](../fresh-build/PROJECT_STATUS.md).
