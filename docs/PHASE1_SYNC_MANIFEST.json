@@ -1,0 +1,586 @@
+{
+  "head": "516bdd1bab5f2353f7ea8915acfb05e30973de63",
+  "original": "/Users/shabaz/Masjid app/Masjid-e-Mamoor-2-Docs",
+  "files": [
+    {
+      "path": "apps/mobile/app/(app)/_layout.tsx",
+      "source_sha256": "d918af905f40eb74fd67d341d360259ad83374a9d7f05ec437408d50f2c633d7",
+      "original_sha256": "2fb3b9b3591f14ac6a3e47a4c67a4f86395783c57fb3f416faea1d8b9dfa723c"
+    },
+    {
+      "path": "apps/mobile/app/(app)/activity.tsx",
+      "source_sha256": "a216469d28f72fb2be3e9952b1e80f377a5e0ebbb099fae6293e234859b25b50",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/mobile/app/(app)/community/referrals/index.tsx",
+      "source_sha256": "eacb89b3f530329dfb8b131ca0fc9fce381ae954c269bd87756e13c104b583d1",
+      "original_sha256": "6ad08f9989c48cb56390327485480c10a05736a6b5df65243ee2b7ad05fb16d2"
+    },
+    {
+      "path": "apps/mobile/app/(app)/donations/_layout.tsx",
+      "source_sha256": "8cc3bdead0e0d8e902d0dca58ebf6a954d6ec3faf0fd4c1bc7e618194c9409f0",
+      "original_sha256": "1eccd80e225acca5897928a1f9bc96cbce6b0aec6eb9aa902899220238116d68"
+    },
+    {
+      "path": "apps/mobile/app/(app)/donations/index.tsx",
+      "source_sha256": "1f0f47935ca05541227e451d37961b569a80444f6b3c05e93a79d121ac472c40",
+      "original_sha256": "407016f2469e30b2f23d2dc4a8cc5c98416cc359443eb18d022f56695a1afccb"
+    },
+    {
+      "path": "apps/mobile/app/(app)/donations/referred/index.tsx",
+      "source_sha256": "adac202347b7e0d058405435e8e5725544de2cd7b48c44ea5f7baf7ceee092f5",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/mobile/app/(app)/finance/reports/index.tsx",
+      "source_sha256": "e848348e4287f85941552cf4267af1904aab9fe374f30cf2913decae42869348",
+      "original_sha256": "c303d204660307b5ac40736b3fd193598e4538a7cb701981680bb94513bf67b7"
+    },
+    {
+      "path": "apps/mobile/app/(app)/more.tsx",
+      "source_sha256": "8da3ba46ed7a7ed40e60b2acf5a9098bc86e778971b39da28d27d5e69c554ef3",
+      "original_sha256": "2142caac91e240ef605667acac804550c27b77987cff19d466f8f055651cf577"
+    },
+    {
+      "path": "apps/mobile/app/(app)/work/meetings/[id]/index.tsx",
+      "source_sha256": "d4a68041d2ed88a25112fd8523935868ca73e6bda525fc14e4f4cb040f076232",
+      "original_sha256": "60eea99fa134be54ef5ccac6eb89335f6da5207414844ee1a61a50ad44d504ac"
+    },
+    {
+      "path": "apps/mobile/package.json",
+      "source_sha256": "3eafc566db468266f90754dc699aa967d1e1ccfd664450bddecc83a2fcb826fb",
+      "original_sha256": "069a1022eb0ab044c2fe062f167605a258251ad8985b3e243be7c428b0ed2c22"
+    },
+    {
+      "path": "apps/mobile/src/components/ReleaseGate.test.tsx",
+      "source_sha256": "156ba52335894b1f5cc4e4e301508b0fe118fed639b1092a6c6697936dab3ed5",
+      "original_sha256": "ecfa13d5c409f37104bf384d892d857f26d5dca74f7a5b9d1c2b60251f7eb472"
+    },
+    {
+      "path": "apps/mobile/src/components/ReleaseGate.tsx",
+      "source_sha256": "59de66c466b1905ce9b52e10b62ed8f9a217d0351a38b0c001c0d7e63c8f5873",
+      "original_sha256": "cd4b7964b14b410be1dae4e03d6a286579c7cdd530505b12ab42b0ac56624e3b"
+    },
+    {
+      "path": "apps/mobile/src/modules/finance-date-range.test.ts",
+      "source_sha256": "e40adbdb933b6fce78107571474b34fd08cb994267b8a7ccb0b16cc5459206b8",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/mobile/src/modules/finance-date-range.ts",
+      "source_sha256": "10216c815ee016b977b6a2ce4f57b1847e89a53d96ceae59b40114e0d9a11601",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/mobile/src/modules/meetings.test.ts",
+      "source_sha256": "c054fdff47a26272c4a28ce390a444e05c6a7f2589822b9d5f330fde887719e9",
+      "original_sha256": "5ff0f47b9fd4d527d9e095a9a80bcec3db8e686649f850d3ffd19f80a371fa44"
+    },
+    {
+      "path": "apps/mobile/src/modules/meetings.ts",
+      "source_sha256": "96b758ab4a7d91421c672c011254e51f9fdf1df6b63a8e7410cdb198e27a5809",
+      "original_sha256": "c84c4cecaf468f36026fc6cef223008c0c340df955994363aff459dc0ee7415c"
+    },
+    {
+      "path": "apps/mobile/src/modules/member-activity.test.ts",
+      "source_sha256": "92640476e68e8635553c1f2d1f75f48be6a59eaa4d28874c6adebc0bf764ad75",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/mobile/src/modules/member-activity.ts",
+      "source_sha256": "16f1add6f36d0f842383b32d88406f1bb4a5d020d3b4cd40b91e82624cf1705f",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/mobile/src/modules/referred-donations.test.ts",
+      "source_sha256": "1249df800253be6557657c63d5adecf30339aeb5918294b9e5b8b980cf674a99",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/mobile/src/modules/referred-donations.ts",
+      "source_sha256": "440bbce6a0f0a86708741351074d2d5cb6022d821552ec9b7503f33a162f6516",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/mobile/src/modules/release.test.ts",
+      "source_sha256": "0adf8b1e9652ecae4814d3de01bab5f3b398e1d8e138fcb80fb71805da8324fc",
+      "original_sha256": "ddd555e8c08c489deafcadfafac29eac67367eb0092c84c6a4da24badfc05ab1"
+    },
+    {
+      "path": "apps/mobile/src/modules/release.ts",
+      "source_sha256": "64f4014bd4f9c062342d1c110d16c607adb2bb33cd42eea7ec336af21b27c868",
+      "original_sha256": "109c979a104b67ba70ba23f7e9de33e1e6ba9e3b3cae876bfae3dc70c7687a22"
+    },
+    {
+      "path": "apps/mobile/src/route-tests/(app)/work/meetings/[id]/index.test.tsx",
+      "source_sha256": "8e2b7bf9335e547c835a8290bd24918f5eb014508b174c822c3901f23ed89230",
+      "original_sha256": "b75d4ba89909620ccc694bde2802886318862262ff07975b9c0ac5209b637508"
+    },
+    {
+      "path": "apps/web/src/app/(protected)/activity/page.tsx",
+      "source_sha256": "afdad60ac15e9b6170a70fa2d6b63fce4be788609cfcfcebdfe0d5f2b5f6178a",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/admin/meeting-location/actions.ts",
+      "source_sha256": "0306ded52c6f2e1130f7044ed0e6bcbafd0305a6e8dbd5677450b4442255d24b",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/admin/meeting-location/page.tsx",
+      "source_sha256": "25ed81d1709d55da39cdb35e182d8e73612f7fffcb087e2e215ce71d3365c893",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/admin/releases/actions.ts",
+      "source_sha256": "348b832aad105f08a1064c1eade0ca8df53ba38125574d0ff313f35757fb781c",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/admin/releases/page.tsx",
+      "source_sha256": "c81e55eb028b6865d620ea00839e2dde6968d31afba95541fcbff71dd97bfab5",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/donations/referred/[id]/receipt/route.ts",
+      "source_sha256": "26fa8c52672c28f449e86c8435347a09fc21c76f7da3e5d5b7189825d4d87ee4",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/donations/referred/actions.ts",
+      "source_sha256": "6dec5938fa97b3071885806a748c92adc464a7fa03cb7efa9291a847367b863e",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/donations/referred/page.tsx",
+      "source_sha256": "bc57e220601607ff22a2ff7eca7e3f4a98b0c37144cd7de79fc797e13ccf4012",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/finance/date-range/csv/route.ts",
+      "source_sha256": "757f6434e38eb14dad753868e3d4d9ff0bf9458cd943b3dfd2f477a265f741ed",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/finance/date-range/download/route.ts",
+      "source_sha256": "6a4d4071545bca5802357ea2c415e88b13211ea57f2c2aa886cf902fe569e15b",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/finance/monthly-reports/csv/route.ts",
+      "source_sha256": "c1b0fd69543d0b59f36041209c99d342c9a0cbcc3ef13c215f5c720f0505b4da",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/finance/monthly-reports/page.tsx",
+      "source_sha256": "5e193e949c0e9e022eae2caae417eea2e265315b623ed98d2f52bab23f0cdb4b",
+      "original_sha256": "557a61b25e92f509eec359b40118c69b4e3da438f0b4eaf888ee488d7820a0c4"
+    },
+    {
+      "path": "apps/web/src/app/(protected)/meetings/CheckInButton.tsx",
+      "source_sha256": "008e8f63e2cebcf81b02c883d4094d6cff002742b698b8f8de3bf34491752d45",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/meetings/[id]/edit/page.tsx",
+      "source_sha256": "f5a8dbd912cabd3d416394f123aea0bd6564d8195390b25e0afd09e619b6e25e",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/meetings/actions.ts",
+      "source_sha256": "bcedf08938d564ae4c5f3d46864b6427024baea034717cf50dccf7015d5cf322",
+      "original_sha256": "cf3a1eb40f5fa799efa6ecb0f0049c0847b5adcff0e426b3c5de4e055eb4c135"
+    },
+    {
+      "path": "apps/web/src/app/(protected)/meetings/new/page.tsx",
+      "source_sha256": "02d2a6f2970d0225d8d7a810167e4e4b14e7959115355bb600ed63f4f63d6280",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/(protected)/meetings/page.tsx",
+      "source_sha256": "b91aad66460423831d7ce1e2d90b0fdbdda1c9bc1fd53c7b89a40bd18ccce9aa",
+      "original_sha256": "cfe2c9f911ff5c92e416f0fed45bb4da9b1f7dd99705b6dd16a5fa115448216f"
+    },
+    {
+      "path": "apps/web/src/app/(protected)/referrals/page.tsx",
+      "source_sha256": "803372e42bba6140a4392356d02f7b618d1d71ffa88cdda037798381c9311656",
+      "original_sha256": "4a1fb2af225db4cff6fba07490570f8a21b1f37ee7a3a8cdcb6dbcf4f3a8eab9"
+    },
+    {
+      "path": "apps/web/src/app/fonts/Inter-Bold.ttf",
+      "source_sha256": "fbe825cbfc749317f57a1433d3905aa9d3f388732fd29b8e8a36f34845e3bc3e",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/fonts/Inter-Medium.ttf",
+      "source_sha256": "f1738576525e86db1d5cf63a6c1b56e0a7e2a2898b499ac93db95f2e7a9f9cd5",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/fonts/Inter-Regular.ttf",
+      "source_sha256": "a414b48aa577ef2c62ebb135341ddeef33ee26a4f5dc9f787f93c1aab08ebb50",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/fonts/Inter-SemiBold.ttf",
+      "source_sha256": "f30e9d2574c3bec5144347ff965f9841c8f06857f0b7383000f8c9489a161841",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/fonts/LICENSE_FONT",
+      "source_sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/globals.css",
+      "source_sha256": "adbc6b55add87dcc8bb3ba58ddfc2605f08767534c969e4b1999fcbe7ccd4034",
+      "original_sha256": "80a5621627b2e10239105dc970821988f4b4cf1adacaf9ed80003bed71371f61"
+    },
+    {
+      "path": "apps/web/src/app/layout.tsx",
+      "source_sha256": "e3c6dfe0a68a49de682ae162a35392007b37f9b30f1377a47a4ad5c4f3dc221f",
+      "original_sha256": "c47bdde8eb51ef9f78ffabd837d2724ca7c0e3d0048dac6c73846397299f3534"
+    },
+    {
+      "path": "apps/web/src/app/login/page.tsx",
+      "source_sha256": "3aac7e99458e5f3f7e5590f411abfa47dc49cc2520e94ff2e0cd1b768f781a65",
+      "original_sha256": "b2c6aec1ec103302ceb5fc42984d56bf14bd9f18ed7da6d698005f5c2cad416a"
+    },
+    {
+      "path": "apps/web/src/app/receipt-lookup/ReceiptLookupForm.tsx",
+      "source_sha256": "c9aca107b32ff8b7664abc6add8f2ea31980fe81587a9695116c67c294a3c41b",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/receipt-lookup/actions.ts",
+      "source_sha256": "57ca3290f9653d00d1f8b2e293d9249f652dbe2b6ef575ea04906e052a2eaac3",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/app/receipt-lookup/page.tsx",
+      "source_sha256": "ef73ddc8d752f05a95088bb3809a21bdd07b9f9f2b29b0c0096f6006436cc5c8",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/components/AppShell.tsx",
+      "source_sha256": "dbd8d00341c834afa87aa2ac327c641fd492b2fbae0e26449f0fa83b34b87066",
+      "original_sha256": "4d27ccd35aedd9d0518c72ef86578a048a06a48196771c4a4e22bc15bf231a24"
+    },
+    {
+      "path": "apps/web/src/lib/activity/filters.test.ts",
+      "source_sha256": "b2a4f528782696db3a41784ac610151283f708e90016fb26f4e1459f5698eed9",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/activity/filters.ts",
+      "source_sha256": "43b9946fd67eb2af3bf9e48bf6f7439dae4d1cfa27425f4a3782f5bf60e95ec7",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/activity/server.ts",
+      "source_sha256": "abac18a546da0da860f5e7475a5979dc66833a5f0e9ee3056c1108be95ff2f7d",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/donations/public-receipt.test.ts",
+      "source_sha256": "e8b73dbdd8dd0353aa58aba4970c1b058653ecfcfb5c4f3ae6b1ddf7cc77c1d1",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/donations/public-receipt.ts",
+      "source_sha256": "45e25802f86e9ca00807867b7181d08fe796aaff3407734f0730ff208755291a",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/finance/csv-response.test.ts",
+      "source_sha256": "7b1ef535e01f470682d6163f0101116d3bae35d62a6a10e62f79752960859dde",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/finance/csv-response.ts",
+      "source_sha256": "11f8f1e6379f90d2433052e07366ffcbed109ce1dfc15c918e4fdb34145c854d",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/finance/date-range.test.ts",
+      "source_sha256": "e5e906a7c6d5c4b95b81a0d9a219d7566c6a220b740082145fa2bc123cf4992e",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/finance/date-range.ts",
+      "source_sha256": "34adb72e08d3374ccb43800985ab977a0b7c952b870eb501e2412f5813056652",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/finance/report-csv.test.ts",
+      "source_sha256": "bbebebe393f3457592d70fd7bcbf813263d0a90ba992ec98131a144903e78420",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/referrals/server.ts",
+      "source_sha256": "20c525ceca08ce0d558ce4a0319cbfd0131a2c5c04e817139179fc71c34d18a6",
+      "original_sha256": "5a9526a8e993cb26e305e65e56ece75e015084feba7ca6a5169fb22711b2c67e"
+    },
+    {
+      "path": "apps/web/src/lib/supabase/proxy.test.ts",
+      "source_sha256": "c63f01ff3a1a55612b8be056b5878f3790c8c1f91a8f27e9406755374ddfa87d",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/supabase/proxy.ts",
+      "source_sha256": "d2961d34b49cfc8c19b6eb4d8b6ba4485adc9667db8bb4ef8be518ad57826921",
+      "original_sha256": "8a36b7d6209da13238d7136edc8a3072f38e3def9aa98c2dc0232533980be23f"
+    },
+    {
+      "path": "apps/web/src/lib/work/meeting-input.test.ts",
+      "source_sha256": "23a34caec34154ac5ac8847b239817b70acc6c90613688320475c64537ea5ee3",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/work/meeting-input.ts",
+      "source_sha256": "1e55e7c4186634f78b82864a7a43cfb4f5dddb1ea5f01a716b4e9ea9017d9ffc",
+      "original_sha256": null
+    },
+    {
+      "path": "apps/web/src/lib/work/meeting-responses.ts",
+      "source_sha256": "bcd10986001412175a4fa67fcff96c2e7b2bb6320c75ff06bfb4ff9e4249c7d1",
+      "original_sha256": "82fd1224466cee9c657e8adc7846adde8ebb0234ccf9fb314f652db14344185f"
+    },
+    {
+      "path": "docs/CONTINUE_CHECKPOINT.md",
+      "source_sha256": "13ec18f3de3fb437941fd643bd9c258a16b6435f3cc01f23d32ced2feb81b563",
+      "original_sha256": null
+    },
+    {
+      "path": "docs/PENDING_SYNC_2026-10-14.txt",
+      "source_sha256": "bb8c9973f2cbb9e2b2b0bd4fdcfafb40f1ec835b4db19fa9456a90b23bdd0d2d",
+      "original_sha256": null
+    },
+    {
+      "path": "docs/REQUIREMENTS_DECISIONS_2026-10-13.md",
+      "source_sha256": "4b72cc5941e4c164dc5ba60dc6f7eddcea1d2cf5a0c3d83a93b8e1939cda211b",
+      "original_sha256": "0c32f604e17a81c732534e2dcfcbf5f853e1e62783d7f23593f2bfd793c96591"
+    },
+    {
+      "path": "packages/shared/index.ts",
+      "source_sha256": "cb134c98ff27d4b50211bdd64fac3c5706532bee575ce1856b48399b0051fabf",
+      "original_sha256": "d64ec133fb862d945d93df30ecd9352f49122ca43bc20106771cbaa1fd31d017"
+    },
+    {
+      "path": "packages/shared/src/finance-report-csv.ts",
+      "source_sha256": "6c103c8d263bea9321b6bc7716b54e99a435315f5b7969acc0a4a42732b52d73",
+      "original_sha256": null
+    },
+    {
+      "path": "packages/shared/src/index.ts",
+      "source_sha256": "9340ac019bd107f33e468c1db39d24b74e75774852729c3cab69dfdbc1878630",
+      "original_sha256": "d74332a59983b1a06f856da67bb321ef33a9b55c2d7868d951255ec89e8b0706"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "source_sha256": "65bd6b725c7dc79ce312077000d708eea50d5f01ebe5060a014384543b6c64f3",
+      "original_sha256": "f7f6759c522721c683d9d598f91ca3cd775b8a117c79a65902a39611350848b0"
+    },
+    {
+      "path": "scripts/consolidate_phase1.py",
+      "source_sha256": "9572142f4db93fdb82e0692b53f9b6daf6bdf999fa89363993cfbfa9f741dea8",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/config.toml",
+      "source_sha256": "5f4d700cbc74e9df24c0791c7020be056e0d3a7a103c539f516c11370c5a43a4",
+      "original_sha256": "d7fae836ba7efc2027614532aebf3053db4566342a5bd65df38bfdc185d0c0eb"
+    },
+    {
+      "path": "supabase/functions/render-finance-date-range/index.ts",
+      "source_sha256": "ea3d3657d4bd2e15a3130191a6ecd6231bb999a6aa335c22413e359618e0cc01",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/functions/render-finance-monthly-report/pdf.test.ts",
+      "source_sha256": "ce634a01bc02e8a284f37881c4f31868de7f84252c977e7227d27e4fb54ee239",
+      "original_sha256": "c3ddccf083b4d5d65175b2c5bb7aa057b1a48eca90215e1d0b30edc2724f8788"
+    },
+    {
+      "path": "supabase/functions/render-finance-monthly-report/pdf.ts",
+      "source_sha256": "79d8b80e8e5a88124e90ff6a7dc7e4006e2e778618e0bc07deda88ea808e959a",
+      "original_sha256": "422b3890361dd1486b1a6f5003478af3077ecaf438efa59aee08a851235ee347"
+    },
+    {
+      "path": "supabase/functions/render-referred-donor-receipt/index.ts",
+      "source_sha256": "2ffc616d042545002173891dada0f79a53c09ec65a0aa1e59f96183a3f71aae1",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/functions/render-referred-donor-receipt/receipt.test.ts",
+      "source_sha256": "03188d479f9c0ff96e5ab897faf0f857d0795b80f5652157411869b702b17ef2",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/functions/render-referred-donor-receipt/receipt.ts",
+      "source_sha256": "c062a92856defe57fcb0781b06b31c01fe207050668e88fe23f4d31377af11a0",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261013224600_fix_meeting_response_state_check.sql",
+      "source_sha256": "c927ea48ef14a1ce7999111b4d96d4fda79bd54209fb633c8c26c0cc155a4a60",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261013224700_order_meeting_response_history.sql",
+      "source_sha256": "4b7e0e44e6c244f0aef9076110d3d75accf7926d20d8b095f65932db873754ce",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261013224800_system_admin_referral_finalization.sql",
+      "source_sha256": "b1e0599463fbb7e45d75eba0bc73f12ab1f6b0510fa5b7464dc480e5bc1163a0",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261013224900_expand_meeting_invitation_roles.sql",
+      "source_sha256": "70975ed5ccd993daa8f090bb30cfe765e026a1ba2ef8afdb437f9f1b36def133",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261014025000_member_activity_summary.sql",
+      "source_sha256": "90b7256b2beb679161f452072151ef83573e184a88f6cdea53107e1c37c93e29",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261014030000_system_admin_mobile_release_control.sql",
+      "source_sha256": "ecbfe6beeabdf85052e6a0da08dba35cef71922fa7efd635b632cd424acc0d81",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261014031000_all_active_roles_monthly_finance_reports.sql",
+      "source_sha256": "f0fe2fea5281286def773410839f2039d40993888aaae2f62c231c64012be299",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261014032000_meeting_geofence_attendance.sql",
+      "source_sha256": "8747d26bde8134abfc799d201a283371ae32bf989df26d016f1ff706dd6548e3",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261014032100_invited_meeting_read_scope.sql",
+      "source_sha256": "60a7a68bb888f5f252470a2aa532e35d2aa3ff01bcf60d088bbd078be3281779",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261014033000_finance_date_range_report.sql",
+      "source_sha256": "ff962c33a165f5c82e87c572db65bb43eb2d7e3d8bfb931b3d48f03b72ceb4bb",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261014034000_referred_donor_contributions.sql",
+      "source_sha256": "7da7b466a9816e6e2f46f49a911690b34573455d497fdb9958b8be92be92a8a1",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261014034100_referred_donor_activity.sql",
+      "source_sha256": "96fc43995c0c8cf9a997e88d25b13d5e6cb0bfbaeda2e8a66cc343a49afb1dae",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261014034500_verified_receipt_void_reversal.sql",
+      "source_sha256": "237ac8af85fe5336b4c6e5c284f4ba66c81802de176cd4c062b0d3a218f2a16c",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261014035000_finance_referred_donor_report.sql",
+      "source_sha256": "1cd958677906dcddbf93d03885ed252dbe8fe01ce2a701383e01b4c63d78af6a",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261014040000_monthly_report_referred_donor_detail.sql",
+      "source_sha256": "daf1d7807cf66ce18e9ea19cee21357d9596fdfb442a5d151363c1ebbf6aa866",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/migrations/20261014042000_public_receipt_lookup_limit_audit.sql",
+      "source_sha256": "928b20a423849902ff6aa94346cbd9a33a995599738d829307736f8cc543644e",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/tests/account_admin_system_admin_invariant_v1.sql",
+      "source_sha256": "68dc480070ec2a0890e359bc7bbdf5573538c0a187efd91ff1003ce617ae37d5",
+      "original_sha256": "4e12360e3d4528dd8fa6d29738ef8ab2b0da524af1b16ae4a6b4295dedb49495"
+    },
+    {
+      "path": "supabase/tests/all_roles_monthly_finance_report_read_v1.sql",
+      "source_sha256": "8cc250e301f6a0f6074e25b8c3547cc025df8e7abe57421aa71c8d8bf15e6b12",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/tests/committee_meeting_responses_v1.sql",
+      "source_sha256": "bbdfae0d305efe12878155f464d8dba7ab0deb2ac2e411acc79d1fc0914df6df",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/tests/committee_meetings_behavior_v1.sql",
+      "source_sha256": "d694087bf027bd93853158c94a9dc476166c92a9db791e1f6bfc6d1ca50d1791",
+      "original_sha256": "bae032bbcc820c30a90190beadc575f7f246884599c731d2250f73a42ae5ec40"
+    },
+    {
+      "path": "supabase/tests/committee_task_assignee_options_v1.sql",
+      "source_sha256": "c39e65a49c3f06cc1e25bc282a3fe125b971f37e7a38e52e7637c4c9cb57c93c",
+      "original_sha256": "9b89443fd9b01a726b71aab929529d2d3cd0caa9e2e8e7fd37ac0c8c8c51bc24"
+    },
+    {
+      "path": "supabase/tests/finance_account_rename_v1.sql",
+      "source_sha256": "931432bbdb2da9f9a5084ce9c62dbbf48a5fb92db0c18087e8dfccc2eaa34e11",
+      "original_sha256": "8cde8b9e57ae4f424682598125e0762342206401bd450106d56be511fba1273f"
+    },
+    {
+      "path": "supabase/tests/finance_accounting_foundation_v1.sql",
+      "source_sha256": "ce7417df37c3b67d7334e9af462aa17a82cce373fc90144cf3fffdacc7d15827",
+      "original_sha256": "9b1dd44a24bdac0c65d91d04c7da0d93172521394e5aed6102ab177f7c8f2207"
+    },
+    {
+      "path": "supabase/tests/finance_date_range_report_v1.sql",
+      "source_sha256": "7f7a61a876a9fde2b485ea320d5e32c4c30ed8e34805ff17acc568f559bea082",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/tests/finance_reconciliation_v1.sql",
+      "source_sha256": "37971579f342eb2392ab7c61ce876a8bfc0f15088c117478767d964ab3d8b59b",
+      "original_sha256": "bf6e415c4fc1aa124b6c8516adfdee09a82466a443bf8b67056f04d45f742040"
+    },
+    {
+      "path": "supabase/tests/meeting_geofence_attendance_v1.sql",
+      "source_sha256": "fad36aae47a4d3ac3174c45e04cae4b3009bc9c1d669ae234a841e77ae8d410f",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/tests/member_activity_summary_v1.sql",
+      "source_sha256": "e5801b3cd8e4dd60ee0447e8a42638dd054839246b4ca25092c54a640aeebde5",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/tests/public_receipt_lookup_limit_v1.sql",
+      "source_sha256": "d8a378664fd0f1431366f2685fc8a5f76aebd5353d8845d8f089ca8c55e8f81c",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/tests/referral_member_provisioning_finalization_v1.sql",
+      "source_sha256": "0084f6b9fd7728567924323a097260a46b6c41fec900c7f0b8b1a6c151326807",
+      "original_sha256": "59547f680043fa4ac7583e02959163eee823bd3a794eeaa303dd1746c8dfb638"
+    },
+    {
+      "path": "supabase/tests/referred_donor_contributions_v1.sql",
+      "source_sha256": "9a4a34ef7b53f9e19431d8fafb107867b483d9d3ebbd63463a04cd9c96008b5a",
+      "original_sha256": null
+    },
+    {
+      "path": "supabase/tests/selected_mobile_ui_v2.sql",
+      "source_sha256": "6561a52445369afb1c2dde34dede4e6ab3fbc3821fe1b1e4c8956336be26b2d6",
+      "original_sha256": "08453a3166ba50b90b3b13c34a74af3d5b5daabeae691000b780c568ec66cc83"
+    },
+    {
+      "path": "supabase/tests/system_admin_mobile_release_control_v1.sql",
+      "source_sha256": "c9a4818d62b6ad670229cd32e1566f45d3435d4428383bb5e9380d1c30772a0c",
+      "original_sha256": null
+    }
+  ]
+}

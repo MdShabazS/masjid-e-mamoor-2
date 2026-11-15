@@ -9,10 +9,23 @@
     "userInterfaceStyle": "light",
     "plugins": [
       "expo-router",
+      "expo-notifications",
       [
         "expo-secure-store",
         {
           "configureAndroidBackup": true
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Masjid E Mamoor 2 uses your location only when recording Jummah attendance."
+        }
+      ],
+      [
+        "expo-sqlite",
+        {
+          "useSQLCipher": true
         }
       ],
       [
@@ -30,6 +43,7 @@
     },
     "android": {
       "package": "com.masjidemamoor.masjidemamoor2",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

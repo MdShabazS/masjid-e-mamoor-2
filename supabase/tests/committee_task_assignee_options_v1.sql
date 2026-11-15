@@ -130,7 +130,7 @@ begin
     raise exception 'FAIL: safe role fallback was not used: %', v_rows;
   end if;
 
-  if not v_rows @> '[{"application_user_id":"72000000-0000-0000-0000-000000000007","display_name":"Account Treasurer","role_label":"Finance"}]'::jsonb then
+  if not v_rows @> '[{"application_user_id":"72000000-0000-0000-0000-000000000007","display_name":"Account Treasurer","role_label":"Treasurer"}]'::jsonb then
     raise exception 'FAIL: Finance/Treasurer was not eligible for assignment: %', v_rows;
   end if;
 end $$;

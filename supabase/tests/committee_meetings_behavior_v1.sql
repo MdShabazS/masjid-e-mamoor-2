@@ -959,7 +959,7 @@ $$;
 
 
 -- ============================================================
--- Finance has no meeting access
+-- Uninvited Treasurer has no meeting rows
 -- ============================================================
 
 set local role authenticated;
@@ -996,14 +996,9 @@ begin
       'FAIL: Finance read attendance rows';
   end if;
 
-  begin
-    perform public.list_committee_meetings(100, 0);
-
-    raise exception
-      'FAIL: Finance used meeting list RPC';
-  exception
-    when insufficient_privilege then null;
-  end;
+  if (select count(*) from public.list_committee_meetings(100, 0)) <> 0 then
+    raise exception 'FAIL: uninvited Treasurer listed meetings';
+  end if;
 end;
 $$;
 

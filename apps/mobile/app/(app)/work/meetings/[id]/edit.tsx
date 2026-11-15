@@ -70,7 +70,7 @@ export default function EditCommitteeMeetingScreen() {
           queryClient.invalidateQueries({ queryKey }),
         ),
       );
-      router.replace({ pathname: "/work/meetings/[id]", params: { id: meetingId } });
+      router.replace({ pathname: "/meetings/[id]", params: { id: meetingId } });
     },
     onError: () => {
       Alert.alert("Meeting could not be updated", "Review the details and try again.");

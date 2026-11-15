@@ -13,6 +13,7 @@ import { registerAuthRefreshListener, supabase } from "../lib/supabase";
 import { loadOwnAccount } from "./account";
 import type { MobileAccount } from "./types";
 import { queryClient } from "../query/QueryProvider";
+import { unregisterCurrentPushDevice } from "../modules/notification-push";
 
 interface AuthContextValue {
   session: Session | null;
@@ -40,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const nextAccount = await loadOwnAccount();
     if (!nextAccount || nextAccount.status !== "active") {
+      await unregisterCurrentPushDevice().catch(() => undefined);
       await supabase.auth.signOut();
       setAccount(null);
       queryClient.clear();
@@ -102,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       changePassword: async (password, confirmPassword) => {
         if (!session) throw new Error("not_authenticated");
         await changePasswordRequest(session, password, confirmPassword);
+        await unregisterCurrentPushDevice().catch(() => undefined);
         await supabase.auth.signOut({ scope: "local" });
         setSession(null);
         setAccount(null);
@@ -112,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAccount(nextAccount);
       },
       signOut: async () => {
+        await unregisterCurrentPushDevice().catch(() => undefined);
         await supabase.auth.signOut();
         setSession(null);
         setAccount(null);

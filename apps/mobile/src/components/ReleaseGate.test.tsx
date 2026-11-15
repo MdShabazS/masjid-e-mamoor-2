@@ -164,14 +164,14 @@ describe("ReleaseGate", () => {
     const view = await renderGate();
 
     expect(view.queryByText("Application content")).toBeNull();
-    expect(view.getByText(/app store link is not available/i)).toBeTruthy();
+    expect(view.getByText(/APK download link is not available/i)).toBeTruthy();
 
     await act(async () => fireEvent.press(view.getByText("Retry")));
     expect(mockRefetch).toHaveBeenCalledWith({ cancelRefetch: false });
     expect(view.queryByText("Application content")).toBeNull();
   });
 
-  it("fails open when the initial RPC check fails", async () => {
+  it("blocks until the initial RPC check succeeds", async () => {
     queryResult = {
       ...queryResult,
       data: undefined,
@@ -179,8 +179,17 @@ describe("ReleaseGate", () => {
     };
     const view = await renderGate();
 
-    expect(view.getByText("Application content")).toBeTruthy();
-    expect(view.queryByText("Please update to continue")).toBeNull();
+    expect(view.queryByText("Application content")).toBeNull();
+    expect(view.getByText("Connect to continue")).toBeTruthy();
+    await act(async () => fireEvent.press(view.getByText("Retry")));
+    expect(mockRefetch).toHaveBeenCalled();
+  });
+
+  it("blocks previously permitted content if a later release check fails", async () => {
+    queryResult = { ...queryResult, error: new Error("network_error") };
+    const view = await renderGate();
+    expect(view.queryByText("Application content")).toBeNull();
+    expect(view.getByText("Connect to continue")).toBeTruthy();
   });
 
   it("stays blocked when a later check fails after a required decision", async () => {

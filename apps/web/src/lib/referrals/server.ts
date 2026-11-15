@@ -241,7 +241,9 @@ export async function completeReferralProvisioning(input: {
   operationId: string;
 }, accessToken?: string) {
   const actor = await requireCurrentAccount(accessToken);
-  assertCanManageReferrals(actor);
+  if (actor.status !== "active" || actor.role !== "system_admin") {
+    throw new Error("not_authorized");
+  }
 
   const admin = createAdminClient();
   const usernameNormalized = validateUsernamePolicy(input.username);

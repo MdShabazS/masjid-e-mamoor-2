@@ -88,13 +88,14 @@ export default function ReferralsScreen() {
   }
 
   function provision(referral: MobileReferral) {
+    if (account?.role !== "system_admin") return;
     setProvisioningReferral(referral);
     setProvisionUsername("");
     setProvisionPassword("");
   }
 
   async function submitProvision() {
-    if (!provisioningReferral || !provisionUsername.trim()) return;
+    if (account?.role !== "system_admin" || !provisioningReferral || !provisionUsername.trim()) return;
     try {
       const result = await provisionManagedReferral(session!, {
         referralId: provisioningReferral.id,
@@ -184,7 +185,7 @@ export default function ReferralsScreen() {
           </Pressable>
         ) : null}
         {credential ? <CredentialPanel credential={credential} onCopy={() => void Clipboard.setStringAsync(credential.password)} onDismiss={() => setCredential(null)} /> : null}
-        {provisioningReferral ? (
+        {provisioningReferral && account.role === "system_admin" ? (
           <View style={styles.provisionForm}>
             <Text style={styles.cardTitle}>Provision approved referral</Text>
             <Text style={styles.meta}>A temporary password will be generated and shown once.</Text>
@@ -205,7 +206,7 @@ export default function ReferralsScreen() {
         {isLoading ? <LoadingState /> : null}
         {isError ? <ErrorState onRetry={() => void refetch()} /> : null}
         {!isLoading && !isError && referrals.length === 0 ? <EmptyState managed={capabilities.data.canManageReferrals} /> : null}
-        {referrals.map((referral) => <ReferralCard key={referral.id} managed={capabilities.data.canManageReferrals} referral={referral} busy={approve.isPending || reject.isPending} onShare={() => void shareReferral(referral)} onApprove={() => confirmApprove(referral)} onReject={() => beginReject(referral)} onProvision={() => void provision(referral)} />)}
+        {referrals.map((referral) => <ReferralCard key={referral.id} managed={capabilities.data.canManageReferrals} canProvision={account.role === "system_admin"} referral={referral} busy={approve.isPending || reject.isPending} onShare={() => void shareReferral(referral)} onApprove={() => confirmApprove(referral)} onReject={() => beginReject(referral)} onProvision={() => void provision(referral)} />)}
     </Screen>
   );
 }
@@ -213,6 +214,7 @@ export default function ReferralsScreen() {
 function ReferralCard({
   referral,
   managed,
+  canProvision = false,
   busy,
   onShare,
   onApprove,
@@ -221,6 +223,7 @@ function ReferralCard({
 }: {
   referral: MobileReferral;
   managed: boolean;
+  canProvision?: boolean;
   busy: boolean;
   onShare: () => void;
   onApprove: () => void;
@@ -254,7 +257,7 @@ function ReferralCard({
           <Pressable accessibilityRole="button" disabled={busy} onPress={onReject} style={styles.rejectSmall}><Text style={styles.rejectText}>Reject</Text></Pressable>
         </View>
       ) : null}
-      {managed && referral.status === "approved" ? <Pressable accessibilityRole="button" disabled={busy} onPress={onProvision} style={styles.primaryButton}><Text style={styles.primaryText}>Provision member</Text></Pressable> : null}
+      {managed && canProvision && referral.status === "approved" ? <Pressable accessibilityRole="button" disabled={busy} onPress={onProvision} style={styles.primaryButton}><Text style={styles.primaryText}>Provision member</Text></Pressable> : null}
     </View>
   );
 }

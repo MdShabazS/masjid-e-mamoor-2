@@ -161,6 +161,10 @@ from public.submit_finance_expense(
 )
 \gset
 
+select id from public.set_finance_expense_missing_bill_reason(
+  :'expense_id'::uuid, 'Historic test receipt unavailable; payment recorded separately.'
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"85000000-0000-0000-0000-000000000001","role":"authenticated"}',
@@ -173,6 +177,11 @@ from public.decide_finance_expense(
   'approve',
   null,
   'recon-test-expense-approve'
+);
+
+select id from public.pay_finance_expense(
+  :'expense_id'::uuid, 2500, current_date,
+  'recon-test-expense-pay'
 );
 
 select set_config(
@@ -820,6 +829,10 @@ from public.submit_finance_expense(
 )
 \gset
 
+select id from public.set_finance_expense_missing_bill_reason(
+  :'stale_expense_id'::uuid, 'Historic test receipt unavailable; payment recorded separately.'
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"85000000-0000-0000-0000-000000000001","role":"authenticated"}',
@@ -832,6 +845,11 @@ from public.decide_finance_expense(
   'approve',
   null,
   'recon-test-stale-expense-approve'
+);
+
+select id from public.pay_finance_expense(
+  :'stale_expense_id'::uuid, 500, current_date,
+  'recon-test-stale-expense-pay'
 );
 
 select set_config(

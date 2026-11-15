@@ -1,22 +1,23 @@
 import { useMutation, useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { router, type Href } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Alert, RefreshControl, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  View,
+} from "react-native";
 
 import { useAuth } from "../../src/auth/AuthProvider";
 import {
   AppButton,
-  BrandedPageHeader,
-  Divider,
   ErrorState,
-  InformationCard,
-  ListRow,
   LoadingState,
-  MetricCard,
-  SectionHeader,
-  StatusChip,
 } from "../../src/components/InstitutionalUI";
 import { NotificationBell } from "../../src/components/NotificationBell";
+import { AppIcon, type AppIconName } from "../../src/components/AppIcon";
+import { AppText as Text } from "../../src/components/AppText";
 import { Screen } from "../../src/components/Screen";
 import { loadCapabilities, type MobileCapabilities } from "../../src/modules/capabilities";
 import {
@@ -47,13 +48,9 @@ import {
   startCommitteeTask,
   type CommitteeTaskSummary,
 } from "../../src/modules/work";
-import {
-  formatTaskDate,
-  taskPriorityLabels,
-  taskStatusLabels,
-} from "../../src/modules/work-presentation";
-import { colors, roleLabels } from "../../src/theme/colors";
-import { spacing, typography } from "../../src/theme/tokens";
+import { formatTaskDate } from "../../src/modules/work-presentation";
+import { colors } from "../../src/theme/colors";
+import { fontFamilies, radii, spacing } from "../../src/theme/tokens";
 
 type TaskHomeAction = "claim" | "start" | "decline";
 
@@ -68,7 +65,6 @@ export default function HomeScreen() {
   });
 
   const canReadTasks = capabilities.data?.canReadCommitteeTasks === true;
-
   const canReadMeetings = capabilities.data?.canReadCommitteeMeetings === true;
 
   const tasks = useQuery({
@@ -117,9 +113,7 @@ export default function HomeScreen() {
             queryKey: committeeTaskListQueryKey(account.id),
           }),
           ...notificationInvalidationKeys(account.id).map((queryKey) =>
-            queryClient.invalidateQueries({
-              queryKey,
-            }),
+            queryClient.invalidateQueries({ queryKey }),
           ),
         ]);
       }
@@ -128,9 +122,7 @@ export default function HomeScreen() {
 
       router.push({
         pathname: "/work/[id]",
-        params: {
-          id: updatedTask.id,
-        },
+        params: { id: updatedTask.id },
       });
     },
 
@@ -159,7 +151,6 @@ export default function HomeScreen() {
   const openNotification = useMutation({
     mutationFn: async (notification: MobileNotification) => {
       await markMyNotificationRead(notification.id);
-
       return safeNotificationTarget(notification.targetPath);
     },
 
@@ -167,9 +158,7 @@ export default function HomeScreen() {
       if (account) {
         await Promise.all(
           notificationInvalidationKeys(account.id).map((queryKey) =>
-            queryClient.invalidateQueries({
-              queryKey,
-            }),
+            queryClient.invalidateQueries({ queryKey }),
           ),
         );
       }
@@ -184,19 +173,12 @@ export default function HomeScreen() {
 
   if (!account) return null;
 
-  const accountName = account.memberProfile?.displayName || account.username || "Account";
-
   const refreshAll = async () => {
     await capabilities.refetch();
     await notifications.refetch();
 
-    if (canReadTasks) {
-      await tasks.refetch();
-    }
-
-    if (canReadMeetings) {
-      await meetings.refetch();
-    }
+    if (canReadTasks) await tasks.refetch();
+    if (canReadMeetings) await meetings.refetch();
   };
 
   const refreshing =
@@ -207,42 +189,35 @@ export default function HomeScreen() {
 
   return (
     <Screen
+      backgroundColor={colors.dashboardBackground}
       contentContainerStyle={styles.content}
       scroll
       scrollViewProps={{
         refreshControl: (
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => {
-              void refreshAll();
-            }}
-            tintColor={colors.deepEmerald}
+            onRefresh={() => void refreshAll()}
+            tintColor={colors.primaryBlue}
           />
         ),
       }}
     >
       <StatusBar style="dark" />
 
-      <BrandedPageHeader
-        action={capabilities.data?.canReadNotifications ? <NotificationBell /> : undefined}
-        description={`${roleLabels[account.role]} workspace`}
-        eyebrow="Masjid E Mamoor 2"
-        title="Assalamu Alaikum"
+      <DashboardHeader
+        notificationBell={
+          capabilities.data?.canReadNotifications ? <NotificationBell /> : undefined
+        }
       />
 
-      <View style={styles.identityRow}>
-        <Text numberOfLines={1} style={styles.identityName}>{accountName}</Text>
-        <StatusChip label="Active" tone="success" />
-      </View>
-
       {capabilities.isLoading ? (
-        <View style={styles.section}>
+        <View style={styles.loadingWrap}>
           <LoadingState label="Preparing your dashboard" />
         </View>
       ) : null}
 
       {capabilities.isError ? (
-        <View style={styles.section}>
+        <View style={styles.loadingWrap}>
           <ErrorState
             action={
               <AppButton
@@ -251,7 +226,7 @@ export default function HomeScreen() {
                 variant="secondary"
               />
             }
-            description="Your authorized workspace could not be loaded. Check your connection and try again."
+            description="Your authorized workspace could not be loaded."
             title="Workspace unavailable"
           />
         </View>
@@ -259,33 +234,20 @@ export default function HomeScreen() {
 
       {capabilities.data ? (
         <>
-          <AttentionSection
+          <DashboardContent
             accountId={account.id}
+            capabilities={capabilities.data}
             canReadMeetings={canReadMeetings}
+            canReadNotifications={capabilities.data.canReadNotifications}
             canReadTasks={canReadTasks}
             meetings={meetings}
             notifications={notifications}
             onNotificationOpen={(notification) => openNotification.mutate(notification)}
-            onTaskAction={(task, action) =>
-              taskAction.mutate({
-                action,
-                task,
-              })
-            }
+            onTaskAction={(task, action) => taskAction.mutate({ action, task })}
             notificationOpeningId={
               openNotification.isPending ? openNotification.variables?.id : undefined
             }
             taskActionId={taskAction.isPending ? taskAction.variables?.task.id : undefined}
-            tasks={tasks}
-          />
-
-          <WorkspaceSection capabilities={capabilities.data} />
-
-          <DashboardOverview
-            canReadMeetings={canReadMeetings}
-            canReadTasks={canReadTasks}
-            meetings={meetings}
-            notifications={notifications}
             tasks={tasks}
           />
         </>
@@ -294,9 +256,30 @@ export default function HomeScreen() {
   );
 }
 
-function AttentionSection({
+function DashboardHeader({ notificationBell }: { notificationBell?: React.ReactNode }) {
+  return (
+    <View style={styles.header}>
+      <View style={styles.headerLeft}>
+        <View style={styles.mosqueIcon}>
+          <AppIcon color={colors.successGreen} name="mosque" size={38} />
+        </View>
+
+        <View style={styles.headerCopy}>
+          <Text style={styles.headerTitle}>Masjid-e-Mamoor</Text>
+          <Text style={styles.headerSubtitle}>Assalamu Alaikum</Text>
+        </View>
+      </View>
+
+      {notificationBell ? <View style={styles.headerBell}>{notificationBell}</View> : null}
+    </View>
+  );
+}
+
+function DashboardContent({
   accountId,
+  capabilities,
   canReadMeetings,
+  canReadNotifications,
   canReadTasks,
   meetings,
   notificationOpeningId,
@@ -307,7 +290,9 @@ function AttentionSection({
   tasks,
 }: {
   accountId: string;
+  capabilities: MobileCapabilities;
   canReadMeetings: boolean;
+  canReadNotifications: boolean;
   canReadTasks: boolean;
   meetings: UseQueryResult<CommitteeMeetingSummary[], Error>;
   notificationOpeningId?: string;
@@ -319,408 +304,612 @@ function AttentionSection({
 }) {
   const activeTasks = activeDashboardTasks(canReadTasks ? (tasks.data ?? []) : []);
 
-  const myTasks = activeTasks.filter((task) => task.assigneeIds.includes(accountId)).slice(0, 2);
+  const myTasks = activeTasks.filter((task) => task.assigneeIds.includes(accountId));
 
   const openTasks = activeTasks.filter(
     (task) => task.assignmentMode === "open" && task.status === "open",
-  ).slice(0, 2);
+  );
 
-  const nextMeeting = upcomingDashboardMeetings(canReadMeetings ? (meetings.data ?? []) : [])[0];
+  const nextMeeting =
+    upcomingDashboardMeetings(canReadMeetings ? (meetings.data ?? []) : [])[0];
 
-  const unreadNotifications = (notifications.data ?? []).slice(0, 3);
+  const unreadNotifications = (notifications.data ?? []).slice(0, 2);
 
-  const loading =
-    notifications.isLoading ||
-    (canReadTasks && tasks.isLoading) ||
-    (canReadMeetings && meetings.isLoading);
+  const attentionCount =
+    myTasks.length +
+    openTasks.length +
+    unreadNotifications.length +
+    (nextMeeting ? 1 : 0);
 
-  const hasAttention =
-    myTasks.length > 0 ||
-    openTasks.length > 0 ||
-    Boolean(nextMeeting) ||
-    unreadNotifications.length > 0;
+  const workspaceModules = dashboardWorkspaceModules(capabilities);
 
   return (
-    <View style={styles.section}>
-      <InformationCard style={styles.attentionBanner}>
-        <View style={styles.attentionBannerCopy}>
-          <Text style={styles.attentionBannerTitle}>Needs your attention</Text>
-          <Text style={styles.attentionBannerBody}>
-            {hasAttention
-              ? `${myTasks.length + openTasks.length + unreadNotifications.length + (nextMeeting ? 1 : 0)} current item${myTasks.length + openTasks.length + unreadNotifications.length + (nextMeeting ? 1 : 0) === 1 ? "" : "s"}`
-              : "You are all caught up"}
-          </Text>
-        </View>
-        <StatusChip label={hasAttention ? "Review" : "Clear"} tone={hasAttention ? "warning" : "success"} />
-      </InformationCard>
+    <View style={styles.dashboardStack}>
+      <AttentionBanner count={attentionCount} />
 
-      {loading && !hasAttention ? (
-        <LoadingState label="Checking tasks, meetings and notifications" />
-      ) : null}
-
-      {!loading && !hasAttention ? (
-        <InformationCard>
-          <View style={styles.clearState}>
-            <StatusChip label="All caught up" tone="success" />
-
-            <Text style={styles.clearTitle}>Nothing urgent right now</Text>
-
-            <Text style={styles.clearDescription}>
-              New task assignments, meeting updates and important notifications will appear here.
-            </Text>
-          </View>
-        </InformationCard>
-      ) : null}
-
-      {myTasks.length > 0 ? (
-        <View style={styles.dashboardGroup}>
-          <SectionHeader title="Assigned to you" />
-          {myTasks.map((task) => (
-            <TaskAttentionCard
+      {canReadTasks ? (
+        <DashboardSection
+          icon="clipboard-check-outline"
+          iconColor={colors.dashboardBlue}
+          title="Assigned to you"
+          count={myTasks.length}
+          backgroundColor={colors.dashboardBlueSurface}
+          borderColor={colors.dashboardBlueBorder}
+        >
+          {myTasks.slice(0, 1).map((task) => (
+            <AssignedTaskCard
               key={task.id}
               busy={taskActionId === task.id}
-              onAction={(action) => onTaskAction(task, action)}
               task={task}
-              type="assigned"
+              onAction={(action) => onTaskAction(task, action)}
             />
           ))}
-        </View>
+          {myTasks.length === 0 ? (
+            <CompactEmptyState
+              icon="clipboard-check-outline"
+              message="No assigned tasks need your attention."
+              title="No assigned tasks"
+            />
+          ) : null}
+        </DashboardSection>
       ) : null}
 
-      {openTasks.length > 0 ? (
-        <View style={styles.dashboardGroup}>
-          <SectionHeader title="Open tasks" />
-          {openTasks.map((task) => (
-            <TaskAttentionCard
+      {canReadTasks ? (
+        <DashboardSection
+          icon="clipboard-plus-outline"
+          iconColor={colors.dashboardBlue}
+          title="Open tasks"
+          count={openTasks.length}
+          backgroundColor={colors.dashboardOpenSurface}
+          borderColor={colors.dashboardOpenBorder}
+        >
+          {openTasks.slice(0, 1).map((task) => (
+            <OpenTaskCard
               key={task.id}
               busy={taskActionId === task.id}
-              onAction={(action) => onTaskAction(task, action)}
               task={task}
-              type="open"
+              onAction={() => onTaskAction(task, "claim")}
             />
           ))}
-        </View>
+          {openTasks.length === 0 ? (
+            <CompactEmptyState
+              icon="clipboard-plus-outline"
+              message="No volunteer tasks are currently available."
+              title="No open tasks"
+            />
+          ) : null}
+        </DashboardSection>
       ) : null}
 
-      {nextMeeting ? (
-        <View style={styles.dashboardGroup}>
-          <SectionHeader title="Next meeting" />
-          <MeetingAttentionCard meeting={nextMeeting} />
-        </View>
+      {canReadMeetings ? (
+        <DashboardSection
+          icon="calendar-clock-outline"
+          iconColor={colors.dashboardPurple}
+          title="Next meeting"
+          backgroundColor={colors.dashboardPurpleSurface}
+          borderColor={colors.dashboardPurpleBorder}
+        >
+          {nextMeeting ? (
+            <Pressable
+              accessibilityLabel="View meeting"
+              accessibilityRole="button"
+              onPress={() =>
+                router.push({
+                  pathname: "/meetings/[id]",
+                  params: { id: nextMeeting.id },
+                })
+              }
+              style={({ pressed }) => [
+                styles.innerCard,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.innerTitle}>{nextMeeting.title}</Text>
+              <Text style={styles.innerMeta}>
+                {formatDashboardMeetingRange(
+                  nextMeeting.scheduledStart,
+                  nextMeeting.scheduledEnd,
+                )}
+              </Text>
+              <Text style={styles.innerMeta}>
+                {nextMeeting.location ?? "Location not specified"}
+              </Text>
+            </Pressable>
+          ) : (
+            <CompactEmptyState
+              icon="calendar-check-outline"
+              message="There are no upcoming meetings on your schedule."
+              title="No upcoming meetings"
+            />
+          )}
+        </DashboardSection>
       ) : null}
 
-      {unreadNotifications.length > 0 ? (
-        <View style={styles.dashboardGroup}>
-          <SectionHeader title="Recent notifications" />
-          <InformationCard emphasis style={styles.attentionCard}>
-          <View style={styles.attentionHeading}>
-            <View>
-              <Text style={styles.attentionEyebrow}>NEW NOTIFICATIONS</Text>
+      {canReadNotifications ? (
+        <DashboardSection
+          icon="bell-outline"
+          iconColor={colors.dashboardOrange}
+          title="Recent notifications"
+          backgroundColor={colors.dashboardYellowSurface}
+          borderColor={colors.dashboardYellowBorder}
+        >
+          <View style={styles.notificationRows}>
+            {unreadNotifications.map((notification) => (
+              <Pressable
+                accessibilityLabel={notification.title}
+                accessibilityRole="button"
+                key={notification.id}
+                onPress={() => onNotificationOpen(notification)}
+                style={({ pressed }) => [
+                  styles.notificationRow,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <View style={styles.notificationLeading}>
+                  <View style={styles.notificationDotOrange} />
 
-              <Text style={styles.attentionTitle}>Recent updates</Text>
-            </View>
+                  <View style={styles.notificationCopy}>
+                    <Text numberOfLines={1} style={styles.notificationTitle}>
+                      {notification.title}
+                    </Text>
 
-            <StatusChip label={`${unreadNotifications.length} new`} tone="info" />
-          </View>
+                    <Text style={styles.notificationTime}>
+                      {notificationOpeningId === notification.id
+                        ? "Opening..."
+                        : formatRelativeNotificationDate(notification.createdAt)}
+                    </Text>
+                  </View>
+                </View>
 
-          <View style={styles.notificationList}>
-            {unreadNotifications.map((notification, index) => (
-              <View key={notification.id}>
-                {index > 0 ? <Divider /> : null}
-
-                <ListRow
-                  meta={formatHomeNotificationDate(notification.createdAt)}
-                  onPress={() => onNotificationOpen(notification)}
-                  subtitle={notification.body}
-                  title={notification.title}
-                  trailing={
-                    notificationOpeningId === notification.id ? (
-                      <StatusChip label="Opening" tone="info" />
-                    ) : (
-                      <StatusChip label="New" tone="info" />
-                    )
-                  }
-                />
-              </View>
+                <View style={styles.notificationDotBlue} />
+              </Pressable>
             ))}
           </View>
-
-          <View style={styles.singleAction}>
-            <AppButton
-              label="View all notifications"
-              onPress={() => router.push("/notifications")}
-              variant="secondary"
+          {unreadNotifications.length === 0 ? (
+            <CompactEmptyState
+              icon="bell-check-outline"
+              message="You have reviewed every recent update."
+              title="You're all caught up"
             />
-          </View>
-          </InformationCard>
-        </View>
+          ) : null}
+        </DashboardSection>
+      ) : null}
+
+      <QuickAccessSection modules={workspaceModules} />
+
+      <OverviewSection
+        canReadMeetings={canReadMeetings}
+        canReadNotifications={canReadNotifications}
+        canReadTasks={canReadTasks}
+        meetings={meetings}
+        notifications={notifications}
+        tasks={tasks}
+      />
+    </View>
+  );
+}
+
+function AttentionBanner({ count }: { count: number }) {
+  const hasItems = count > 0;
+
+  return (
+    <View
+      style={[
+        styles.attentionBanner,
+        hasItems ? styles.attentionBannerActive : styles.attentionBannerClear,
+      ]}
+    >
+      <View
+        style={[
+          styles.attentionIcon,
+          hasItems ? styles.attentionIconActive : styles.attentionIconClear,
+        ]}
+      >
+        <AppIcon
+          color={colors.white}
+          name={hasItems ? "alert-outline" : "check-circle-outline"}
+          size={26}
+        />
+      </View>
+
+      <View style={styles.attentionCopy}>
+        <Text
+          style={[
+            styles.attentionTitle,
+            hasItems ? styles.attentionTitleActive : styles.attentionTitleClear,
+          ]}
+        >
+          {hasItems ? "Needs your attention" : "All caught up"}
+        </Text>
+
+        <Text
+          style={[
+            styles.attentionBody,
+            hasItems ? styles.attentionBodyActive : styles.attentionBodyClear,
+          ]}
+        >
+          {hasItems
+            ? `${count} item${count === 1 ? "" : "s"} across your work and updates`
+            : "Nothing urgent right now"}
+        </Text>
+      </View>
+
+      {hasItems ? (
+        <AppIcon color={colors.dashboardRedMuted} name="chevron-right" size={24} />
       ) : null}
     </View>
   );
 }
 
-function TaskAttentionCard({
+function DashboardSection({
+  backgroundColor,
+  borderColor,
+  children,
+  count,
+  icon,
+  iconColor,
+  title,
+}: {
+  backgroundColor: string;
+  borderColor: string;
+  children: React.ReactNode;
+  count?: number;
+  icon: AppIconName;
+  iconColor: string;
+  title: string;
+}) {
+  return (
+    <View style={[styles.sectionPanel, { backgroundColor, borderColor }]}>
+      <View style={styles.sectionHeaderRow}>
+        <View style={styles.sectionHeaderLeft}>
+          <AppIcon color={iconColor} name={icon} size={22} />
+          <Text style={styles.sectionTitle}>{title}</Text>
+        </View>
+
+        <View style={styles.sectionHeaderRight}>
+          {typeof count === "number" ? (
+            <View accessibilityLabel={`${title}: ${count}`} accessible style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>{count}</Text>
+            </View>
+          ) : null}
+
+        </View>
+      </View>
+
+      {children}
+    </View>
+  );
+}
+
+function CompactEmptyState({
+  icon,
+  message,
+  title,
+}: {
+  icon: AppIconName;
+  message: string;
+  title: string;
+}) {
+  return (
+    <View style={styles.compactEmptyCard}>
+      <View style={styles.compactEmptyIcon}>
+        <AppIcon color={colors.textMuted} name={icon} size={20} />
+      </View>
+      <View style={styles.compactEmptyCopy}>
+        <Text style={styles.compactEmptyTitle}>{title}</Text>
+        <Text style={styles.compactEmptyMessage}>{message}</Text>
+      </View>
+    </View>
+  );
+}
+
+function AssignedTaskCard({
   busy,
   onAction,
   task,
-  type,
 }: {
   busy: boolean;
   onAction: (action: TaskHomeAction) => void;
   task: CommitteeTaskSummary;
-  type: "assigned" | "open";
 }) {
-  const isOpen = type === "open";
-
-  const canStart = !isOpen && task.status === "assigned";
-
-  const primaryLabel = isOpen ? "Accept task" : canStart ? "Accept & start" : null;
-
-  const primaryAction: TaskHomeAction | null = isOpen ? "claim" : canStart ? "start" : null;
-  const canDecline =
-    !isOpen && task.assignmentMode === "direct" && task.status === "assigned";
+  const canStart = task.status === "assigned";
 
   return (
-    <InformationCard emphasis style={styles.attentionCard}>
-      <View style={styles.attentionHeading}>
-        <View style={styles.attentionCopy}>
-          <Text style={styles.attentionEyebrow}>{isOpen ? "AVAILABLE TASK" : "YOUR TASK"}</Text>
+    <View style={styles.innerCard}>
+      <Text style={styles.innerTitle}>{task.title}</Text>
 
-          <Text style={styles.attentionTitle}>{task.title}</Text>
-        </View>
+      <View style={styles.metaLine}>
+        <AppIcon color={colors.textMuted} name="calendar-blank-outline" size={15} />
+        <Text style={styles.innerMeta}>{formatTaskDate(task.dueDate)}</Text>
 
-        <StatusChip
-          label={task.isOverdue ? "Overdue" : taskPriorityLabels[task.priority]}
-          tone={task.isOverdue ? "warning" : task.priority === "high" ? "warning" : "info"}
-        />
-      </View>
-
-      {task.description ? (
-        <Text numberOfLines={3} style={styles.attentionDescription}>
-          {task.description}
-        </Text>
-      ) : null}
-
-      <View style={styles.metaRow}>
-        <Text style={styles.metaText}>Due: {formatTaskDate(task.dueDate)}</Text>
-
-        <Text style={styles.metaDot}>•</Text>
-
-        <Text style={styles.metaText}>
-          {isOpen ? "Open volunteer task" : taskStatusLabels[task.status]}
+        <AppIcon color={colors.textMuted} name="account-outline" size={15} />
+        <Text style={styles.innerMeta}>
+          {task.assignmentMode === "direct" ? "Assigned task" : "Task"}
         </Text>
       </View>
 
-      <View style={styles.actionRow}>
-        {primaryLabel && primaryAction ? (
-          <View style={styles.actionButton}>
-            <AppButton
-              label={primaryLabel}
-              loading={busy}
-              onPress={() => onAction(primaryAction)}
-            />
-          </View>
-        ) : null}
-
-        {canDecline ? (
-          <View style={styles.actionButton}>
-            <AppButton
-              label="Decline"
-              disabled={busy}
-              onPress={() =>
-                Alert.alert(
-                  "Decline assignment?",
-                  "You will be removed from this task and the manager will be notified.",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Decline", style: "destructive", onPress: () => onAction("decline") },
-                  ],
-                )
-              }
-              variant="secondary"
-            />
-          </View>
-        ) : null}
-
-        <View style={styles.actionButton}>
-          <AppButton
-            label="View task"
+      <View style={styles.taskActions}>
+        {task.assignmentMode === "direct" && task.status === "assigned" ? (
+          <Pressable
+            accessibilityLabel="Decline"
+            accessibilityRole="button"
+            disabled={busy}
             onPress={() =>
-              router.push({
-                pathname: "/work/[id]",
-                params: {
-                  id: task.id,
-                },
-              })
+              Alert.alert(
+                "Decline assignment?",
+                "You will be removed from this task and the manager will be notified.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Decline",
+                    style: "destructive",
+                    onPress: () => onAction("decline"),
+                  },
+                ],
+              )
             }
-            variant={primaryLabel ? "secondary" : "primary"}
-          />
-        </View>
+            style={({ pressed }) => [
+              styles.secondaryAction,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.secondaryActionText}>Decline</Text>
+          </Pressable>
+        ) : null}
+
+        {canStart ? (
+          <Pressable
+            accessibilityLabel={busy ? "Starting" : "Accept & start"}
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => onAction("start")}
+            style={({ pressed }) => [
+              styles.primaryAction,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.primaryActionText}>
+              {busy ? "Starting..." : "Accept & start"}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
-    </InformationCard>
-  );
-}
 
-function MeetingAttentionCard({ meeting }: { meeting: CommitteeMeetingSummary }) {
-  return (
-    <InformationCard emphasis style={styles.attentionCard}>
-      <View style={styles.attentionHeading}>
-        <View style={styles.attentionCopy}>
-          <Text style={styles.attentionEyebrow}>NEXT MEETING</Text>
-
-          <Text style={styles.attentionTitle}>{meeting.title}</Text>
-        </View>
-
-        <StatusChip label="Scheduled" tone="success" />
-      </View>
-
-      <Text style={styles.meetingDate}>
-        {formatDashboardMeetingRange(meeting.scheduledStart, meeting.scheduledEnd)}
-      </Text>
-
-      <Text style={styles.attentionDescription}>
-        {meeting.meetingType.replaceAll("_", " ")} · {meeting.location ?? "Location not specified"}
-      </Text>
-
-      <View style={styles.singleAction}>
-        <AppButton
-          label="View meeting"
-          onPress={() =>
-            router.push({
-              pathname: "/work/meetings/[id]",
-              params: {
-                id: meeting.id,
-              },
-            })
-          }
-        />
-      </View>
-    </InformationCard>
-  );
-}
-
-function WorkspaceSection({ capabilities }: { capabilities: MobileCapabilities }) {
-  const modules = dashboardWorkspaceModules(capabilities);
-
-  return (
-    <View style={styles.section}>
-      <SectionHeader
-        description="Only the tools available to your role are shown."
-        title="Quick access"
-      />
-
-      <InformationCard style={styles.workspaceCard}>
-        {modules.map((module, index) => (
-          <View key={module.key}>
-            {index > 0 ? <Divider /> : null}
-
-            <ListRow
-              onPress={() => router.push(module.href)}
-              subtitle={module.description}
-              title={module.title}
-            />
-          </View>
-        ))}
-      </InformationCard>
+      <Pressable
+        accessibilityLabel="View task"
+        accessibilityRole="button"
+        onPress={() =>
+          router.push({
+            pathname: "/work/[id]",
+            params: { id: task.id },
+          })
+        }
+        style={({ pressed }) => [
+          styles.taskDetailAction,
+          pressed && styles.pressed,
+        ]}
+      >
+        <Text style={styles.taskDetailActionText}>View task</Text>
+        <AppIcon color={colors.primaryActionBlue} name="arrow-right" size={18} />
+      </Pressable>
     </View>
   );
 }
 
-function DashboardOverview({
+function OpenTaskCard({
+  busy,
+  onAction,
+  task,
+}: {
+  busy: boolean;
+  onAction: () => void;
+  task: CommitteeTaskSummary;
+}) {
+  return (
+    <View style={styles.innerCard}>
+      <View style={styles.openTaskRow}>
+        <View style={styles.openTaskCopy}>
+          <Text style={styles.innerTitle}>{task.title}</Text>
+
+          <View style={styles.metaLine}>
+            <AppIcon color={colors.textMuted} name="calendar-blank-outline" size={15} />
+            <Text style={styles.innerMeta}>{formatTaskDate(task.dueDate)}</Text>
+          </View>
+        </View>
+
+        <Pressable
+          accessibilityLabel={busy ? "Accepting task" : "Accept task"}
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={onAction}
+          style={({ pressed }) => [
+            styles.acceptTaskButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.acceptTaskText}>
+            {busy ? "Accepting..." : "Accept task"}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function QuickAccessSection({
+  modules,
+}: {
+  modules: ReturnType<typeof dashboardWorkspaceModules>;
+}) {
+  const preferred = ["members", "work", "meetings", "announcements"];
+
+  const ordered = [...modules].sort((a, b) => {
+    const ai = preferred.indexOf(a.key);
+    const bi = preferred.indexOf(b.key);
+
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+
+  const shown = ordered.slice(0, 4);
+
+  const tileMeta = {
+    members: {
+      label: "Members",
+      icon: "account-group-outline",
+      iconBg: colors.dashboardQuickBlue,
+    },
+    work: {
+      label: "Tasks",
+      icon: "clipboard-check-outline",
+      iconBg: colors.dashboardQuickGreen,
+    },
+    meetings: {
+      label: "Meetings",
+      icon: "calendar-month-outline",
+      iconBg: colors.dashboardQuickPurple,
+    },
+    announcements: {
+      label: "Announcements",
+      icon: "bullhorn-outline",
+      iconBg: colors.dashboardQuickOrange,
+    },
+  } as const;
+
+  return (
+    <DashboardSection
+      icon="view-grid-outline"
+      iconColor={colors.dashboardGreen}
+      title="Quick access"
+      backgroundColor={colors.dashboardGreenSurface}
+      borderColor={colors.dashboardGreenBorder}
+    >
+      <View style={styles.quickGrid}>
+        {shown.map((module) => {
+          const meta =
+            tileMeta[module.key as keyof typeof tileMeta] ?? {
+              label: module.title,
+              icon: "dots-horizontal",
+              iconBg: colors.dashboardQuickBlue,
+            };
+
+          return (
+            <Pressable
+              accessibilityLabel={meta.label}
+              accessibilityRole="button"
+              key={module.key}
+              onPress={() => router.push(module.href)}
+              style={({ pressed }) => [
+                styles.quickTile,
+                pressed && styles.pressed,
+              ]}
+            >
+              <View
+                style={[
+                  styles.quickIconCircle,
+                  { backgroundColor: meta.iconBg },
+                ]}
+              >
+                <AppIcon color={colors.white} name={meta.icon} size={22} />
+              </View>
+
+              <Text numberOfLines={2} style={styles.quickLabel}>
+                {meta.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </DashboardSection>
+  );
+}
+
+function OverviewSection({
   canReadMeetings,
+  canReadNotifications,
   canReadTasks,
   meetings,
   notifications,
   tasks,
 }: {
   canReadMeetings: boolean;
+  canReadNotifications: boolean;
   canReadTasks: boolean;
   meetings: UseQueryResult<CommitteeMeetingSummary[], Error>;
   notifications: UseQueryResult<MobileNotification[], Error>;
   tasks: UseQueryResult<CommitteeTaskSummary[], Error>;
 }) {
   const activeTasks = activeDashboardTasks(canReadTasks ? (tasks.data ?? []) : []);
-
-  const upcomingMeetings = upcomingDashboardMeetings(canReadMeetings ? (meetings.data ?? []) : []);
+  const upcomingMeetings = upcomingDashboardMeetings(
+    canReadMeetings ? (meetings.data ?? []) : [],
+  );
 
   const unreadCount = notifications.data?.length ?? 0;
 
+  const metrics = [
+    ...(canReadTasks
+      ? [{ label: "Open tasks", value: activeTasks.length }]
+      : []),
+    ...(canReadMeetings
+      ? [{ label: "Meetings", value: upcomingMeetings.length }]
+      : []),
+    ...(canReadNotifications
+      ? [{ label: "Unread", value: unreadCount, accent: true }]
+      : []),
+  ];
+
   return (
-    <View style={styles.section}>
-      <SectionHeader
-        description="A quick summary without making the home page busy."
-        title="Overview"
-      />
+    <DashboardSection
+      icon="chart-box-outline"
+      iconColor={colors.dashboardBlue}
+      title="Overview"
+      backgroundColor={colors.dashboardOverviewSurface}
+      borderColor={colors.dashboardOverviewBorder}
+    >
+      <View style={styles.overviewGrid}>
+        {metrics.map((metric) => (
+          <View key={metric.label} style={styles.overviewTile}>
+            <Text
+              style={[
+                styles.overviewValue,
+                metric.accent && styles.overviewValueAccent,
+              ]}
+            >
+              {metric.value}
+            </Text>
 
-      <View style={styles.metricsRow}>
-        {canReadTasks ? (
-          <MetricCard
-            helper="Visible active work"
-            label="Tasks"
-            style={styles.metricCard}
-            tone={activeTasks.some((task) => task.isOverdue) ? "warning" : "neutral"}
-            value={activeTasks.length}
-          />
-        ) : null}
-
-        {canReadMeetings ? (
-          <MetricCard
-            helper="Scheduled ahead"
-            label="Meetings"
-            style={styles.metricCard}
-            value={upcomingMeetings.length}
-          />
-        ) : null}
-
-        <MetricCard
-          helper="Unread updates"
-          label="Notifications"
-          style={styles.metricCard}
-          tone={unreadCount > 0 ? "info" : "neutral"}
-          value={unreadCount}
-        />
-      </View>
-
-      <View style={styles.overviewActions}>
-        {canReadTasks ? (
-          <View style={styles.overviewButton}>
-            <AppButton label="All work" onPress={() => router.push("/work")} variant="secondary" />
+            <Text style={styles.overviewLabel}>{metric.label}</Text>
           </View>
-        ) : null}
-
-        {canReadMeetings ? (
-          <View style={styles.overviewButton}>
-            <AppButton
-              label="Meetings"
-              onPress={() => router.push("/work/meetings")}
-              variant="secondary"
-            />
-          </View>
-        ) : null}
-
-        <View style={styles.overviewButton}>
-          <AppButton
-            label="Notifications"
-            onPress={() => router.push("/notifications")}
-            variant="secondary"
-          />
-        </View>
+        ))}
       </View>
-    </View>
+    </DashboardSection>
   );
 }
 
-function formatHomeNotificationDate(value: string) {
+function formatRelativeNotificationDate(value: string) {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return "Date unavailable";
+    return "Recently";
   }
 
-  return date.toLocaleString("en-IN", {
+  const difference = Date.now() - date.getTime();
+  const minutes = Math.max(1, Math.floor(difference / 60000));
+
+  if (minutes < 60) {
+    return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+
+  if (hours < 24) {
+    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+
+  return date.toLocaleDateString("en-IN", {
     day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
     month: "short",
   });
 }
@@ -728,147 +917,451 @@ function formatHomeNotificationDate(value: string) {
 const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
-    padding: spacing.xl,
-    paddingBottom: spacing.section,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
 
-  identityRow: {
+  header: {
     alignItems: "center",
     flexDirection: "row",
-    gap: spacing.md,
     justifyContent: "space-between",
+    paddingBottom: spacing.md,
+    paddingTop: spacing.sm,
+  },
+
+  headerLeft: {
+    alignItems: "center",
+    flexDirection: "row",
+    flex: 1,
+  },
+
+  mosqueIcon: {
+    alignItems: "center",
+    height: 48,
+    justifyContent: "center",
+    marginRight: spacing.md,
+    width: 54,
+  },
+
+  headerCopy: {
+    flex: 1,
+  },
+
+  headerTitle: {
+    color: colors.dashboardText,
+    fontFamily: fontFamilies.bold,
+    fontSize: 22,
+    lineHeight: 27,
+  },
+
+  headerSubtitle: {
+    color: colors.dashboardMuted,
+    fontFamily: fontFamilies.regular,
+    fontSize: 15,
+    marginTop: 1,
+  },
+
+  headerBell: {
+    marginLeft: spacing.md,
+  },
+
+  loadingWrap: {
     marginTop: spacing.lg,
   },
-  identityName: { color: colors.secondary, flex: 1, ...typography.body },
 
-  section: {
-    gap: spacing.lg,
-    marginTop: spacing.section,
+  dashboardStack: {
+    gap: 12,
   },
 
-  attentionCard: {
-    gap: spacing.md,
-  },
   attentionBanner: {
     alignItems: "center",
-    backgroundColor: colors.warningSurface,
-    borderColor: colors.goldMuted,
+    borderRadius: radii.card,
+    borderWidth: 1,
     flexDirection: "row",
-    justifyContent: "space-between",
+    minHeight: 82,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
-  attentionBannerCopy: { flex: 1, marginRight: spacing.md },
-  attentionBannerTitle: { color: colors.textStrong, ...typography.sectionTitle },
-  attentionBannerBody: { color: colors.secondary, marginTop: spacing.xs, ...typography.bodySmall },
-  dashboardGroup: { gap: spacing.md },
 
-  attentionHeading: {
-    alignItems: "flex-start",
-    flexDirection: "row",
-    gap: spacing.md,
-    justifyContent: "space-between",
+  attentionBannerActive: {
+    backgroundColor: colors.dashboardRedSurface,
+    borderColor: colors.dashboardRedBorder,
+  },
+
+  attentionBannerClear: {
+    backgroundColor: colors.dashboardGreenSurface,
+    borderColor: colors.dashboardGreenBorder,
+  },
+
+  attentionIcon: {
+    alignItems: "center",
+    borderRadius: 24,
+    height: 46,
+    justifyContent: "center",
+    marginRight: 14,
+    width: 46,
+  },
+
+  attentionIconActive: {
+    backgroundColor: colors.dashboardRed,
+  },
+
+  attentionIconClear: {
+    backgroundColor: colors.dashboardGreen,
   },
 
   attentionCopy: {
     flex: 1,
   },
 
-  attentionEyebrow: {
-    color: colors.gold,
-    ...typography.eyebrow,
-  },
-
   attentionTitle: {
+    fontFamily: fontFamilies.bold,
+    fontSize: 17,
+  },
+
+  attentionTitleActive: {
+    color: colors.dashboardRedText,
+  },
+
+  attentionTitleClear: {
+    color: colors.success,
+  },
+
+  attentionBody: {
+    fontFamily: fontFamilies.regular,
+    fontSize: 14,
+    marginTop: 4,
+  },
+
+  attentionBodyActive: {
+    color: colors.dashboardRedMuted,
+  },
+
+  attentionBodyClear: {
+    color: colors.textMuted,
+  },
+
+  sectionPanel: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 12,
+  },
+
+  sectionHeaderRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+
+  sectionHeaderLeft: {
+    alignItems: "center",
+    flexDirection: "row",
+    flex: 1,
+  },
+
+  sectionTitle: {
+    color: colors.dashboardText,
+    fontFamily: fontFamilies.bold,
+    fontSize: 16,
+  },
+
+  sectionHeaderRight: {
+    alignItems: "center",
+    flexDirection: "row",
+  },
+
+  countBadge: {
+    alignItems: "center",
+    backgroundColor: "#D9ECFF",
+    borderRadius: 999,
+    height: 30,
+    justifyContent: "center",
+    marginRight: 8,
+    minWidth: 30,
+    paddingHorizontal: 8,
+  },
+
+  countBadgeText: {
+    color: colors.dashboardText,
+    fontFamily: fontFamilies.bold,
+    fontSize: 14,
+  },
+
+  innerCard: {
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderRadius: 15,
+    borderWidth: 1,
+    padding: 14,
+  },
+
+  compactEmptyCard: {
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderRadius: 15,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 12,
+    minHeight: 72,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+
+  compactEmptyIcon: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 20,
+    height: 40,
+    justifyContent: "center",
+    width: 40,
+  },
+
+  compactEmptyCopy: { flex: 1 },
+
+  compactEmptyTitle: {
     color: colors.textStrong,
-    marginTop: spacing.xs,
-    ...typography.sectionTitle,
+    fontFamily: fontFamilies.semibold,
+    fontSize: 14,
+    lineHeight: 19,
   },
 
-  attentionDescription: {
-    color: colors.secondary,
-    ...typography.body,
+  compactEmptyMessage: {
+    color: colors.textMuted,
+    fontFamily: fontFamilies.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
   },
 
-  meetingDate: {
-    color: colors.deepEmerald,
-    ...typography.cardTitle,
+  innerTitle: {
+    color: colors.dashboardText,
+    fontFamily: fontFamilies.bold,
+    fontSize: 16,
+    lineHeight: 21,
   },
 
-  metaRow: {
+  innerMeta: {
+    color: colors.dashboardMuted,
+    fontFamily: fontFamilies.regular,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 4,
+  },
+
+  metaLine: {
     alignItems: "center",
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.sm,
+    gap: 7,
+    marginTop: 6,
   },
 
-  metaText: {
-    color: colors.textMuted,
-    ...typography.caption,
-  },
-
-  metaDot: {
-    color: colors.gold,
-    ...typography.caption,
-  },
-
-  actionRow: {
+  taskActions: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-    marginTop: spacing.xs,
+    gap: 10,
+    marginTop: 13,
   },
 
-  actionButton: {
-    flexGrow: 1,
-    minWidth: 130,
+  secondaryAction: {
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderColor: colors.borderStrong,
+    borderRadius: 9,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 44,
   },
 
-  singleAction: {
-    alignSelf: "flex-start",
-    marginTop: spacing.xs,
+  secondaryActionText: {
+    color: colors.dashboardText,
+    fontFamily: fontFamilies.semibold,
+    fontSize: 14,
   },
 
-  clearState: {
-    gap: spacing.sm,
+  primaryAction: {
+    alignItems: "center",
+    backgroundColor: colors.successText,
+    borderRadius: radii.control,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 44,
   },
 
-  clearTitle: {
-    color: colors.textStrong,
-    ...typography.cardTitle,
+  primaryActionText: {
+    color: colors.white,
+    fontFamily: fontFamilies.bold,
+    fontSize: 14,
   },
 
-  clearDescription: {
-    color: colors.secondary,
-    ...typography.bodySmall,
-  },
-
-  notificationList: {
-    marginTop: spacing.xs,
-  },
-
-  workspaceCard: {
-    paddingBottom: 0,
-    paddingTop: 0,
-  },
-
-  metricsRow: {
+  taskDetailAction: {
+    alignItems: "center",
+    alignSelf: "flex-end",
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.md,
+    gap: 4,
+    marginTop: 12,
+    minHeight: 44,
+    paddingHorizontal: 4,
   },
 
-  metricCard: {
-    flexBasis: 145,
-    flexGrow: 1,
+  taskDetailActionText: {
+    color: colors.primaryActionBlue,
+    fontFamily: fontFamilies.semibold,
+    fontSize: 14,
   },
 
-  overviewActions: {
+  openTaskRow: {
+    alignItems: "center",
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
+    gap: 12,
   },
 
-  overviewButton: {
-    flexGrow: 1,
-    minWidth: 120,
+  openTaskCopy: {
+    flex: 1,
+  },
+
+  acceptTaskButton: {
+    alignItems: "center",
+    backgroundColor: colors.primaryActionBlue,
+    borderRadius: radii.control,
+    justifyContent: "center",
+    minHeight: 42,
+    paddingHorizontal: 18,
+  },
+
+  acceptTaskText: {
+    color: colors.white,
+    fontFamily: fontFamilies.bold,
+    fontSize: 14,
+  },
+
+  notificationRows: {
+    gap: 2,
+  },
+
+  notificationRow: {
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderRadius: 13,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    minHeight: 61,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+  },
+
+  notificationLeading: {
+    alignItems: "center",
+    flexDirection: "row",
+    flex: 1,
+  },
+
+  notificationDotOrange: {
+    backgroundColor: colors.dashboardOrange,
+    borderRadius: 6,
+    height: 10,
+    marginRight: 12,
+    width: 10,
+  },
+
+  notificationCopy: {
+    flex: 1,
+  },
+
+  notificationTitle: {
+    color: colors.dashboardText,
+    fontFamily: fontFamilies.semibold,
+    fontSize: 14,
+  },
+
+  notificationTime: {
+    color: colors.dashboardMuted,
+    fontFamily: fontFamilies.regular,
+    fontSize: 12,
+    marginTop: 2,
+  },
+
+  notificationDotBlue: {
+    backgroundColor: colors.dashboardBlue,
+    borderRadius: 6,
+    height: 9,
+    marginLeft: 8,
+    width: 9,
+  },
+
+  quickGrid: {
+    flexDirection: "row",
+    gap: 8,
+  },
+
+  quickTile: {
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderColor: colors.border,
+    borderRadius: 15,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: "center",
+    minHeight: 104,
+    paddingHorizontal: 5,
+    paddingVertical: 12,
+  },
+
+  quickIconCircle: {
+    alignItems: "center",
+    borderRadius: 24,
+    height: 48,
+    justifyContent: "center",
+    marginBottom: 8,
+    width: 48,
+  },
+
+  quickLabel: {
+    color: colors.dashboardText,
+    fontFamily: fontFamilies.semibold,
+    fontSize: 11,
+    lineHeight: 14,
+    minHeight: 28,
+    textAlign: "center",
+  },
+
+  overviewGrid: {
+    flexDirection: "row",
+    gap: 8,
+  },
+
+  overviewTile: {
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    flex: 1,
+    minHeight: 76,
+    justifyContent: "center",
+    paddingHorizontal: 6,
+    paddingVertical: 9,
+  },
+
+  overviewValue: {
+    color: colors.dashboardText,
+    fontFamily: fontFamilies.bold,
+    fontSize: 19,
+  },
+
+  overviewValueAccent: {
+    color: colors.dashboardOrange,
+  },
+
+  overviewLabel: {
+    color: colors.dashboardMuted,
+    fontFamily: fontFamilies.regular,
+    fontSize: 11,
+    marginTop: 4,
+    textAlign: "center",
+  },
+
+  pressed: {
+    opacity: 0.78,
   },
 });

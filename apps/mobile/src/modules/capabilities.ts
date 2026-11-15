@@ -7,6 +7,7 @@ import {
   deriveDonationCapabilities,
   type ResolvedDonationPermissions,
 } from "./donation-presentation";
+import { canMemberRecordOwnJummahAttendance } from "./jummah-attendance-permission";
 
 export interface MobileCapabilities {
   canReadNotifications: boolean;
@@ -21,6 +22,7 @@ export interface MobileCapabilities {
   canApproveFinanceTransfers: boolean;
   canCreateFinanceExpenses: boolean;
   canApproveFinanceExpenses: boolean;
+  canPayFinanceExpenses?: boolean;
   canCreateFinanceCorrections: boolean;
   canCreateFinanceReversals: boolean;
   canReadFinanceReconciliation: boolean;
@@ -47,6 +49,9 @@ export interface MobileCapabilities {
   canReadCommitteeMeetings: boolean;
   canAdministerCommitteeMeetings: boolean;
   canRecordCommitteeMeetingAttendance: boolean;
+  canReadJummahAttendance?: boolean;
+  canRecordSelfJummahAttendance?: boolean;
+  canManageJummahAttendanceEvents?: boolean;
 }
 
 async function hasPermission(permission: string) {
@@ -81,6 +86,7 @@ export async function loadCapabilities(
     financeTransfersApprove,
     financeExpensesCreate,
     financeExpensesApprove,
+    financeExpensesPay,
     financeCorrectionsCreate,
     financeCancellationsCreate,
     financeReconciliationManage,
@@ -91,6 +97,9 @@ export async function loadCapabilities(
     committeeMeetingsRead,
     committeeMeetingsManage,
     committeeAttendanceRecord,
+    attendanceRead,
+    attendanceCreate,
+    attendanceEventsManage,
     notificationsOwnRead,
     notificationsAdminManage,
   ] = await Promise.all([
@@ -115,6 +124,7 @@ export async function loadCapabilities(
     hasPermission("finance.transfers.approve"),
     hasPermission("finance.expenses.create"),
     hasPermission("finance.expenses.approve"),
+    hasPermission("finance.expenses.pay"),
     hasPermission("finance.corrections.create"),
     hasPermission("finance.cancellations.create"),
     hasPermission("finance.reconciliation.manage"),
@@ -125,6 +135,9 @@ export async function loadCapabilities(
     hasPermission("committee.meetings.read"),
     hasPermission("committee.meetings.manage"),
     hasPermission("committee.attendance.record"),
+    hasPermission("attendance.records.read"),
+    hasPermission("attendance.records.create"),
+    hasPermission("attendance.events.manage"),
     hasPermission("notifications.own.read"),
     hasPermission("notifications.admin.manage"),
   ]);
@@ -160,8 +173,7 @@ export async function loadCapabilities(
   return {
     canReadNotifications: notificationsOwnRead,
     canManageAnnouncements: notificationsAdminManage,
-    canManageAccounts:
-      account.role === "system_admin" || account.role === "president",
+    canManageAccounts: account.role === "system_admin",
     canReadFinanceAccounts: financeAccountsRead,
     canManageFinanceAccounts: financeAccountsManage,
     canReadFinanceMonthlyReports: financeMonthlyReportsRead,
@@ -171,6 +183,7 @@ export async function loadCapabilities(
     canApproveFinanceTransfers: financeTransfersApprove,
     canCreateFinanceExpenses: financeExpensesCreate,
     canApproveFinanceExpenses: financeExpensesApprove,
+    canPayFinanceExpenses: financeExpensesPay,
     canCreateFinanceCorrections: financeCorrectionsCreate,
     canCreateFinanceReversals: financeCancellationsCreate,
     canReadFinanceReconciliation:
@@ -187,6 +200,10 @@ export async function loadCapabilities(
     canReadCommitteeMeetings: committeeMeetingsRead,
     canAdministerCommitteeMeetings,
     canRecordCommitteeMeetingAttendance: committeeAttendanceRecord,
+    canReadJummahAttendance: attendanceRead,
+    canRecordSelfJummahAttendance:
+      canMemberRecordOwnJummahAttendance(account, attendanceCreate),
+    canManageJummahAttendanceEvents: attendanceEventsManage,
     ...donationCapabilities,
   };
 }

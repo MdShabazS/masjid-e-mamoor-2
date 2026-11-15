@@ -5,7 +5,7 @@ import { router } from "expo-router";
 import { useAuth } from "../../../../auth/AuthProvider";
 import type { MobileCapabilities } from "../../../../modules/capabilities";
 import type { CommitteeMeetingSummary } from "../../../../modules/meetings";
-import CommitteeMeetingsScreen from "../../../../../app/(app)/work/meetings/index";
+import CommitteeMeetingsScreen from "../../../../../app/(app)/meetings/index";
 
 jest.mock("@tanstack/react-query", () => ({ useQuery: jest.fn() }));
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
@@ -66,7 +66,7 @@ describe("Committee meetings list", () => {
 
     await act(async () => fireEvent.press(view.getByText("Upcoming meeting")));
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/work/meetings/[id]",
+      pathname: "/meetings/[id]",
       params: { id: "upcoming" },
     });
     await view.unmount();
@@ -78,7 +78,7 @@ describe("Committee meetings list", () => {
     const view = await render(<CommitteeMeetingsScreen />);
 
     await act(async () => fireEvent.press(view.getByRole("button", { name: "Create meeting" })));
-    expect(mockPush).toHaveBeenCalledWith("/work/meetings/create");
+    expect(mockPush).toHaveBeenCalledWith("/meetings/create");
     await view.unmount();
   });
 

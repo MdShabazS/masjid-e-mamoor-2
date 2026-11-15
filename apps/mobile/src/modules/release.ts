@@ -73,9 +73,12 @@ export function safeHttpsStoreUrl(
       return null;
     }
 
-    const allowedHost = platform === "android" ? "play.google.com" : "apps.apple.com";
-
-    return url.hostname === allowedHost ? url.toString() : null;
+    if (platform === "android") {
+      const directApk = url.pathname.toLowerCase().endsWith(".apk");
+      const playStore = url.hostname === "play.google.com";
+      return directApk || playStore ? url.toString() : null;
+    }
+    return url.hostname === "apps.apple.com" ? url.toString() : null;
   } catch {
     return null;
   }

@@ -10,7 +10,10 @@ import {
   getCommitteeMeeting,
   listCommitteeMeetingParticipantOptions,
   listCommitteeMeetings,
-  recordCommitteeMeetingAttendance,
+  recordSelfCommitteeMeetingAttendance,
+  recordManualCommitteeMeetingAttendance,
+  listCommitteeMeetingResponses,
+  respondToCommitteeMeeting,
   updateCommitteeMeeting,
 } from "./meetings";
 
@@ -64,6 +67,32 @@ const draft = {
 
 beforeEach(() => {
   rpc.mockReset();
+});
+
+describe("meeting invitation responses", () => {
+  it("maps the latest response returned by the trusted query", async () => {
+    rpc.mockResolvedValueOnce({ data: [{
+      application_user_id: "member-1", response: "declined",
+      decline_reason: "Family commitment", responded_at: "2026-10-13T10:00:00Z",
+    }], error: null });
+    expect(await listCommitteeMeetingResponses("meeting-1")).toEqual([{
+      applicationUserId: "member-1", response: "declined",
+      declineReason: "Family commitment", respondedAt: "2026-10-13T10:00:00Z",
+    }]);
+    expect(rpc).toHaveBeenCalledWith("list_committee_meeting_responses", { p_meeting_id: "meeting-1" });
+  });
+
+  it("requires a reason before declining and submits the operation id", async () => {
+    await expect(respondToCommitteeMeeting("meeting-1", "declined", "  ", "op-1"))
+      .rejects.toThrow("meeting_decline_reason_required");
+    expect(rpc).not.toHaveBeenCalled();
+    rpc.mockResolvedValueOnce({ data: { id: "response-1" }, error: null });
+    await respondToCommitteeMeeting("meeting-1", "declined", " Family commitment ", "op-1");
+    expect(rpc).toHaveBeenCalledWith("respond_to_committee_meeting", {
+      p_meeting_id: "meeting-1", p_response: "declined",
+      p_decline_reason: "Family commitment", p_operation_id: "op-1",
+    });
+  });
 });
 
 describe(
@@ -409,59 +438,33 @@ describe(
       },
     );
 
-    it(
-      "records attendance through the trusted RPC",
-      async () => {
-        rpc.mockResolvedValueOnce({
-          data: {
-            id: "attendance-1",
-            meeting_id:
-              "meeting-1",
-            application_user_id:
-              "committee-1",
-            attendance_status:
-              "present",
-            recorded_by_application_user_id:
-              "secretary-1",
-            recorded_at:
-              "2026-10-20T13:30:00.000Z",
-            operation_id:
-              "attendance-op",
-          },
-          error: null,
-        });
-
-        const attendance =
-          await recordCommitteeMeetingAttendance(
-            "meeting-1",
-            "committee-1",
-            "present",
-            "attendance-op",
-          );
-
-        expect(rpc).toHaveBeenCalledWith(
-          "record_committee_meeting_attendance",
-          {
-            p_meeting_id:
-              "meeting-1",
-            p_application_user_id:
-              "committee-1",
-            p_attendance_status:
-              "present",
-            p_operation_id:
-              "attendance-op",
-          },
-        );
-
-        expect(attendance)
-          .toMatchObject({
-            attendanceStatus:
-              "present",
-            operationId:
-              "attendance-op",
-          });
-      },
-    );
+    it("uses the GPS check-in RPC with location accuracy", async () => {
+      rpc.mockResolvedValueOnce({ data: {
+        id: "attendance-1", meeting_id: "meeting-1", application_user_id: "committee-1",
+        attendance_status: "present", recorded_by_application_user_id: "committee-1",
+        recorded_at: "2026-10-20T13:30:00.000Z", operation_id: "attendance-op",
+      }, error: null });
+      const result = await recordSelfCommitteeMeetingAttendance("meeting-1", {
+        latitude: 12, longitude: 77, accuracy: 5,
+      }, "attendance-op");
+      expect(rpc).toHaveBeenCalledWith("record_self_committee_meeting_attendance", {
+        p_meeting_id: "meeting-1", p_latitude: 12, p_longitude: 77,
+        p_accuracy_meters: 5, p_operation_id: "attendance-op",
+      });
+      expect(result.attendanceStatus).toBe("present");
+    });
+    it("sends the creator's manual reason to the audited endpoint", async () => {
+      rpc.mockResolvedValueOnce({ data: {
+        id: "attendance-2", meeting_id: "meeting-1", application_user_id: "committee-2",
+        attendance_status: "present", recorded_by_application_user_id: "manager-1",
+        recorded_at: "2026-10-20T13:30:00.000Z", operation_id: "manual-op",
+      }, error: null });
+      await recordManualCommitteeMeetingAttendance("meeting-1", "committee-2", " GPS failed today ", "manual-op");
+      expect(rpc).toHaveBeenCalledWith("record_manual_committee_meeting_attendance", {
+        p_meeting_id: "meeting-1", p_application_user_id: "committee-2",
+        p_reason: "GPS failed today", p_operation_id: "manual-op",
+      });
+    });
 
     it(
       "surfaces backend RPC failures unchanged",

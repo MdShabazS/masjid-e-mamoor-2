@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { getCurrentAccount } from "@/lib/accounts/server";
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -37,6 +38,7 @@ export default async function ReferralsPage() {
     canManageReferrals(),
     baseUrl(),
   ]);
+  const canProvision = (await getCurrentAccount())?.role === "system_admin";
 
   if (!canOpen) redirect("/dashboard");
 
@@ -199,7 +201,7 @@ export default async function ReferralsPage() {
                       ) : null}
                     </div>
 
-                    {referral.status === "approved" ? (
+                    {referral.status === "approved" && canProvision ? (
                       <ReferralProvisionForm
                         referralId={referral.id}
                         operationId={randomUUID()}

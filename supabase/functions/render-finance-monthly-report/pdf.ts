@@ -267,7 +267,7 @@ class ReportWriter {
       height: 5,
       color: COLORS.gold,
     });
-    this.page.drawText("MASJID-E-MAMOOR", {
+    this.page.drawText("MASJID E MAMOOR 2", {
       x: PAGE_MARGIN,
       y: A4_HEIGHT - 82,
       size: 13,
@@ -296,6 +296,20 @@ class ReportWriter {
     ]);
   }
 
+  drawDateRangeCover(startDate: string, endDate: string, generatedAt: string): void {
+    this.page.drawRectangle({ x: 0, y: A4_HEIGHT - 182, width: A4_WIDTH, height: 182, color: COLORS.emerald });
+    this.page.drawRectangle({ x: PAGE_MARGIN, y: A4_HEIGHT - 187, width: 74, height: 5, color: COLORS.gold });
+    this.page.drawText("MASJID E MAMOOR 2", { x: PAGE_MARGIN, y: A4_HEIGHT - 82,
+      size: 13, font: this.bold, color: COLORS.white });
+    this.page.drawText("Finance Date Range Report", { x: PAGE_MARGIN, y: A4_HEIGHT - 121,
+      size: 25, font: this.bold, color: COLORS.white });
+    this.page.drawText(`${startDate} to ${endDate}`, { x: PAGE_MARGIN, y: A4_HEIGHT - 151,
+      size: 14, font: this.regular, color: COLORS.white });
+    this.y = A4_HEIGHT - 225;
+    this.keyValues([["Period start", startDate], ["Period end", endDate],
+      ["Generated at (UTC)", generatedAt.slice(0, 19).replace("T", " ")]]);
+  }
+
   section(title: string, note?: string): void {
     this.ensureSpace(note ? 54 : 38);
     this.y -= 12;
@@ -317,7 +331,7 @@ class ReportWriter {
 
     if (note) {
       this.paragraph(note, 8.5, COLORS.muted);
-      this.y -= 3;
+      this.y -= 12;
     }
   }
 
@@ -502,7 +516,7 @@ class ReportWriter {
     this.y -= 6;
   }
 
-  addFooters(): void {
+  addFooters(reportTitle = "Monthly Finance Report"): void {
     const pages = this.document.getPages();
     pages.forEach((page, index) => {
       page.drawLine({
@@ -511,7 +525,7 @@ class ReportWriter {
         thickness: 0.5,
         color: COLORS.border,
       });
-      const footer = `Masjid-e-Mamoor • Monthly Finance Report • Page ${
+      const footer = `Masjid E Mamoor 2 • ${reportTitle} • Page ${
         index + 1
       }`;
       const width = this.regular.widthOfTextAtSize(footer, 7.5);
@@ -634,11 +648,11 @@ export async function renderFinanceMonthlyReportPdf(
   const workflow = asObject(snapshot.workflow);
 
   const document = await PDFDocument.create({ updateMetadata: false });
-  document.setTitle("Masjid-e-Mamoor Monthly Finance Report");
-  document.setAuthor("Masjid-e-Mamoor");
+  document.setTitle("Masjid E Mamoor 2 Monthly Finance Report");
+  document.setAuthor("Masjid E Mamoor 2");
   document.setSubject(`Monthly Finance Report ${metadata.reportMonth}`);
-  document.setCreator("Masjid-e-Mamoor Finance Reporting");
-  document.setProducer("Masjid-e-Mamoor Finance Reporting");
+  document.setCreator("Masjid E Mamoor 2 Finance Reporting");
+  document.setProducer("Masjid E Mamoor 2 Finance Reporting");
   document.setCreationDate(FIXED_PDF_DATE);
   document.setModificationDate(FIXED_PDF_DATE);
 
@@ -652,7 +666,7 @@ export async function renderFinanceMonthlyReportPdf(
   writer.keyValues([
     ["Opening balance", summary.opening_balance_paise, true],
     ["Donation inflow", summary.donation_inflow_paise, true],
-    ["Expenditure", summary.expense_outflow_paise, true],
+    ["Expenditure paid", summary.expense_outflow_paise, true],
     ["Adjustments net", summary.adjustments_net_paise, true],
     ["Transfer in", summary.transfer_in_paise, true],
     ["Transfer out", summary.transfer_out_paise, true],
@@ -720,11 +734,33 @@ export async function renderFinanceMonthlyReportPdf(
     asRows(snapshot.donations).map((row) => ({
       ...row,
       category: titleCase(row.category),
-      member: asText(row.member_name, "Not recorded"),
+      member: asText(row.donor_name, asText(row.member_name, "Not recorded")),
     })),
   );
 
-  writer.section("Expenditure");
+  writer.section("Referred Donor Receipts", "Voided receipts retain their original posting; a separate dated reversal removes the amount from the ledger.");
+  writer.table([
+    { key: "donation_date", label: "Date", width: 60 },
+    { key: "donor_name", label: "Donor", width: 76 },
+    { key: "donation_purpose", label: "Purpose", width: 85 },
+    { key: "donation_payment_method", label: "Method", width: 58 },
+    { key: "receipt_number", label: "Receipt", width: 99 },
+    { key: "status", label: "Status", width: 55 },
+    { key: "amount_paise", label: "Amount", width: 78, amount: true },
+  ], asRows(snapshot.donations).filter((row) => row.reference_type === "referred_donor_contribution")
+    .map((row) => ({ ...row, status: titleCase(row.donation_status ?? "verified") })));
+  writer.section("Voided Receipt Reasons");
+  writer.table([
+    { key: "receipt_number", label: "Original receipt", width: 134 },
+    { key: "void_reason", label: "Recorded reason", width: 278 },
+    { key: "amount_paise", label: "Original amount", width: 99, amount: true },
+  ], asRows(snapshot.donations).filter((row) => row.reference_type === "referred_donor_contribution"
+    && row.donation_status === "voided"));
+
+  writer.section(
+    "Expenditure Paid",
+    "Amounts below are payments posted to the ledger during this month. Approvals without payment do not reduce the balance.",
+  );
   writer.table(
     [
       { key: "business_date", label: "Date", width: 66 },
@@ -881,4 +917,116 @@ export async function renderFinanceMonthlyReportPdf(
     useObjectStreams: false,
     objectsPerTick: Number.POSITIVE_INFINITY,
   });
+}
+
+/** On-demand report from one authoritative posted-ledger snapshot. */
+export async function renderFinanceDateRangePdf(snapshotValue: unknown): Promise<Uint8Array> {
+  const snapshot = asObject(snapshotValue);
+  const start = asText(snapshot.period_start);
+  const end = asText(snapshot.period_end);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)
+    || start > end || snapshot.currency !== "INR" || snapshot.masjid_name !== "Masjid E Mamoor 2") {
+    throw new Error("invalid_date_range_snapshot");
+  }
+  const summary = asObject(snapshot.summary);
+  const breakdown = asObject(snapshot.donation_breakdown);
+  const accounts = asRows(snapshot.accounts);
+  const ledger = asRows(snapshot.ledger);
+  if (ledger.length > 5000 || asInteger(summary.transaction_count) !== ledger.length) {
+    throw new Error("invalid_date_range_ledger");
+  }
+  const generatedAt = asText(snapshot.generated_at);
+  const document = await PDFDocument.create({ updateMetadata: false });
+  document.setTitle("Masjid E Mamoor 2 Finance Date Range Report");
+  document.setAuthor("Masjid E Mamoor 2");
+  document.setSubject(`Posted Finance ledger ${start} to ${end}`);
+  document.setCreator("Masjid E Mamoor 2 Finance Reporting");
+  document.setProducer("Masjid E Mamoor 2 Finance Reporting");
+  document.setCreationDate(FIXED_PDF_DATE);
+  document.setModificationDate(FIXED_PDF_DATE);
+  const regular = await document.embedFont(StandardFonts.Helvetica);
+  const bold = await document.embedFont(StandardFonts.HelveticaBold);
+  const writer = new ReportWriter(document, regular, bold);
+  writer.drawDateRangeCover(start, end, generatedAt);
+  writer.section("Executive Summary", "Only posted ledger entries are counted. Pending approvals and unverified donations do not affect the balances.");
+  writer.keyValues([
+    ["Opening balance", summary.opening_balance_paise, true],
+    ["Donation inflow", summary.donation_inflow_paise, true],
+    ["Expenditure paid", summary.expense_outflow_paise, true],
+    ["Corrections / reversals net", summary.adjustments_net_paise, true],
+    ["Transfer in", summary.transfer_in_paise, true],
+    ["Transfer out", summary.transfer_out_paise, true],
+    ["Closing balance", summary.closing_balance_paise, true],
+    ["Posted entries", summary.transaction_count],
+  ]);
+  writer.section("Donations by Category");
+  writer.keyValues([
+    ["Recurring", breakdown.recurring_paise, true], ["Additional", breakdown.additional_paise, true],
+    ["Anonymous", breakdown.anonymous_paise, true], ["Jummah cash", breakdown.jummah_paise, true],
+  ]);
+  writer.section("Account Balances");
+  writer.table([
+    { key: "name", label: "Account", width: 129 },
+    { key: "account_type", label: "Type", width: 55 },
+    { key: "opening_balance_paise", label: "Opening", width: 82, amount: true },
+    { key: "inflow_paise", label: "Inflow", width: 80, amount: true },
+    { key: "outflow_paise", label: "Outflow", width: 80, amount: true },
+    { key: "closing_balance_paise", label: "Closing", width: 85, amount: true },
+  ], accounts.map((row) => ({ ...row, account_type: titleCase(row.account_type) })));
+  writer.section("Donations Posted");
+  const donations = ledger.filter((row) => asText(row.transaction_category).startsWith("DONATION_"));
+  writer.table([
+    { key: "business_date", label: "Date", width: 65 },
+    { key: "category", label: "Category", width: 96 },
+    { key: "donor", label: "Donor", width: 107 },
+    { key: "method", label: "Method", width: 68 },
+    { key: "account_name", label: "Account", width: 81 },
+    { key: "amount_paise", label: "Amount", width: 94, amount: true },
+  ], donations.map((row) => ({ ...row, category: titleCase(row.transaction_category),
+    donor: row.donor_name ?? "-", method: row.donation_payment_method ?? "-" })));
+  const referred = donations.filter((row) => row.reference_type === "referred_donor_contribution");
+  writer.section("Referred Donor Receipts", "A voided receipt remains in the original period; its reversal appears on the date of correction.");
+  writer.table([
+    { key: "donation_date", label: "Date", width: 60 },
+    { key: "donor_name", label: "Donor", width: 76 },
+    { key: "donation_purpose", label: "Purpose", width: 85 },
+    { key: "donation_payment_method", label: "Method", width: 58 },
+    { key: "receipt_number", label: "Receipt", width: 99 },
+    { key: "status", label: "Status", width: 55 },
+    { key: "amount_paise", label: "Amount", width: 78, amount: true },
+  ], referred.map((row) => ({ ...row, status: titleCase(row.donation_status ?? "verified") })));
+  writer.section("Voided Receipt Reasons");
+  writer.table([
+    { key: "receipt_number", label: "Original receipt", width: 134 },
+    { key: "void_reason", label: "Recorded reason", width: 278 },
+    { key: "amount_paise", label: "Original amount", width: 99, amount: true },
+  ], referred.filter((row) => row.donation_status === "voided"));
+  writer.section("Expenditure Paid");
+  writer.table([
+    { key: "business_date", label: "Date", width: 65 },
+    { key: "expense_description", label: "Description", width: 159 },
+    { key: "expense_payee", label: "Payee", width: 103 },
+    { key: "account_name", label: "Account", width: 85 },
+    { key: "amount_paise", label: "Amount", width: 99, amount: true },
+  ], ledger.filter((row) => row.transaction_category === "EXPENSE"));
+  writer.section("Detailed Posted Ledger", "Transfers move money between Masjid accounts. Corrections and reversals retain their direction and reference.");
+  writer.table([
+    { key: "business_date", label: "Date", width: 58 },
+    { key: "category", label: "Category", width: 92 },
+    { key: "account_name", label: "Account", width: 92 },
+    { key: "direction", label: "Direction", width: 56 },
+    { key: "amount_paise", label: "Amount", width: 84, amount: true },
+    { key: "reference", label: "Reference", width: 77 },
+    { key: "transaction", label: "Entry", width: 52 },
+  ], ledger.map((row) => ({ ...row,
+    category: titleCase(row.transaction_category), direction: titleCase(row.direction),
+    reference: `${titleCase(row.reference_type)} ${shortId(row.reference_id)}`,
+    transaction: shortId(row.id),
+  })));
+  writer.section("Report Notes");
+  writer.paragraph(`Period: ${start} to ${end}, inclusive. Generated at ${generatedAt}.`, 8.5);
+  writer.paragraph("This is an on-demand view of the posted ledger at generation time. Monthly reports remain separately revisioned and immutable.", 8.5, COLORS.muted);
+  writer.addFooters("Finance Date Range Report");
+  return document.save({ addDefaultPage: false, useObjectStreams: false,
+    objectsPerTick: Number.POSITIVE_INFINITY });
 }

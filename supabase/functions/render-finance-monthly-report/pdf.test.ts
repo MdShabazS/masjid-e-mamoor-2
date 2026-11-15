@@ -1,8 +1,10 @@
+import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import {
   formatInrPaise,
   isValidPdfBytes,
   needsPageBreak,
   renderFinanceMonthlyReportPdf,
+  renderFinanceDateRangePdf,
   sha256Hex,
   validateReportMonth,
   wrapTextByWidth,
@@ -206,6 +208,13 @@ Deno.test("renders a representative multi-page immutable snapshot", async () => 
       member_name: null,
       account_name: "General Bank",
       amount_paise: 100_000,
+      reference_type: "referred_donor_contribution",
+      donor_name: "Ahmed",
+      donation_date: "2042-07-04",
+      donation_purpose: "Building maintenance",
+      donation_payment_method: "upi",
+      receipt_number: "MEM2-2042-00000001",
+      donation_status: "verified",
     }],
     expenses: [{
       business_date: "2042-07-10",
@@ -265,4 +274,44 @@ Deno.test("rendering identical immutable input is byte deterministic", async () 
     await sha256Hex(second),
     "deterministic PDF hash",
   );
+});
+
+Deno.test("date range report renders a posted ledger with Masjid header", async () => {
+  const bytes = await renderFinanceDateRangePdf({
+    schema_version: 1, masjid_name: "Masjid E Mamoor 2", currency: "INR",
+    period_start: "2042-07-01", period_end: "2042-07-02",
+    generated_at: "2042-07-03T10:00:00.000Z",
+    summary: { opening_balance_paise: "10000", donation_inflow_paise: "2500",
+      expense_outflow_paise: "1000", adjustments_net_paise: "0",
+      transfer_in_paise: "0", transfer_out_paise: "0",
+      closing_balance_paise: "11500", transaction_count: 2 },
+    donation_breakdown: { recurring_paise: "0", additional_paise: "2500",
+      anonymous_paise: "0", jummah_paise: "0" },
+    accounts: [{ name: "Cash", account_type: "cash", opening_balance_paise: "10000",
+      inflow_paise: "2500", outflow_paise: "1000", closing_balance_paise: "11500" }],
+    ledger: [{ id: "entry-1", business_date: "2042-07-01", account_name: "Cash",
+      transaction_category: "DONATION_ADDITIONAL", direction: "inflow",
+      amount_paise: "2500", reference_type: "referred_donor_contribution", reference_id: "donation-1",
+      donor_name: "Ahmed", donation_purpose: "Maintenance", donation_payment_method: "cash",
+      donation_date: "2042-07-01", receipt_number: "MEM2-2042-00000001" },
+      { id: "entry-2", business_date: "2042-07-02", account_name: "Cash",
+        transaction_category: "EXPENSE", direction: "outflow", amount_paise: "1000",
+        reference_type: "finance_expense", reference_id: "expense-1",
+        expense_description: "Maintenance bill", expense_payee: "Vendor" }],
+  });
+  assert(isValidPdfBytes(bytes), "date range report is not a valid PDF");
+  const pdf = await PDFDocument.load(bytes);
+  assert(pdf.getPageCount() >= 1, "report has no pages");
+  assertEquals(pdf.getTitle(), "Masjid E Mamoor 2 Finance Date Range Report", "report title");
+});
+
+Deno.test("date range renderer rejects a mismatched transaction count", async () => {
+  try {
+    await renderFinanceDateRangePdf({ masjid_name: "Masjid E Mamoor 2", currency: "INR",
+      period_start: "2042-07-01", period_end: "2042-07-02",
+      summary: { transaction_count: 3 }, ledger: [] });
+    throw new Error("invalid ledger accepted");
+  } catch (error) {
+    assertEquals((error as Error).message, "invalid_date_range_ledger", "ledger rejection");
+  }
 });

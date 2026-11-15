@@ -75,6 +75,10 @@ describe("account validation", () => {
         role: "finance",
       }),
     ).toThrow();
+
+    expect(() => accountRoleSchema.parse("auditor")).toThrow();
+    expect(() => accountRoleSchema.parse("member")).toThrow();
+    expect(accountRoleSchema.parse("committee_member")).toBe("committee_member");
   });
 });
 
@@ -178,7 +182,7 @@ describe("Auth V2 account administration security boundaries", () => {
     expect(server).toContain("export async function listAccounts(accessToken?: string)");
     expect(server).toContain("const actor = await requireCurrentAccount(accessToken)");
     expect(server).toContain("accessToken?: string,\n) {\n  const actor = await requireCurrentAccount(accessToken)");
-    expect(server).toContain("assertCanManageAccount(actor, target)");
+    expect(server).toContain("assertCanManageAccount(actor)");
     expect(server).toContain("assertCanCreateRole(actor, input.role)");
     expect(server).toContain("createMobileAuthClient(accessToken)");
   });
@@ -210,18 +214,25 @@ describe("Auth V2 account administration security boundaries", () => {
     );
   });
 
-  it("preserves President and System Admin account boundaries", () => {
+  it("reserves account administration for System Admin", () => {
     const server = readFileSync(
       repoFile("apps/web/src/lib/accounts/server.ts"),
       "utf8",
     );
 
-    expect(server).toContain('if (role === "system_admin")');
-    expect(server).toContain('if (actor.role === "president")');
-    expect(server).toContain("assertPresidentCanManageRole(target.role)");
+    expect(server).toContain('actor.role !== "system_admin"');
+    expect(server).toContain('account.role === "system_admin"');
+    expect(server).not.toContain("assertPresidentCanManageRole");
     expect(server).toContain('supabase.rpc("change_account_role"');
     expect(server).toContain('supabase.rpc("change_account_status"');
     expect(server).not.toContain("countActiveSystemAdmins");
+
+    const migration = readFileSync(
+      repoFile("supabase/migrations/20261013154536_system_admin_account_authority.sql"),
+      "utf8",
+    );
+    expect(migration).toContain("perform private.assert_account_system_admin()");
+    expect(migration).toContain("revoke all on function private.change_account_role_legacy");
   });
 
   it("uses transactional trusted operations for role and status changes", () => {

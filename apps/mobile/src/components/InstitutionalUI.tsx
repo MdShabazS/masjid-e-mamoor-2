@@ -20,15 +20,16 @@ import {
   touchTargets,
   typography,
 } from "../theme/tokens";
+import { AppIcon } from "./AppIcon";
 
 type SemanticTone = "neutral" | "success" | "warning" | "danger" | "info";
 
 const toneStyles: Record<SemanticTone, { backgroundColor: string; color: string }> = {
-  neutral: { backgroundColor: colors.surfaceMuted, color: colors.secondary },
-  success: { backgroundColor: colors.successSurface, color: colors.success },
-  warning: { backgroundColor: colors.warningSurface, color: colors.warning },
-  danger: { backgroundColor: colors.dangerSurface, color: colors.danger },
-  info: { backgroundColor: colors.infoSurface, color: colors.info },
+  neutral: { backgroundColor: colors.surfaceMuted, color: colors.textMuted },
+  success: { backgroundColor: colors.greenSurface, color: colors.successText },
+  warning: { backgroundColor: colors.yellowSurface, color: colors.warning },
+  danger: { backgroundColor: colors.redSurface, color: colors.dangerText },
+  info: { backgroundColor: colors.blueSurface, color: colors.primaryActionBlue },
 };
 
 export function BrandedPageHeader({
@@ -47,11 +48,7 @@ export function BrandedPageHeader({
       <View style={styles.headerCopy}>
         {eyebrow ? (
           <View style={styles.eyebrowRow}>
-            <View
-              accessibilityElementsHidden
-              importantForAccessibility="no-hide-descendants"
-              style={styles.brandMark}
-            />
+            <AppIcon color={colors.primaryBlue} name="mosque" size={16} />
             <Text style={styles.eyebrow}>{eyebrow}</Text>
           </View>
         ) : null}
@@ -178,7 +175,7 @@ export function AppButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={primary ? colors.surface : colors.deepEmerald} size="small" />
+        <ActivityIndicator color={primary ? colors.white : colors.primaryBlue} size="small" />
       ) : (
         <>
           {icon ? <View style={styles.buttonIcon}>{icon}</View> : null}
@@ -214,7 +211,7 @@ export function ListRow({
         {subtitle ? <Text style={styles.listSubtitle}>{subtitle}</Text> : null}
         {meta ? <Text style={styles.listMeta}>{meta}</Text> : null}
       </View>
-      {trailing ?? (onPress ? <Text style={styles.chevron}>›</Text> : null)}
+      {trailing ?? (onPress ? <AppIcon color={colors.textMuted} name="chevron-right" size={22} /> : null)}
     </>
   );
 
@@ -242,7 +239,9 @@ export function EmptyState({
 }) {
   return (
     <View style={styles.feedbackState}>
-      <View style={styles.emptyMark} />
+      <View style={styles.feedbackIcon}>
+        <AppIcon color={colors.primaryBlue} name="inbox-outline" size={28} />
+      </View>
       <Text accessibilityRole="header" style={styles.feedbackTitle}>
         {title}
       </Text>
@@ -260,7 +259,7 @@ export function LoadingState({ label = "Loading" }: { label?: string }) {
       accessible
       style={styles.loadingState}
     >
-      <ActivityIndicator color={colors.deepEmerald} />
+      <ActivityIndicator color={colors.primaryBlue} />
       <Text style={styles.loadingLabel}>{label}</Text>
     </View>
   );
@@ -278,6 +277,9 @@ export function ErrorState({
   return (
     <View style={[styles.feedbackState, styles.errorState]}>
       <View accessibilityLabel={`${title}. ${description}`} accessibilityRole="alert" accessible>
+        <View style={[styles.feedbackIcon, styles.errorIcon]}>
+          <AppIcon color={colors.dangerRed} name="alert-circle-outline" size={28} />
+        </View>
         <Text style={[styles.feedbackTitle, styles.errorTitle]}>{title}</Text>
         <Text style={styles.feedbackDescription}>{description}</Text>
       </View>
@@ -305,16 +307,9 @@ const styles = StyleSheet.create({
   },
   headerCopy: { flex: 1 },
   eyebrowRow: { alignItems: "center", flexDirection: "row", gap: spacing.sm },
-  brandMark: {
-    backgroundColor: colors.gold,
-    borderRadius: radii.subtle,
-    height: 10,
-    transform: [{ rotate: "45deg" }],
-    width: 10,
-  },
-  eyebrow: { color: colors.deepEmerald, textTransform: "uppercase", ...typography.eyebrow },
+  eyebrow: { color: colors.primaryBlue, textTransform: "uppercase", ...typography.eyebrow },
   pageTitle: { color: colors.textStrong, marginTop: spacing.sm, ...typography.pageTitle },
-  pageDescription: { color: colors.secondary, marginTop: spacing.sm, ...typography.body },
+  pageDescription: { color: colors.textMuted, marginTop: spacing.sm, ...typography.body },
   headerAction: { flexShrink: 0 },
   sectionHeader: {
     alignItems: "flex-start",
@@ -323,7 +318,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   sectionTitle: { color: colors.text, ...typography.sectionTitle },
-  sectionDescription: { color: colors.secondary, marginTop: spacing.xs, ...typography.bodySmall },
+  sectionDescription: { color: colors.textMuted, marginTop: spacing.xs, ...typography.bodySmall },
   card: {
     backgroundColor: colors.surfaceElevated,
     borderColor: colors.border,
@@ -332,7 +327,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     ...shadows.subtle,
   },
-  cardEmphasis: { borderLeftColor: colors.gold, borderLeftWidth: 3 },
+  cardEmphasis: { backgroundColor: colors.blueSurface, borderColor: colors.primaryBlue },
   metricCard: {
     backgroundColor: colors.surfaceElevated,
     borderColor: colors.border,
@@ -343,7 +338,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   metricIndicator: { height: 3, left: spacing.lg, position: "absolute", top: 0, width: 32 },
-  metricLabel: { color: colors.secondary, ...typography.label },
+  metricLabel: { color: colors.textMuted, ...typography.label },
   metricValue: { marginTop: spacing.sm, ...typography.metric },
   metricHelper: { color: colors.textMuted, marginTop: spacing.xs, ...typography.caption },
   statusChip: {
@@ -368,17 +363,17 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   primaryButton: {
-    backgroundColor: colors.deepEmerald,
-    borderColor: colors.deepEmerald,
+    backgroundColor: colors.primaryActionBlue,
+    borderColor: colors.primaryActionBlue,
     borderWidth: 1,
   },
   secondaryButton: {
     backgroundColor: colors.surface,
-    borderColor: colors.deepEmerald,
+    borderColor: colors.primaryBlue,
     borderWidth: 1,
   },
-  primaryButtonText: { color: colors.surface, ...typography.action },
-  secondaryButtonText: { color: colors.deepEmerald, ...typography.action },
+  primaryButtonText: { color: colors.white, ...typography.action },
+  secondaryButtonText: { color: colors.primaryBlue, ...typography.action },
   buttonIcon: { marginRight: spacing.sm },
   buttonPressed: { opacity: 0.82 },
   buttonDisabled: { opacity: 0.55 },
@@ -399,9 +394,8 @@ const styles = StyleSheet.create({
   },
   listCopy: { flex: 1 },
   listTitle: { color: colors.text, ...typography.cardTitle },
-  listSubtitle: { color: colors.secondary, marginTop: spacing.xs, ...typography.bodySmall },
+  listSubtitle: { color: colors.textMuted, marginTop: spacing.xs, ...typography.bodySmall },
   listMeta: { color: colors.textMuted, marginTop: spacing.xs, ...typography.caption },
-  chevron: { color: colors.gold, fontSize: 26, lineHeight: 28, marginLeft: spacing.md },
   feedbackState: {
     alignItems: "center",
     backgroundColor: colors.surface,
@@ -410,26 +404,27 @@ const styles = StyleSheet.create({
     borderWidth: borders.width,
     padding: spacing.xxl,
   },
-  emptyMark: {
-    borderColor: colors.gold,
-    borderRadius: radii.subtle,
-    borderWidth: 2,
-    height: iconSizes.large,
+  feedbackIcon: {
+    alignItems: "center",
+    backgroundColor: colors.blueSurface,
+    borderRadius: radii.pill,
+    height: 52,
+    justifyContent: "center",
     marginBottom: spacing.lg,
-    transform: [{ rotate: "45deg" }],
-    width: iconSizes.large,
+    width: 52,
   },
   feedbackTitle: { color: colors.text, textAlign: "center", ...typography.sectionTitle },
   feedbackDescription: {
-    color: colors.secondary,
+    color: colors.textMuted,
     marginTop: spacing.sm,
     maxWidth: 360,
     textAlign: "center",
     ...typography.body,
   },
   feedbackAction: { marginTop: spacing.xl, minWidth: 160 },
-  errorState: { backgroundColor: colors.dangerSurface, borderColor: colors.danger },
-  errorTitle: { color: colors.danger },
+  errorState: { backgroundColor: colors.redSurface, borderColor: colors.dangerRed },
+  errorIcon: { backgroundColor: colors.white, marginLeft: "auto", marginRight: "auto" },
+  errorTitle: { color: colors.dangerText },
   loadingState: {
     alignItems: "center",
     flexDirection: "row",
@@ -438,6 +433,6 @@ const styles = StyleSheet.create({
     minHeight: 96,
     padding: spacing.xl,
   },
-  loadingLabel: { color: colors.secondary, ...typography.body },
+  loadingLabel: { color: colors.textMuted, ...typography.body },
   divider: { backgroundColor: colors.border, height: borders.width, width: "100%" },
 });

@@ -140,7 +140,10 @@ export function safeNotificationTarget(
       return "/notifications";
     }
 
-    return target.pathname + target.search + target.hash;
+    const pathname = target.pathname
+      .replace(/^\/work\/meetings(?=\/|$)/, "/meetings")
+      .replace(/^\/referrals(?=\/|$)/, "/community/referrals");
+    return pathname + target.search + target.hash;
   } catch {
     return "/notifications";
   }
@@ -165,6 +168,23 @@ export function notificationKindLabel(kind: string) {
       meeting_updated: "Meeting updated",
       meeting_cancelled: "Meeting cancelled",
       announcement: "Announcement",
+      expense_awaiting_approval: "Expense awaiting approval",
+      expense_approved: "Expense approved",
+      expense_rejected: "Expense not approved",
+      transfer_awaiting_approval: "Transfer awaiting approval",
+      transfer_approved: "Transfer approved",
+      transfer_rejected: "Transfer not approved",
+      adjustment_awaiting_approval: "Adjustment awaiting approval",
+      correction_applied: "Correction approved",
+      reversal_applied: "Reversal approved",
+      adjustment_rejected: "Adjustment not approved",
+      payment_submitted: "Payment awaiting review",
+      payment_verified: "Payment verified",
+      payment_rejected: "Payment not verified",
+      referral_awaiting_review: "Referral needs review",
+      referral_approved: "Referral approved",
+      referral_rejected: "Referral not approved",
+      referral_completed: "Referral registration completed",
     }[kind] ?? "Notification"
   );
 }

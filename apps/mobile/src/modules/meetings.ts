@@ -45,6 +45,8 @@ export interface CommitteeMeetingAttendance {
   recordedByApplicationUserId: string;
   recordedAt: string;
   operationId: string;
+  attendanceSource?: "legacy" | "gps" | "manual";
+  manualReason?: string | null;
 }
 
 export interface CommitteeMeetingDecision {
@@ -54,6 +56,47 @@ export interface CommitteeMeetingDecision {
   createdByApplicationUserId: string;
   operationId: string;
   createdAt: string;
+}
+
+export interface CommitteeMeetingResponse {
+  applicationUserId: string;
+  response: "accepted" | "declined";
+  declineReason: string | null;
+  respondedAt: string;
+}
+
+export function committeeMeetingResponsesQueryKey(meetingId: string) {
+  return ["committee-meetings", "responses", meetingId] as const;
+}
+
+export async function listCommitteeMeetingResponses(meetingId: string): Promise<CommitteeMeetingResponse[]> {
+  const { data, error } = await supabase.rpc("list_committee_meeting_responses", {
+    p_meeting_id: meetingId,
+  });
+  if (error) throw new Error("meeting_responses_unavailable");
+  return ((data ?? []) as DbRow[]).map((row) => ({
+    applicationUserId: String(row.application_user_id),
+    response: row.response as CommitteeMeetingResponse["response"],
+    declineReason: row.decline_reason == null ? null : String(row.decline_reason),
+    respondedAt: String(row.responded_at),
+  }));
+}
+
+export async function respondToCommitteeMeeting(
+  meetingId: string, response: "accepted" | "declined", reason: string | null,
+  operationId: string,
+) {
+  const trimmed = reason?.trim() || null;
+  if (response === "declined" && (!trimmed || trimmed.length > 1000)) {
+    throw new Error("meeting_decline_reason_required");
+  }
+  if (response === "accepted" && trimmed) throw new Error("meeting_response_invalid");
+  const { data, error } = await supabase.rpc("respond_to_committee_meeting", {
+    p_meeting_id: meetingId, p_response: response,
+    p_decline_reason: trimmed, p_operation_id: operationId,
+  });
+  if (error || !data) throw new Error("meeting_response_failed");
+  return data;
 }
 
 export interface CommitteeMeetingActivity {
@@ -214,6 +257,9 @@ function mapAttendance(
     ),
     recordedAt: String(row.recorded_at),
     operationId: String(row.operation_id),
+    ...(row.attendance_source != null ? { attendanceSource:
+      row.attendance_source as CommitteeMeetingAttendance["attendanceSource"] } : {}),
+    ...(row.manual_reason != null ? { manualReason: String(row.manual_reason) } : {}),
   };
 }
 
@@ -510,31 +556,32 @@ export async function cancelCommitteeMeeting(
   return mapMeeting(data as DbRow);
 }
 
-export async function recordCommitteeMeetingAttendance(
+/** The server verifies the scheduled India date, invitation, and 100 m geofence. */
+export async function recordSelfCommitteeMeetingAttendance(
   meetingId: string,
-  applicationUserId: string,
-  attendanceStatus:
-    CommitteeMeetingAttendanceStatus,
+  location: { latitude: number; longitude: number; accuracy: number },
   operationId: string,
 ) {
-  const { data, error } = await supabase.rpc(
-    "record_committee_meeting_attendance",
-    {
-      p_meeting_id: meetingId,
-      p_application_user_id:
-        applicationUserId,
-      p_attendance_status:
-        attendanceStatus,
-      p_operation_id: operationId,
-    },
-  );
+  const { data, error } = await supabase.rpc("record_self_committee_meeting_attendance", {
+    p_meeting_id: meetingId,
+    p_latitude: location.latitude,
+    p_longitude: location.longitude,
+    p_accuracy_meters: location.accuracy,
+    p_operation_id: operationId,
+  });
+  if (error || !data) throw new Error(error?.message ?? "meeting_attendance_failed");
+  return mapAttendance(data as DbRow);
+}
 
-  if (error || !data) {
-    throw new Error(
-      error?.message ??
-        "meeting_attendance_failed",
-    );
-  }
-
+export async function recordManualCommitteeMeetingAttendance(
+  meetingId: string, applicationUserId: string, reason: string, operationId: string,
+) {
+  const { data, error } = await supabase.rpc("record_manual_committee_meeting_attendance", {
+    p_meeting_id: meetingId,
+    p_application_user_id: applicationUserId,
+    p_reason: reason.trim(),
+    p_operation_id: operationId,
+  });
+  if (error || !data) throw new Error(error?.message ?? "meeting_attendance_failed");
   return mapAttendance(data as DbRow);
 }

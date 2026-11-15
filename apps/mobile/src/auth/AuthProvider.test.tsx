@@ -5,6 +5,7 @@ import { changePassword as changePasswordRequest } from "../lib/mobile-api";
 import { supabase } from "../lib/supabase";
 import { loadOwnAccount } from "./account";
 import { queryClient } from "../query/QueryProvider";
+import { unregisterCurrentPushDevice } from "../modules/notification-push";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -24,6 +25,9 @@ jest.mock("../lib/supabase", () => ({
   },
 }));
 jest.mock("./account", () => ({ loadOwnAccount: jest.fn() }));
+jest.mock("../modules/notification-push", () => ({
+  unregisterCurrentPushDevice: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock("../query/QueryProvider", () => ({
   queryClient: { clear: jest.fn() },
 }));
@@ -62,6 +66,7 @@ describe("password change session handling", () => {
     await act(async () => result.current.changePassword("", ""));
 
     expect(changePasswordRequest).toHaveBeenCalledWith(session, "", "");
+    expect(unregisterCurrentPushDevice).toHaveBeenCalledTimes(1);
     expect(supabase.auth.refreshSession).not.toHaveBeenCalled();
     expect(supabase.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
     await waitFor(() => expect(result.current.session).toBeNull());
@@ -78,6 +83,17 @@ describe("password change session handling", () => {
     await expect(act(async () => result.current.changePassword("", ""))).rejects.toThrow();
 
     expect(supabase.auth.signOut).not.toHaveBeenCalled();
+    expect(unregisterCurrentPushDevice).not.toHaveBeenCalled();
     expect(result.current.session).toBe(session);
+  });
+
+  it("attempts device unregistration before a normal sign out", async () => {
+    const { result } = await renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await waitFor(() => expect(result.current.account?.id).toBe(account.id));
+
+    await act(async () => result.current.signOut());
+
+    expect(unregisterCurrentPushDevice).toHaveBeenCalledTimes(1);
+    expect(supabase.auth.signOut).toHaveBeenCalled();
   });
 });

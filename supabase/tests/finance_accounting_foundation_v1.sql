@@ -37,6 +37,25 @@ from (values
 ) x(application_user_id, role_key)
 join public.roles r on r.key = x.role_key;
 
+do $$
+begin
+  if (select count(distinct r.key) from public.role_permissions rp
+      join public.roles r on r.id = rp.role_id
+      join public.permissions p on p.id = rp.permission_id
+      where r.key in ('president','vice_president','secretary','finance','committee_member')
+        and p.key = 'finance.expenses.create') <> 5 then
+    raise exception 'FAIL: required roles cannot submit expenses'; end if;
+  if (select count(distinct r.key) from public.role_permissions rp
+      join public.roles r on r.id = rp.role_id
+      join public.permissions p on p.id = rp.permission_id
+      where r.key in ('president','vice_president') and p.key = 'finance.expenses.approve') <> 2
+    or exists (select 1 from public.role_permissions rp
+      join public.roles r on r.id = rp.role_id
+      join public.permissions p on p.id = rp.permission_id
+      where r.key = 'finance' and p.key = 'finance.expenses.approve') then
+    raise exception 'FAIL: expense approval permissions incorrect'; end if;
+end $$;
+
 -- Finance may create organizational accounts. A matching replay returns the
 -- same resource while a changed payload using the same operation ID conflicts.
 select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
@@ -105,7 +124,19 @@ begin
   end;
 end $$;
 
--- Expense maker/checker and atomic posting.
+-- President and Vice President may submit their own requests.
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+select id from public.submit_finance_expense(
+  (select id from public.finance_accounts where name = 'Main cash'),
+  100, 'President-submitted expense', null, current_date, 'finance-test-president-expense-submit'
+);
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select id from public.submit_finance_expense(
+  (select id from public.finance_accounts where name = 'Main cash'),
+  100, 'Vice-President-submitted expense', null, current_date, 'finance-test-vp-expense-submit'
+);
+
+-- Approval creates no financial effect; Treasurer payments post separately.
 select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
 select id as expense_id from public.submit_finance_expense(
   (select id from public.finance_accounts where name = 'Main cash'),
@@ -129,7 +160,24 @@ begin
   ) then raise exception 'FAIL: denied expense decision recorded idempotency'; end if;
 end $$;
 
-select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+-- Vice President is also authorized to approve; exercise President below.
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+-- No bill and no explanation must block a decision.
+do $$
+begin
+  begin
+    perform public.decide_finance_expense(
+      (select id from public.finance_expenses where description = 'Approved maintenance expense'),
+      'approve', null, 'finance-test-expense-no-evidence');
+    raise exception 'FAIL: expense without evidence approved';
+  exception when invalid_parameter_value then null; end;
+end $$;
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select id from public.set_finance_expense_missing_bill_reason(
+  (select id from public.finance_expenses where description = 'Approved maintenance expense'),
+  'Supplier provided no printed receipt.'
+);
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 select id from public.decide_finance_expense(
   (select id from public.finance_expenses where description = 'Approved maintenance expense'),
   'approve', null, 'finance-test-expense-approve'
@@ -141,20 +189,69 @@ select id from public.decide_finance_expense(
 
 do $$
 begin
+  if (select status from public.finance_expenses where description = 'Approved maintenance expense') <> 'approved' then
+    raise exception 'FAIL: expense did not remain unpaid after approval'; end if;
+  if exists (select 1 from public.financial_transactions where reference_type = 'finance_expense'
+    and reference_id = (select id from public.finance_expenses where description = 'Approved maintenance expense')) then
+    raise exception 'FAIL: approval posted an outflow'; end if;
+end $$;
+
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+do $$
+begin
+  begin
+    perform public.pay_finance_expense(
+      (select id from public.finance_expenses where description = 'President-submitted expense'),
+      100, current_date, 'finance-test-unapproved-payment');
+    raise exception 'FAIL: unapproved expense was paid';
+  exception when invalid_parameter_value then null; end;
+end $$;
+select id from public.pay_finance_expense(
+  (select id from public.finance_expenses where description = 'Approved maintenance expense'),
+  25000, current_date, 'finance-test-part-payment'
+);
+do $$
+begin
+  if (select status from public.finance_expenses where description = 'Approved maintenance expense') <> 'partially_paid' then
+    raise exception 'FAIL: partial payment state incorrect'; end if;
+  begin
+    perform public.pay_finance_expense(
+      (select id from public.finance_expenses where description = 'Approved maintenance expense'),
+      100001, current_date, 'finance-test-overpay');
+    raise exception 'FAIL: overpayment accepted';
+  exception when invalid_parameter_value then null; end;
+end $$;
+select id from public.pay_finance_expense(
+  (select id from public.finance_expenses where description = 'Approved maintenance expense'),
+  25000, current_date, 'finance-test-part-payment'
+);
+do $$
+begin
+  if (select paid_amount_paise from public.finance_expenses where description = 'Approved maintenance expense') <> 25000
+     or (select count(*) from public.financial_transactions where operation_id = 'finance-test-part-payment') <> 1 then
+    raise exception 'FAIL: payment retry duplicated financial effect'; end if;
+end $$;
+select id from public.pay_finance_expense(
+  (select id from public.finance_expenses where description = 'Approved maintenance expense'),
+  100000, current_date, 'finance-test-final-payment'
+);
+
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+do $$
+begin
   if (select status from public.finance_expenses where description = 'Approved maintenance expense') <> 'posted' then
-    raise exception 'FAIL: approved expense was not posted';
-  end if;
+    raise exception 'FAIL: settled expense not posted'; end if;
   if (select count(*) from public.financial_transactions
       where reference_type = 'finance_expense'
-        and reference_id = (select id from public.finance_expenses where description = 'Approved maintenance expense')) <> 1 then
-    raise exception 'FAIL: expense posting was not exactly once';
+        and reference_id = (select id from public.finance_expenses where description = 'Approved maintenance expense')) <> 2 then
+    raise exception 'FAIL: expense payment count mismatch';
   end if;
   if not exists (
     select 1 from public.financial_transactions
     where reference_id = (select id from public.finance_expenses where description = 'Approved maintenance expense')
       and transaction_category = 'EXPENSE'
       and direction = 'outflow'
-      and amount_paise = 125000
+      and amount_paise = 100000
   ) then raise exception 'FAIL: expense financial effect is incorrect'; end if;
   begin
     perform public.decide_finance_expense(
@@ -174,12 +271,31 @@ begin
   end;
 end $$;
 
--- A successful replay still requires the caller's current permission.
+select id from public.set_finance_expense_missing_bill_reason(
+  (select id from public.finance_expenses where description = 'President-submitted expense'),
+  'Supplier gave no printed invoice.'
+);
+-- President's own request is approvable, but remains unpaid.
+select id from public.decide_finance_expense(
+  (select id from public.finance_expenses where description = 'President-submitted expense'),
+  'approve', null, 'finance-test-president-self-approve'
+);
+do $$
+begin
+  if (select status from public.finance_expenses where description = 'President-submitted expense') <> 'approved' then
+    raise exception 'FAIL: President self approval was blocked'; end if;
+  if exists (select 1 from public.financial_transactions
+    where reference_id = (select id from public.finance_expenses where description = 'President-submitted expense')) then
+    raise exception 'FAIL: self approval posted an outflow'; end if;
+end $$;
+
+-- A successful replay still requires the President's current permission.
 delete from public.role_permissions
-where role_id = (select id from public.roles where key = 'vice_president')
+where role_id = (select id from public.roles where key = 'president')
   and permission_id = (
     select id from public.permissions where key = 'finance.expenses.approve'
   );
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 do $$
 begin
   begin
@@ -573,7 +689,7 @@ begin
     raise exception 'FAIL: Auditor cannot read authorized financial transactions';
   end if;
   if (select balance_paise from public.finance_account_balances
-      where finance_account_id = (select id from public.finance_accounts where name = 'Main cash')) <> -50000 then
+      where finance_account_id = (select id from public.finance_accounts where name = 'Main cash')) <> -75000 then
     raise exception 'FAIL: calculated cash balance is not derived correctly';
   end if;
   if (select balance_paise from public.finance_account_balances
@@ -582,5 +698,113 @@ begin
   end if;
 end $$;
 reset role;
+
+-- A lower final bill closes only the unused approval; payment history remains.
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select id from public.submit_finance_expense_with_evidence(
+  (select id from public.finance_accounts where name = 'Main cash'),
+  10000, 'Lower final bill test', null, current_date,
+  'finance-test-close-submit', 'Supplier provided no invoice for this expense.'
+);
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select id from public.decide_finance_expense(
+  (select id from public.finance_expenses where description = 'Lower final bill test'),
+  'approve', null, 'finance-test-close-approve'
+);
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select id from public.pay_finance_expense(
+  (select id from public.finance_expenses where description = 'Lower final bill test'),
+  2500, current_date, 'finance-test-close-payment'
+);
+select id from public.close_finance_expense(
+  (select id from public.finance_expenses where description = 'Lower final bill test'),
+  'Final invoice was lower than the approved estimate.', 'finance-test-close-operation'
+);
+select id from public.close_finance_expense(
+  (select id from public.finance_expenses where description = 'Lower final bill test'),
+  'Final invoice was lower than the approved estimate.', 'finance-test-close-operation'
+);
+do $$
+declare v_id uuid;
+begin
+  select id into v_id from public.finance_expenses where description = 'Lower final bill test';
+  if (select status from public.finance_expenses where id = v_id) <> 'closed'
+     or (select amount_paise - paid_amount_paise from public.finance_expenses where id = v_id) <> 7500 then
+    raise exception 'FAIL: unused approval not retained'; end if;
+  if (select count(*) from public.financial_transactions
+      where reference_type = 'finance_expense' and reference_id = v_id) <> 1 then
+    raise exception 'FAIL: closing posted an additional outflow'; end if;
+  begin
+    perform public.pay_finance_expense(v_id,7500,current_date,'finance-test-close-late-payment');
+    raise exception 'FAIL: closed expense accepted another payment';
+  exception when invalid_parameter_value then null; end;
+  begin
+    perform public.close_finance_expense(v_id,'Changed closure explanation here.',
+      'finance-test-close-operation');
+    raise exception 'FAIL: changed closure replay succeeded';
+  exception when unique_violation then null; end;
+end $$;
+
+-- Rejected revisions retain the old decision and require a fresh approval.
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select id from public.submit_finance_expense_with_evidence(
+  (select id from public.finance_accounts where name = 'Main cash'),
+  11000,'Rejected revision test',null,current_date,
+  'finance-test-revision-submit','Vendor did not provide a bill for this job.'
+);
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select id from public.decide_finance_expense(
+  (select id from public.finance_expenses where description = 'Rejected revision test'),
+  'reject','Incorrect amount on the request.','finance-test-revision-reject'
+);
+do $$
+begin
+  begin
+    perform public.resubmit_finance_expense(
+      (select id from public.finance_expenses where description = 'Rejected revision test'),
+      (select id from public.finance_accounts where name = 'Main cash'),
+      9000,'Not owner',null,current_date,'No receipt was issued by the vendor.',
+      'finance-test-revision-foreign');
+    raise exception 'FAIL: another actor resubmitted the expense';
+  exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
+select id from public.resubmit_finance_expense(
+  (select id from public.finance_expenses where description = 'Rejected revision test'),
+  (select id from public.finance_accounts where name = 'Main cash'),
+  9000,'Corrected revision test',null,current_date,'Vendor did not issue a receipt for this job.',
+  'finance-test-revision-resubmit'
+);
+select id from public.resubmit_finance_expense(
+  (select id from public.finance_expenses where description = 'Corrected revision test'),
+  (select id from public.finance_accounts where name = 'Main cash'),
+  9000,'Corrected revision test',null,current_date,'Vendor did not issue a receipt for this job.',
+  'finance-test-revision-resubmit'
+);
+do $$
+declare v_expense public.finance_expenses;
+begin
+  select * into v_expense from public.finance_expenses where description = 'Corrected revision test';
+  if v_expense.status <> 'submitted' or v_expense.revision_number <> 2 or v_expense.amount_paise <> 9000
+     or v_expense.decided_at is not null or v_expense.rejection_reason is not null then
+    raise exception 'FAIL: revision did not reset approval'; end if;
+  if not exists (select 1 from public.finance_expense_revisions r
+    where r.finance_expense_id = v_expense.id and r.revision_number = 1
+      and r.amount_paise = 11000 and r.rejection_reason = 'Incorrect amount on the request.') then
+    raise exception 'FAIL: rejected revision history missing'; end if;
+  if (select count(*) from public.finance_expense_revisions where finance_expense_id = v_expense.id) <> 1 then
+    raise exception 'FAIL: revision retry duplicated history'; end if;
+  begin
+    perform public.resubmit_finance_expense(v_expense.id,v_expense.finance_account_id,
+      10000,'Changed replay',null,current_date,'Vendor did not issue a receipt for this job.',
+      'finance-test-revision-resubmit');
+    raise exception 'FAIL: changed revision replay succeeded';
+  exception when unique_violation then null; end;
+end $$;
+select set_config('request.jwt.claims', '{"sub":"71000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select id from public.decide_finance_expense(
+  (select id from public.finance_expenses where description = 'Corrected revision test'),
+  'approve',null,'finance-test-revision-approve'
+);
 
 rollback;

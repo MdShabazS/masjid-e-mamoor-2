@@ -85,7 +85,7 @@ const roleLabel = (role: string) => ({
   president: "President",
   vice_president: "Vice President",
   secretary: "Secretary",
-  finance: "Finance",
+  finance: "Treasurer",
   auditor: "Auditor",
   committee_member: "Committee Member",
   member: "Member",

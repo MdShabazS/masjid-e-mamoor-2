@@ -15,6 +15,7 @@ export default function DonationsLayout() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="payment/[id]" options={{ title: "Payment details" }} />
       <Stack.Screen name="manage/index" options={{ title: "Donation management" }} />
+      <Stack.Screen name="referred/index" options={{ title: "Referred donors" }} />
     </Stack>
   );
 }

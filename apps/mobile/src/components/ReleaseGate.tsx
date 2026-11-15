@@ -70,6 +70,23 @@ export function ReleaseGate({ children }: PropsWithChildren) {
     );
   }
 
+  if (!status || release.error || release.isFetching) {
+    return <SafeAreaView style={styles.requiredPage}>
+      <View accessibilityRole="alert" style={styles.requiredPanel}>
+        <View style={styles.brandMark} />
+        <Text style={styles.eyebrow}>VERSION CHECK</Text>
+        <Text style={styles.requiredTitle}>Connect to continue</Text>
+        <Text style={styles.message}>The app needs to check the current release before opening. Check your internet connection and retry.</Text>
+        <Text style={styles.supportCopy}>If you need help, contact md.shabaz.2005@gmail.com or 7975512403.</Text>
+        <Pressable accessibilityRole="button" disabled={release.isFetching}
+          onPress={() => { if (!fetchingRef.current) void refetchRef.current({ cancelRefetch: false }); }}
+          style={[styles.primaryButton, release.isFetching && styles.buttonDisabled]}>
+          {release.isFetching ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryButtonText}>Retry</Text>}
+        </Pressable>
+      </View>
+    </SafeAreaView>;
+  }
+
   const showOptional =
     status?.updateStatus === "optional" && dismissedLatestVersion !== status.latestVersion;
 
@@ -142,8 +159,8 @@ function RequiredUpdateScreen({
         ) : (
           <>
             <Text style={styles.supportCopy}>
-              The app store link is not available. Please contact support or retry after the release
-              configuration is corrected.
+              The APK download link is not available. Contact md.shabaz.2005@gmail.com or
+              7975512403, or retry after the release configuration is corrected.
             </Text>
             <Pressable
               accessibilityRole="button"
@@ -181,7 +198,7 @@ function StoreButton({ label, storeUrl }: { label: string; storeUrl: string }) {
       </Pressable>
       {openingFailed ? (
         <Text accessibilityRole="alert" style={styles.openError}>
-          The app store could not be opened. Please try again.
+          The download link could not be opened. Please try again.
         </Text>
       ) : null}
     </View>

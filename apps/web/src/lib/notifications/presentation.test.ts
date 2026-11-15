@@ -2,11 +2,24 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatUnreadBadge,
+  notificationKindLabel,
   resolveNotificationFilter,
   safeNotificationTarget,
 } from "./presentation";
 
 describe("notification presentation", () => {
+  it("labels expense approval notifications", () => {
+    expect(notificationKindLabel("expense_awaiting_approval")).toBe(
+      "Expense awaiting approval",
+    );
+    expect(notificationKindLabel("transfer_approved")).toBe(
+      "Transfer approved",
+    );
+    expect(notificationKindLabel("payment_rejected")).toBe(
+      "Payment not verified",
+    );
+  });
+
   it("defaults to all notifications", () => {
     expect(resolveNotificationFilter(undefined)).toBe("all");
   });

@@ -3,16 +3,17 @@ import { colors, roleLabels } from "./colors";
 describe("mobile role labels", () => {
   it("maps canonical roles to human-readable labels", () => {
     expect(roleLabels.system_admin).toBe("System Admin");
+    expect(roleLabels.finance).toBe("Treasurer");
     expect(roleLabels.committee_member).toBe("Committee Member");
     expect(roleLabels.member).toBe("Member");
   });
 });
 
-describe("institutional color system", () => {
+describe("Selected Mobile UI color system", () => {
   it("keeps primary text and controls at accessible contrast", () => {
-    expect(contrast(colors.text, colors.ivory)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(colors.surface, colors.deepEmerald)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(colors.danger, colors.dangerSurface)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(colors.textStrong, colors.background)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(colors.white, colors.primaryActionBlue)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(colors.dangerText, colors.redSurface)).toBeGreaterThanOrEqual(4.5);
   });
 });
 

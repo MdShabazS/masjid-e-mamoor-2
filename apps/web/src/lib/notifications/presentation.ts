@@ -41,6 +41,23 @@ export function notificationKindLabel(kind: string) {
       task_progress: "Task progress",
       task_started: "Task started",
       task_completed: "Task completed",
+      expense_awaiting_approval: "Expense awaiting approval",
+      expense_approved: "Expense approved",
+      expense_rejected: "Expense not approved",
+      transfer_awaiting_approval: "Transfer awaiting approval",
+      transfer_approved: "Transfer approved",
+      transfer_rejected: "Transfer not approved",
+      adjustment_awaiting_approval: "Adjustment awaiting approval",
+      correction_applied: "Correction approved",
+      reversal_applied: "Reversal approved",
+      adjustment_rejected: "Adjustment not approved",
+      payment_submitted: "Payment awaiting review",
+      payment_verified: "Payment verified",
+      payment_rejected: "Payment not verified",
+      referral_awaiting_review: "Referral needs review",
+      referral_approved: "Referral approved",
+      referral_rejected: "Referral not approved",
+      referral_completed: "Referral registration completed",
     }[kind] ?? "Notification"
   );
 }

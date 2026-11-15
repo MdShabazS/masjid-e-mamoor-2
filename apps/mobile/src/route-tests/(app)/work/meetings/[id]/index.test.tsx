@@ -7,7 +7,7 @@ import { useAuth } from "../../../../../auth/AuthProvider";
 import type { MobileCapabilities } from "../../../../../modules/capabilities";
 import type { CommitteeMeetingDetail } from "../../../../../modules/meetings";
 import type { CommitteeAssigneeOption } from "../../../../../modules/work";
-import CommitteeMeetingDetailScreen from "../../../../../../app/(app)/work/meetings/[id]/index";
+import CommitteeMeetingDetailScreen from "../../../../../../app/(app)/meetings/[id]/index";
 
 jest.mock("@tanstack/react-query", () => ({
   useMutation: jest.fn(),
@@ -24,6 +24,7 @@ jest.mock("../../../../../modules/meetings", () => ({
   cancelCommitteeMeeting: jest.fn(),
   committeeMeetingAttendanceQueryKey: (id: string) => ["committee-meetings", "attendance", id],
   committeeMeetingDecisionsQueryKey: (id: string) => ["committee-meetings", "decisions", id],
+  committeeMeetingResponsesQueryKey: (id: string) => ["committee-meetings", "responses", id],
   committeeMeetingDetailQueryKey: (id: string) => ["committee-meetings", "detail", id],
   committeeMeetingInvalidationKeys: (accountId: string, id: string) => [
     ["committee-meetings", accountId],
@@ -34,7 +35,10 @@ jest.mock("../../../../../modules/meetings", () => ({
   getCommitteeMeeting: jest.fn(),
   getCommitteeMeetingAttendance: jest.fn(),
   listCommitteeMeetingDecisions: jest.fn(),
-  recordCommitteeMeetingAttendance: jest.fn(),
+  listCommitteeMeetingResponses: jest.fn(),
+  respondToCommitteeMeeting: jest.fn(),
+  recordSelfCommitteeMeetingAttendance: jest.fn(),
+  recordManualCommitteeMeetingAttendance: jest.fn(),
 }));
 jest.mock("../../../../../modules/work", () => ({
   committeeAssigneeOptionsQueryKey: () => ["committee-tasks", "assignee-options"],
@@ -68,6 +72,7 @@ let capabilityQuery = queryResult(baseCapabilities);
 let detailQuery = queryResult<CommitteeMeetingDetail>(meetingDetail());
 let attendanceQuery = queryResult([attendance("committee-1", "present")]);
 let decisionQuery = queryResult([decision()]);
+let responseQuery = queryResult([]);
 let assigneeQuery = queryResult<CommitteeAssigneeOption[]>([]);
 let mutations: ReturnType<typeof mutationState>[] = [];
 let mutationOptions: Record<string, unknown>[] = [];
@@ -82,15 +87,17 @@ beforeEach(() => {
   detailQuery = queryResult(meetingDetail());
   attendanceQuery = queryResult([attendance("committee-1", "present")]);
   decisionQuery = queryResult([decision()]);
+  responseQuery = queryResult([]);
   assigneeQuery = queryResult<CommitteeAssigneeOption[]>([]);
   mockUseQuery.mockImplementation(({ queryKey }: { queryKey: unknown[] }) => {
     if (queryKey[0] === "capabilities") return capabilityQuery;
     if (queryKey[0] === "committee-tasks") return assigneeQuery;
     if (queryKey[1] === "attendance") return attendanceQuery;
     if (queryKey[1] === "decisions") return decisionQuery;
+    if (queryKey[1] === "responses") return responseQuery;
     return detailQuery;
   });
-  mutations = [mutationState(), mutationState(), mutationState(), mutationState()];
+  mutations = [mutationState(), mutationState(), mutationState(), mutationState(), mutationState(), mutationState()];
   mutationOptions = [];
   mockUseMutation.mockImplementation((options) => {
     const index = mutationOptions.length % mutations.length;
@@ -102,6 +109,19 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks());
 
 describe("Committee meeting detail", () => {
+  it("allows an invited member to decline with a reason", async () => {
+    const view = await render(<CommitteeMeetingDetailScreen />);
+    const decline = view.getByRole("button", { name: "Decline invitation" });
+    expect(decline.props.accessibilityState.disabled).toBe(true);
+    await act(async () => fireEvent.changeText(
+      view.getByPlaceholderText("Why you cannot attend"), "Family commitment",
+    ));
+    await act(async () => fireEvent.press(decline));
+    expect(mutations[2].mutate).toHaveBeenCalledWith({
+      response: "declined", reason: "Family commitment",
+    });
+    await view.unmount();
+  });
   it("renders read-only attendance, append-only decisions, and meeting history", async () => {
     const view = await render(<CommitteeMeetingDetailScreen />);
 
@@ -117,36 +137,27 @@ describe("Committee meeting detail", () => {
     await view.unmount();
   });
 
-  it("exposes participant-scoped attendance and decision recording without admin controls", async () => {
-    capabilityQuery = queryResult({
-      ...baseCapabilities,
-      canRecordCommitteeMeetingAttendance: true,
-    });
+  it("shows GPS check-in only to an invited unrecorded participant on the scheduled day", async () => {
+    detailQuery = queryResult(meetingDetail({ scheduledStart: new Date().toISOString() }));
+    attendanceQuery = queryResult([]);
     const view = await render(<CommitteeMeetingDetailScreen />);
+    expect(view.getByRole("button", { name: "Check in with GPS" })).toBeTruthy();
+    expect(view.queryByRole("button", { name: "Absent" })).toBeNull();
+    expect(view.queryByRole("button", { name: "Mark present manually" })).toBeNull();
+    await act(async () => fireEvent.press(view.getByRole("button", { name: "Check in with GPS" })));
+    expect(mutations[0].mutate).toHaveBeenCalled();
+    await view.unmount();
+  });
 
-    expect(view.getAllByRole("button", { name: "Present" }).length).toBe(2);
-    expect(view.getByRole("button", { name: "Record decision" })).toBeTruthy();
-    expect(view.queryByRole("button", { name: "Edit meeting" })).toBeNull();
-
-    await act(async () => fireEvent.press(view.getAllByRole("button", { name: "Absent" })[0]));
-    expect(mutations[0].mutate).toHaveBeenCalledWith({
-      participantId: "committee-1",
-      status: "absent",
-    });
-
-    await act(async () =>
-      fireEvent.changeText(
-        view.getByPlaceholderText("Record a decision or outcome"),
-        "New outcome",
-      ),
-    );
-    await act(async () => fireEvent.press(view.getByRole("button", { name: "Record decision" })));
-    expect(mutations[1].mutate).toHaveBeenCalledWith("New outcome");
-
-    await act(async () => {
-      await (mutationOptions[1].onSuccess as () => Promise<void>)();
-    });
-    expect(invalidateQueries).toHaveBeenCalled();
+  it("requires a reason for the creator's manual exception", async () => {
+    detailQuery = queryResult(meetingDetail({ scheduledStart: new Date().toISOString(), createdByApplicationUserId: "committee-1" }));
+    attendanceQuery = queryResult([]);
+    const view = await render(<CommitteeMeetingDetailScreen />);
+    expect(view.queryByRole("button", { name: "Mark present manually" })).toBeNull();
+    await act(async () => fireEvent.changeText(view.getByPlaceholderText("Why is GPS check-in unavailable?"), "GPS signal unavailable"));
+    expect(view.getAllByRole("button", { name: "Mark present manually" })).toHaveLength(2);
+    await act(async () => fireEvent.press(view.getAllByRole("button", { name: "Mark present manually" })[1]));
+    expect(mutations[1].mutate).toHaveBeenCalledWith("committee-2");
     await view.unmount();
   });
 
@@ -168,7 +179,7 @@ describe("Committee meeting detail", () => {
 
     await act(async () => fireEvent.press(view.getByRole("button", { name: "Edit meeting" })));
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/work/meetings/[id]/edit",
+      pathname: "/meetings/[id]/edit",
       params: { id: "meeting-1" },
     });
     expect(view.getByRole("button", { name: "Direct assignment" })).toBeTruthy();
@@ -182,7 +193,7 @@ describe("Committee meeting detail", () => {
     await act(async () => fireEvent.press(view.getByRole("button", { name: "Cancel meeting" })));
     const actions = (Alert.alert as jest.Mock).mock.calls.at(-1)[2];
     await act(async () => actions[1].onPress());
-    expect(mutations[2].mutate).toHaveBeenCalledWith("Schedule conflict");
+    expect(mutations[4].mutate).toHaveBeenCalledWith("Schedule conflict");
     await view.unmount();
   });
 
@@ -192,14 +203,13 @@ describe("Committee meeting detail", () => {
       canAdministerCommitteeMeetings: true,
       canRecordCommitteeMeetingAttendance: true,
     });
-    mutations[0] = mutationState(true, {
-      participantId: "committee-1",
-      status: "present",
-    });
+    detailQuery = queryResult(meetingDetail({ scheduledStart: new Date().toISOString() }));
+    attendanceQuery = queryResult([]);
+    mutations[0] = mutationState(true);
     const view = await render(<CommitteeMeetingDetailScreen />);
 
     expect(
-      view.getAllByRole("button", { name: "Absent" })[0].props.accessibilityState.disabled,
+      view.getByRole("button", { name: "Check in with GPS" }).props.accessibilityState.disabled,
     ).toBe(true);
     expect(
       view.getByRole("button", { name: "Record decision" }).props.accessibilityState.disabled,

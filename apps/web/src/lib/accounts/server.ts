@@ -43,15 +43,6 @@ export interface LoginAccountRecord {
   mustChangePassword: boolean;
 }
 
-const normalManageableRoles = [
-  "vice_president",
-  "secretary",
-  "finance",
-  "auditor",
-  "committee_member",
-  "member",
-] as const;
-
 const reservedUsernames = new Set([
   "admin",
   "administrator",
@@ -227,43 +218,21 @@ export async function requireCurrentAccount(accessToken?: string) {
   return account;
 }
 
-function assertPresidentCanManageRole(role: AccountRole) {
-  if (
-    !normalManageableRoles.includes(
-      role as (typeof normalManageableRoles)[number],
-    )
-  ) {
-    throw new Error("not_authorized");
-  }
-}
-
 function assertCanManageAccount(
   actor: AccountRecord,
-  target: AccountRecord,
 ) {
-  if (actor.role === "system_admin") return;
-
-  if (actor.role !== "president") {
+  if (actor.role !== "system_admin") {
     throw new Error("not_authorized");
   }
-
-  assertPresidentCanManageRole(target.role);
 }
 
 function assertCanCreateRole(actor: AccountRecord, role: AccountRole) {
-  if (actor.role === "system_admin") {
-    if (role === "system_admin") {
-      throw new Error("not_authorized");
-    }
-    return;
+  if (
+    actor.role !== "system_admin" ||
+    !["president", "vice_president", "secretary", "finance", "committee_member"].includes(role)
+  ) {
+    throw new Error("not_authorized");
   }
-
-  if (actor.role === "president") {
-    assertPresidentCanManageRole(role);
-    return;
-  }
-
-  throw new Error("not_authorized");
 }
 
 async function insertAudit(input: {
@@ -303,10 +272,7 @@ export async function getLoginAccountByUsername(username: string) {
 
 export async function canManageAccounts() {
   const account = await getCurrentAccount();
-  return (
-    account?.status === "active" &&
-    (account.role === "system_admin" || account.role === "president")
-  );
+  return account?.status === "active" && account.role === "system_admin";
 }
 
 async function getMemberDisplayNames(accountIds: string[]) {
@@ -333,7 +299,7 @@ async function getMemberDisplayNames(accountIds: string[]) {
 export async function listAccounts(accessToken?: string) {
   const actor = await requireCurrentAccount(accessToken);
 
-  if (actor.role !== "system_admin" && actor.role !== "president") {
+  if (actor.role !== "system_admin") {
     throw new Error("not_authorized");
   }
 
@@ -367,13 +333,7 @@ export async function listAccounts(accessToken?: string) {
     );
   });
 
-  return actor.role === "system_admin"
-    ? accounts
-    : accounts.filter((account) =>
-        normalManageableRoles.includes(
-          account.role as (typeof normalManageableRoles)[number],
-        ),
-      );
+  return accounts;
 }
 
 export async function getAccountById(accountId: string) {
@@ -582,8 +542,8 @@ export async function changeAccountUsername(
   accessToken?: string,
 ) {
   const actor = await requireCurrentAccount(accessToken);
-  const target = await getAccountById(accountId);
-  assertCanManageAccount(actor, target);
+  await getAccountById(accountId);
+  assertCanManageAccount(actor);
 
   const usernameNormalized = validateUsernamePolicy(username);
   const admin = createAdminClient();
@@ -667,7 +627,7 @@ export async function resetAccountPassword(
 ) {
   const actor = await requireCurrentAccount(accessToken);
   const target = await getAccountById(accountId);
-  assertCanManageAccount(actor, target);
+  assertCanManageAccount(actor);
 
   const temporaryPassword = password ?? generateTemporaryPassword();
   validatePasswordPolicy(temporaryPassword);

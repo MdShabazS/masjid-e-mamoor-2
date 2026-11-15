@@ -148,6 +148,15 @@ export default function DonationsScreen() {
           description="Review monthly obligations, submit payments, and follow your donation history."
         />
 
+        <Pressable accessibilityRole="button" onPress={() => router.push("/donations/referred")}
+          style={styles.managementButton}>
+          <View style={styles.flexCopy}>
+            <Text style={styles.managementTitle}>Referred donors</Text>
+            <Text style={styles.managementCopy}>Record a named donation and save its receipt after verification</Text>
+          </View>
+          <Text style={styles.managementArrow}>›</Text>
+        </Pressable>
+
         {capabilities.data?.canManageDonations ? (
           <Pressable
             accessibilityRole="button"

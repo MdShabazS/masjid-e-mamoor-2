@@ -10,11 +10,7 @@ import {
 
 const initialState: AccountActionState = {};
 
-export function CreateAccountForm({
-  allowPresident,
-}: {
-  allowPresident: boolean;
-}) {
+export function CreateAccountForm() {
   const [state, action, pending] = useActionState(
     createAccountAction,
     initialState,
@@ -42,15 +38,11 @@ export function CreateAccountForm({
             required
             className="field-input"
           >
-            <option value="member">Member</option>
             <option value="committee_member">Committee Member</option>
-            <option value="auditor">Auditor</option>
-            <option value="finance">Finance</option>
+            <option value="finance">Treasurer</option>
             <option value="secretary">Secretary</option>
             <option value="vice_president">Vice President</option>
-            {allowPresident ? (
-              <option value="president">President</option>
-            ) : null}
+            <option value="president">President</option>
           </select>
         </label>
 
@@ -64,15 +56,7 @@ export function CreateAccountForm({
           />
         </label>
 
-        <label className="field-label">
-          Temporary password
-          <input
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            className="field-input"
-          />
-        </label>
+        <p className="text-sm text-zinc-600">A temporary password is generated and shown once after creation.</p>
 
         <div className="md:col-span-2">
           <button

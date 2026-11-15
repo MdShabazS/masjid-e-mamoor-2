@@ -44,7 +44,7 @@ export function dashboardWorkspaceModules(
     work: { href: "/work", title: "Work" },
     donations: { href: "/donations", title: "Donations" },
     finance: { href: "/finance", title: "Finance" },
-    meetings: { href: "/work/meetings", title: "Meetings" },
+    meetings: { href: "/meetings", title: "Meetings" },
     notifications: { href: "/notifications", title: "Notifications" },
     announcements: { href: "/announcements", title: "Announcements" },
   } as const;

@@ -1,4 +1,5 @@
 export const APP_NAME = "Masjid-e-Mamoor";
+export { financeDateRangeCsv } from "./src/finance-report-csv";
 
 export const APPLICATION_ROLES = [
   "president",

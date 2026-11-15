@@ -4,6 +4,7 @@ import {
   availableAccountRoles,
   canAccessAccountAdministration,
   canChangeAccountStatus,
+  editableAccountRole,
   isProtectedSystemAdminTarget,
   initialAccountCreationDraft,
   parseManagedAccount,
@@ -27,10 +28,10 @@ const account = (
 });
 
 describe("mobile account administration policy presentation", () => {
-  it("starts each account-creation visit with a clean member draft", () => {
+  it("starts each account-creation visit with a clean committee draft", () => {
     expect(initialAccountCreationDraft()).toEqual({
       username: "",
-      role: "member",
+      role: "committee_member",
       displayName: "",
     });
     expect(initialAccountCreationDraft()).not.toBe(initialAccountCreationDraft());
@@ -52,9 +53,9 @@ describe("mobile account administration policy presentation", () => {
     ).toThrow();
   });
 
-  it("limits entry presentation to System Admin and President", () => {
+  it("limits entry presentation to System Admin", () => {
     expect(canAccessAccountAdministration("system_admin")).toBe(true);
-    expect(canAccessAccountAdministration("president")).toBe(true);
+    expect(canAccessAccountAdministration("president")).toBe(false);
     expect(canAccessAccountAdministration("vice_president")).toBe(false);
     expect(canAccessAccountAdministration("member")).toBe(false);
   });
@@ -65,22 +66,15 @@ describe("mobile account administration policy presentation", () => {
       "vice_president",
       "secretary",
       "finance",
-      "auditor",
       "committee_member",
-      "member",
     ]);
-    expect(availableAccountRoles("president")).toEqual([
-      "vice_president",
-      "secretary",
-      "finance",
-      "auditor",
-      "committee_member",
-      "member",
-    ]);
+    expect(availableAccountRoles("president")).toEqual([]);
     expect(availableAccountRoles("member")).toEqual([]);
     expect(availableAccountRoles("system_admin")).not.toContain(
       "system_admin",
     );
+    expect(editableAccountRole("member")).toBe("committee_member");
+    expect(editableAccountRole("finance")).toBe("finance");
   });
 
   it("protects System Admin role and final/self deactivation controls", () => {

@@ -40,8 +40,23 @@ begin
     'anon', 'public.change_account_role(uuid,text)', 'EXECUTE'
   ) or pg_catalog.has_function_privilege(
     'anon', 'public.change_account_status(uuid,text)', 'EXECUTE'
+  ) or pg_catalog.has_function_privilege(
+    'authenticated', 'private.change_account_role_legacy(uuid,text)', 'EXECUTE'
+  ) or pg_catalog.has_function_privilege(
+    'authenticated', 'private.change_account_status_legacy(uuid,text)', 'EXECUTE'
   ) then
-    raise exception 'FAIL: anon can execute trusted account mutations';
+    raise exception 'FAIL: untrusted role can execute restricted account functions';
+  end if;
+  if exists (
+    select 1 from public.role_permissions rp
+    join public.roles r on r.id = rp.role_id
+    join public.permissions p on p.id = rp.permission_id
+    where r.key = 'president' and p.key like 'accounts.%'
+  ) then
+    raise exception 'FAIL: President retains account administration permissions';
+  end if;
+  if (select name from public.roles where key = 'finance') <> 'Treasurer' then
+    raise exception 'FAIL: Treasurer role display name is missing';
   end if;
 end $$;
 
@@ -145,7 +160,7 @@ begin
   end;
 end $$;
 
--- President cannot manage a System Admin, and denial does not mutate/audit.
+-- President cannot manage any account, and denial does not mutate/audit.
 select set_config(
   'request.jwt.claims',
   '{"sub":"81000000-0000-0000-0000-000000000003","role":"authenticated"}',
@@ -158,9 +173,17 @@ begin
   select count(*) into v_events from public.account_security_events;
   begin
     perform public.change_account_status(
-      '82000000-0000-0000-0000-000000000001', 'deactivated'
+      '82000000-0000-0000-0000-000000000004', 'deactivated'
     );
-    raise exception 'FAIL: President managed a System Admin';
+    raise exception 'FAIL: President managed an ordinary account';
+  exception when others then
+    if sqlerrm not like '%not_authorized%' then raise; end if;
+  end;
+  begin
+    perform public.change_account_role(
+      '82000000-0000-0000-0000-000000000004', 'secretary'
+    );
+    raise exception 'FAIL: President changed an ordinary account role';
   exception when others then
     if sqlerrm not like '%not_authorized%' then raise; end if;
   end;
@@ -198,14 +221,17 @@ begin
   end;
 end $$;
 
+-- Inspect internal functions as owner; authenticated has no private-schema usage.
+reset role;
+
 -- Both functions must acquire the same advisory lock before mutation.
 do $$
 declare
   v_role_definition text := pg_catalog.pg_get_functiondef(
-    'public.change_account_role(uuid,text)'::regprocedure
+    'private.change_account_role_legacy(uuid,text)'::regprocedure
   );
   v_status_definition text := pg_catalog.pg_get_functiondef(
-    'public.change_account_status(uuid,text)'::regprocedure
+    'private.change_account_status_legacy(uuid,text)'::regprocedure
   );
 begin
   if pg_catalog.strpos(v_role_definition, 'pg_advisory_xact_lock(1296387405, 1)') = 0

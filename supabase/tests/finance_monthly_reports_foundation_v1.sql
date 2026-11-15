@@ -16,7 +16,6 @@ begin
 
   if v_read_roles is distinct from array[
     'auditor',
-    'committee_member',
     'finance',
     'president',
     'secretary',
@@ -295,8 +294,8 @@ select set_config(
 set local role authenticated;
 do $$
 begin
-  if (select count(*) from public.finance_monthly_reports) <> 1 then
-    raise exception 'FAIL: Committee Member cannot read monthly Finance reports';
+  if (select count(*) from public.finance_monthly_reports) <> 0 then
+    raise exception 'FAIL: Committee Member can read monthly Finance reports';
   end if;
 end
 $$;

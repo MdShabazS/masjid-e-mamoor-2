@@ -73,11 +73,11 @@ begin
   end if;
 end $$;
 
--- President completes an approved referral and creates one aggregate.
+-- System Admin completes an approved referral and creates one aggregate.
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
-  '{"sub":"95000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  '{"sub":"95000000-0000-0000-0000-000000000001","role":"authenticated"}',
   true
 );
 
@@ -105,7 +105,7 @@ begin
   where application_user_id = v_account_id;
 
   if v_account_id is null or v_profile_id is null then
-    raise exception 'FAIL: President completion did not create Member aggregate';
+    raise exception 'FAIL: System Admin completion did not create Member aggregate';
   end if;
 
   if (select count(*) from public.application_users
@@ -221,6 +221,24 @@ begin
   end if;
 end $$;
 
+-- President may review a referral, but cannot create its member account.
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub":"95000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+do $$
+begin
+  begin
+    perform public.finalize_referral_member_provisioning(
+      '98000000-0000-0000-0000-000000000013', 'president-denied',
+      '95000000-0000-0000-0000-000000000013',
+      'ref-final-unauthorized@auth.masjid.local', 'ref.denied', 'ref.denied');
+    raise exception 'FAIL: President finalized member account';
+  exception when others then
+    if sqlerrm not like '%not_authorized%' then raise; end if;
+  end;
+end $$;
+reset role;
+
 -- Ordinary Member cannot finalize an approved referral.
 set local role authenticated;
 select set_config(
@@ -250,7 +268,7 @@ reset role;
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
-  '{"sub":"95000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  '{"sub":"95000000-0000-0000-0000-000000000001","role":"authenticated"}',
   true
 );
 do $$
@@ -321,7 +339,7 @@ for each row execute function public.test_fail_referral_completion_audit();
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
-  '{"sub":"95000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  '{"sub":"95000000-0000-0000-0000-000000000001","role":"authenticated"}',
   true
 );
 do $$

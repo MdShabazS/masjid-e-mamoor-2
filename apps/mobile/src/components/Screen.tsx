@@ -19,13 +19,13 @@ import {
   type Edge,
 } from "react-native-safe-area-context";
 import { colors } from "../theme/colors";
-import { spacing } from "../theme/tokens";
+import { fontFamilies, spacing } from "../theme/tokens";
 
 const defaultEdges: Edge[] = ["top", "left", "right"];
 const defaultKeyboardClearance = spacing.xxl;
 
 export function FormTextInput(props: TextInputProps) {
-  return <TextInput {...props} />;
+  return <TextInput {...props} style={[styles.formInput, props.style]} />;
 }
 
 interface ScreenProps {
@@ -43,7 +43,7 @@ export function Screen({
   children,
   contentContainerStyle,
   edges = defaultEdges,
-  backgroundColor = colors.ivory,
+  backgroundColor = colors.background,
   keyboardClearance = defaultKeyboardClearance,
   keyboardAware = false,
   scroll = false,
@@ -105,7 +105,8 @@ export function Screen({
 }
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: colors.ivory, flex: 1 },
+  safeArea: { backgroundColor: colors.background, flex: 1 },
   fill: { flex: 1 },
   content: { paddingBottom: spacing.section },
+  formInput: { fontFamily: fontFamilies.regular },
 });

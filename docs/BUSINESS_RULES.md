@@ -560,6 +560,24 @@ the approved attendance rule.
 The user must be able to distinguish pending, synchronized, rejected,
 and failed attendance submissions where applicable.
 
+## BR-ATTEND-009 --- Jummah Event Configuration
+
+The President creates each Jummah attendance event and sets its authoritative
+GPS centre and check-in opening/closing timestamps. The 100 metre V1 radius is
+fixed and is not an event or client input.
+
+## BR-ATTEND-010 --- Jummah Member Self-Attendance
+
+Only an account whose current role is Member may submit Jummah attendance, and
+the server derives the Member profile from the authenticated account. The
+Member cannot submit attendance for another person.
+
+## BR-ATTEND-011 --- Offline Jummah Validation Time
+
+The server validates the event window using server time when an offline
+operation is synchronized. A client-provided capture time cannot extend or
+override the event window.
+
 ------------------------------------------------------------------------
 
 # 20. Notification Rules

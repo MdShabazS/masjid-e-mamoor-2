@@ -78,9 +78,7 @@ export const accountRoleSchema = z.enum([
   "vice_president",
   "secretary",
   "finance",
-  "auditor",
   "committee_member",
-  "member",
 ]);
 
 export const accountStatusSchema = z.enum([
@@ -110,7 +108,6 @@ export const accountCreateSchema = z.object({
   username: usernameSchema,
   role: accountRoleSchema,
   displayName: memberDisplayNameSchema,
-  password: passwordSchema.optional(),
 });
 
 export const accountUsernameChangeSchema = z.object({

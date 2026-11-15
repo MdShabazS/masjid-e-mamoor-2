@@ -1,0 +1,16 @@
+diff --git a/apps/mobile/app.json b/apps/mobile/app.json
+index 2825744..2c2b8a0 100644
+--- a/apps/mobile/app.json
++++ b/apps/mobile/app.json
+@@ -18,7 +18,10 @@
+     ],
+     "ios": {
+       "bundleIdentifier": "com.masjidemamoor.masjidemamoor2",
+-      "supportsTablet": true
++      "supportsTablet": true,
++      "infoPlist": {
++        "ITSAppUsesNonExemptEncryption": false
++      }
+     },
+     "android": {
+       "package": "com.masjidemamoor.masjidemamoor2",

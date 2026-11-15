@@ -50,4 +50,25 @@ describe("role-aware mobile navigation", () => {
   it("prioritizes Finance modules without granting task assignment", () => {
     expect(primaryMobileTabs("finance", capabilities).slice(0, 3)).toEqual(["home", "donations", "finance"]);
   });
+
+  it("shows Jummah attendance in More only with the server-backed read capability", () => {
+    expect(moreMobileModules("member", capabilities).some((item) => item.key === "attendance")).toBe(false);
+    expect(moreMobileModules("member", {
+      ...capabilities,
+      canReadJummahAttendance: true,
+    }).some((item) => item.key === "attendance")).toBe(true);
+  });
+
+  it.each(["president", "vice_president", "secretary"] as const)(
+    "uses the management workflow order for %s",
+    (role) => {
+      expect(primaryMobileTabs(role, capabilities)).toEqual([
+        "home",
+        "tasks",
+        "meetings",
+        "notifications",
+        "more",
+      ]);
+    },
+  );
 });

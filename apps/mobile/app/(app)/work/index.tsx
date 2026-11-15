@@ -1,18 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { RefreshControl, StyleSheet, View } from "react-native";
+import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
 
 import { useAuth } from "../../../src/auth/AuthProvider";
+import { AppIcon, type AppIconName } from "../../../src/components/AppIcon";
+import { AppText as Text } from "../../../src/components/AppText";
 import {
   AppButton,
   BrandedPageHeader,
-  Divider,
   EmptyState,
   ErrorState,
-  InformationCard,
-  ListRow,
   LoadingState,
-  SectionHeader,
   StatusChip,
 } from "../../../src/components/InstitutionalUI";
 import { Screen } from "../../../src/components/Screen";
@@ -31,7 +29,7 @@ import {
   workListState,
 } from "../../../src/modules/work-presentation";
 import { colors } from "../../../src/theme/colors";
-import { spacing } from "../../../src/theme/tokens";
+import { fontFamilies, radii, spacing } from "../../../src/theme/tokens";
 
 export default function WorkScreen() {
   const { account } = useAuth();
@@ -48,18 +46,18 @@ export default function WorkScreen() {
   });
 
   if (!account || capabilities.isLoading) {
-    return <PageState loading copy="Loading committee work..." />;
+    return <PageState loading copy="Loading committee tasks..." />;
   }
   if (capabilities.isError) {
     return (
       <PageState
-        copy="Committee work access could not be checked."
+        copy="Task access could not be checked."
         onRetry={() => void capabilities.refetch()}
       />
     );
   }
   if (!canRead) {
-    return <PageState copy="Committee work is not available for this account." />;
+    return <PageState copy="Tasks are not available for this account." />;
   }
 
   const items = tasks.data ?? [];
@@ -79,32 +77,25 @@ export default function WorkScreen() {
           <RefreshControl
             refreshing={tasks.isRefetching}
             onRefresh={() => void tasks.refetch()}
-            tintColor={colors.deepEmerald}
+            tintColor={colors.primaryBlue}
           />
         ),
       }}
     >
       <BrandedPageHeader
-        description="Assigned responsibilities, volunteer opportunities, and permanent task history."
-        eyebrow="Committee operations"
-        title="Work"
+        description="Manage assigned and open committee tasks."
+        title="Tasks"
       />
 
-      {capabilities.data?.canReadCommitteeMeetings ? (
-        <View style={styles.meetingAction}>
+      <View style={styles.actions}>
+        {capabilities.data?.canAssignCommitteeTasks ? (
           <AppButton
-            label="View committee meetings"
-            onPress={() => router.push("/work/meetings")}
-            variant="secondary"
+            icon={<AppIcon color={colors.white} name="plus" size={18} />}
+            label="Create task"
+            onPress={() => router.push("/work/create")}
           />
-        </View>
-      ) : null}
-
-      {capabilities.data?.canAssignCommitteeTasks ? (
-        <View style={styles.primaryAction}>
-          <AppButton label="Create task" onPress={() => router.push("/work/create")} />
-        </View>
-      ) : null}
+        ) : null}
+      </View>
 
       {state === "loading" ? <LoadingState label="Loading tasks" /> : null}
       {state === "error" ? (
@@ -113,7 +104,7 @@ export default function WorkScreen() {
             <AppButton label="Retry" onPress={() => void tasks.refetch()} variant="secondary" />
           }
           description="Tasks could not load. Check your connection and try again."
-          title="Work unavailable"
+          title="Tasks unavailable"
         />
       ) : null}
       {state === "empty" ? (
@@ -126,31 +117,20 @@ export default function WorkScreen() {
       {state === "ready" ? (
         <View style={styles.groups}>
           <TaskGroup
-            description="Active responsibilities assigned to you"
             emptyCopy="No active tasks are assigned to you."
+            icon="clipboard-check-outline"
             tasks={groups.assigned}
             title="My tasks"
+            tone="blue"
           />
           {groups.open.length > 0 ? (
-            <TaskGroup
-              description="Available tasks that an eligible volunteer may claim"
-              tasks={groups.open}
-              title="Open volunteer tasks"
-            />
+            <TaskGroup icon="clipboard-plus-outline" tasks={groups.open} title="Open tasks" tone="green" />
           ) : null}
           {groups.team.length > 0 ? (
-            <TaskGroup
-              description="Other active work visible within your authorized scope"
-              tasks={groups.team}
-              title="Team tasks"
-            />
+            <TaskGroup icon="account-group-outline" tasks={groups.team} title="Team tasks" tone="purple" />
           ) : null}
           {groups.completed.length > 0 ? (
-            <TaskGroup
-              description="Completed work retained as permanent history"
-              tasks={groups.completed}
-              title="Completed"
-            />
+            <TaskGroup icon="check-circle-outline" tasks={groups.completed} title="Completed" tone="neutral" />
           ) : null}
         </View>
       ) : null}
@@ -158,79 +138,85 @@ export default function WorkScreen() {
   );
 }
 
-function TaskGroup({
-  description,
-  emptyCopy,
-  tasks,
-  title,
-}: {
-  description: string;
+const groupTones = {
+  blue: { background: colors.blueSurface, border: "#D8E8FA", icon: colors.primaryBlue },
+  green: { background: colors.greenSurface, border: "#D0F0E2", icon: colors.successGreen },
+  purple: { background: colors.purpleSurface, border: "#E5D8FB", icon: colors.purple },
+  neutral: { background: colors.surfaceMuted, border: colors.border, icon: colors.textMuted },
+} as const;
+
+function TaskGroup({ emptyCopy, icon, tasks, title, tone }: {
   emptyCopy?: string;
+  icon: AppIconName;
   tasks: CommitteeTaskSummary[];
   title: string;
+  tone: keyof typeof groupTones;
 }) {
-  return (
-    <View style={styles.group}>
-      <SectionHeader description={description} title={`${title} · ${tasks.length}`} />
-      {tasks.length === 0 ? (
-        <InformationCard>
-          <ListRow subtitle={emptyCopy ?? "No tasks in this section."} title="Nothing pending" />
-        </InformationCard>
-      ) : (
-        <InformationCard style={styles.listCard}>
-          {tasks.map((task, index) => {
-            const source = taskSourceContext(task);
-            const assignment =
-              task.assignmentMode === "open" && task.status === "open"
-                ? "Open volunteer task"
-                : `${task.assigneeIds.length} ${task.assigneeIds.length === 1 ? "assignee" : "assignees"}`;
+  const palette = groupTones[tone];
 
-            return (
-              <View key={task.id}>
-                {index > 0 ? <Divider /> : null}
-                <ListRow
-                  meta={`${source ? `${source} · ` : ""}Due: ${formatTaskDate(task.dueDate)} · ${assignment}`}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/work/[id]",
-                      params: { id: task.id },
-                    })
-                  }
-                  subtitle={`${taskPriorityLabels[task.priority]} priority · ${taskStatusLabels[task.status]}`}
-                  title={task.title}
-                  trailing={
-                    <StatusChip
-                      label={task.isOverdue ? "Overdue" : taskStatusLabels[task.status]}
-                      tone={
-                        task.isOverdue
-                          ? "warning"
-                          : task.status === "completed"
-                            ? "success"
-                            : task.status === "open"
-                              ? "info"
-                              : "neutral"
-                      }
-                    />
-                  }
-                />
-              </View>
-            );
-          })}
-        </InformationCard>
+  return (
+    <View style={[styles.group, { backgroundColor: palette.background, borderColor: palette.border }]}>
+      <View style={styles.groupHeader}>
+        <View style={styles.groupTitleRow}>
+          <AppIcon color={palette.icon} name={icon} size={21} />
+          <Text accessibilityRole="header" style={styles.groupTitle}>{title}</Text>
+        </View>
+        <View style={styles.countBadge}>
+          <Text style={styles.countText}>{tasks.length}</Text>
+        </View>
+      </View>
+
+      {tasks.length === 0 ? (
+        <View style={styles.compactEmpty}>
+          <Text style={styles.emptyTitle}>Nothing pending</Text>
+          <Text style={styles.emptyCopy}>{emptyCopy ?? "No tasks in this section."}</Text>
+        </View>
+      ) : (
+        <View style={styles.cards}>
+          {tasks.map((task) => <TaskCard key={task.id} task={task} />)}
+        </View>
       )}
     </View>
   );
 }
 
-function PageState({
-  copy,
-  loading = false,
-  onRetry,
-}: {
-  copy: string;
-  loading?: boolean;
-  onRetry?: () => void;
-}) {
+function TaskCard({ task }: { task: CommitteeTaskSummary }) {
+  const source = taskSourceContext(task);
+  const assignment =
+    task.assignmentMode === "open" && task.status === "open"
+      ? "Open volunteer task"
+      : `${task.assigneeIds.length} ${task.assigneeIds.length === 1 ? "assignee" : "assignees"}`;
+
+  return (
+    <Pressable
+      accessibilityLabel={`View task: ${task.title}`}
+      accessibilityRole="button"
+      onPress={() => router.push({ pathname: "/work/[id]", params: { id: task.id } })}
+      style={({ pressed }) => [styles.taskCard, pressed && styles.pressed]}
+    >
+      <View style={styles.taskTopRow}>
+        <Text numberOfLines={2} style={styles.taskTitle}>{task.title}</Text>
+        <AppIcon color={colors.textMuted} name="chevron-right" size={21} />
+      </View>
+      <View style={styles.metaRow}>
+        <AppIcon color={colors.textMuted} name="calendar-blank-outline" size={15} />
+        <Text style={styles.metaText}>Due {formatTaskDate(task.dueDate)}</Text>
+      </View>
+      <Text numberOfLines={2} style={styles.contextText}>
+        {source ? `${source} · ` : ""}{assignment}
+      </Text>
+      <View style={styles.chips}>
+        <StatusChip
+          label={task.isOverdue ? "Overdue" : taskStatusLabels[task.status]}
+          tone={task.isOverdue ? "warning" : task.status === "completed" ? "success" : task.status === "open" ? "info" : "neutral"}
+        />
+        <Text style={styles.priorityText}>{taskPriorityLabels[task.priority]} priority</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function PageState({ copy, loading = false, onRetry }: { copy: string; loading?: boolean; onRetry?: () => void }) {
   return (
     <Screen contentContainerStyle={styles.pageState}>
       {loading ? <LoadingState label={copy} /> : null}
@@ -238,28 +224,36 @@ function PageState({
         <ErrorState
           action={<AppButton label="Retry" onPress={onRetry} variant="secondary" />}
           description={copy}
-          title="Work unavailable"
+          title="Tasks unavailable"
         />
       ) : null}
-      {!loading && !onRetry ? <EmptyState description={copy} title="Work unavailable" /> : null}
+      {!loading && !onRetry ? <EmptyState description={copy} title="Tasks unavailable" /> : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flexGrow: 1,
-    padding: spacing.xl,
-    paddingBottom: spacing.section,
-  },
-  primaryAction: { marginTop: spacing.xl },
-  meetingAction: { marginTop: spacing.lg },
-  groups: { gap: spacing.section, marginTop: spacing.section },
-  group: { gap: spacing.md },
-  listCard: { paddingBottom: 0, paddingTop: 0 },
-  pageState: {
-    flex: 1,
-    justifyContent: "center",
-    padding: spacing.xl,
-  },
+  content: { flexGrow: 1, padding: spacing.xl, paddingBottom: spacing.section },
+  actions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.lg },
+  groups: { gap: spacing.lg, marginTop: spacing.xl },
+  group: { borderRadius: radii.card, borderWidth: 1, padding: spacing.md },
+  groupHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.md },
+  groupTitleRow: { alignItems: "center", flexDirection: "row", flex: 1, gap: spacing.sm },
+  groupTitle: { color: colors.textStrong, fontFamily: fontFamilies.semibold, fontSize: 17, lineHeight: 22 },
+  countBadge: { alignItems: "center", backgroundColor: colors.white, borderRadius: 999, justifyContent: "center", minHeight: 28, minWidth: 28, paddingHorizontal: 8 },
+  countText: { color: colors.textStrong, fontFamily: fontFamilies.semibold, fontSize: 13 },
+  cards: { gap: spacing.sm },
+  taskCard: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: radii.control, borderWidth: 1, minHeight: 44, padding: spacing.md },
+  taskTopRow: { alignItems: "flex-start", flexDirection: "row", gap: spacing.sm },
+  taskTitle: { color: colors.textStrong, flex: 1, fontFamily: fontFamilies.semibold, fontSize: 15, lineHeight: 20 },
+  metaRow: { alignItems: "center", flexDirection: "row", gap: 5, marginTop: spacing.sm },
+  metaText: { color: colors.textMuted, fontFamily: fontFamilies.regular, fontSize: 12, lineHeight: 17 },
+  contextText: { color: colors.textMuted, fontFamily: fontFamilies.regular, fontSize: 12, lineHeight: 17, marginTop: 3 },
+  chips: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.md },
+  priorityText: { color: colors.textMuted, fontFamily: fontFamilies.medium, fontSize: 12 },
+  compactEmpty: { backgroundColor: colors.white, borderColor: colors.border, borderRadius: radii.control, borderWidth: 1, padding: spacing.md },
+  emptyTitle: { color: colors.textStrong, fontFamily: fontFamilies.semibold, fontSize: 14 },
+  emptyCopy: { color: colors.textMuted, fontFamily: fontFamilies.regular, fontSize: 12, lineHeight: 17, marginTop: 3 },
+  pressed: { opacity: 0.72 },
+  pageState: { flex: 1, justifyContent: "center", padding: spacing.xl },
 });

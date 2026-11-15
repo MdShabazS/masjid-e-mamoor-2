@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -10,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import {
   useMutation,
   useQuery,
@@ -30,14 +32,21 @@ import { loadCapabilities } from "../../../../src/modules/capabilities";
 import { parseRupeesToPaise } from "../../../../src/modules/donation-presentation";
 import {
   type FinanceExpense,
+  closeFinanceExpense,
   decideFinanceExpense,
-  financeAccountsQueryKey,
+  explainMissingFinanceExpenseBill,
+  financeExpenseBillSignedUrl,
   financeExpensesQueryKey,
   financeExpenseStatusLabel,
   formatFinanceMoney,
-  listFinanceAccounts,
+  listExpensePaymentAccounts,
   listFinanceExpenses,
+  listFinanceExpenseBills,
+  listFinanceExpenseRevisions,
+  payFinanceExpense,
+  resubmitFinanceExpense,
   submitFinanceExpense,
+  uploadFinanceExpenseBill,
 } from "../../../../src/modules/finance";
 import { colors } from "../../../../src/theme/colors";
 
@@ -75,7 +84,22 @@ function expenseErrorMessage(error: Error) {
       return "Rejection reason must be 2000 characters or fewer.";
 
     case "finance_expense_decide_failed":
-      return "The expense could not be approved or rejected. Check its current state, maker/checker rule, and your permission.";
+      return "The expense decision failed. Refresh and check your approval access.";
+
+    case "finance_expense_missing_bill_reason_invalid":
+      return "Explain why there is no bill in at least 10 characters.";
+
+    case "finance_expense_close_reason_invalid":
+      return "Explain why the approved remainder will not be paid (10–1000 characters).";
+
+    case "finance_expense_resubmit_failed":
+      return "Could not resubmit. Check that this is your rejected request and refresh.";
+
+    case "finance_expense_close_failed":
+      return "The expense could not be closed. Refresh and check its status.";
+
+    case "finance_expense_payment_failed":
+      return "Payment failed. Check the approved balance, Finance account, and your payment access.";
 
     default:
       return "The Finance expense operation could not be completed.";
@@ -85,6 +109,8 @@ function expenseErrorMessage(error: Error) {
 export default function FinanceExpensesScreen() {
   const { account } = useAuth();
   const queryClient = useQueryClient();
+  const scrollRef = useRef<ScrollView>(null);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
 
   const [draft, setDraft] = useState({
     financeAccountId: "",
@@ -92,6 +118,7 @@ export default function FinanceExpensesScreen() {
     description: "",
     payee: "",
     businessDate: localIsoDate(),
+    missingBillReason: "",
   });
 
   const [rejectingExpenseId, setRejectingExpenseId] =
@@ -99,6 +126,13 @@ export default function FinanceExpensesScreen() {
 
   const [rejectionReason, setRejectionReason] =
     useState("");
+  const [payingExpenseId, setPayingExpenseId] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentDate, setPaymentDate] = useState(localIsoDate());
+  const [reasonExpenseId, setReasonExpenseId] = useState<string | null>(null);
+  const [missingBillReason, setMissingBillReason] = useState("");
+  const [closingExpenseId, setClosingExpenseId] = useState<string | null>(null);
+  const [closeReason, setCloseReason] = useState("");
 
   const capabilities = useQuery({
     queryKey: ["capabilities", account?.id],
@@ -111,7 +145,8 @@ export default function FinanceExpensesScreen() {
   const canAccessExpenses =
     access?.canReadFinanceTransactions === true ||
     access?.canCreateFinanceExpenses === true ||
-    access?.canApproveFinanceExpenses === true;
+    access?.canApproveFinanceExpenses === true ||
+    access?.canPayFinanceExpenses === true;
 
   const expenseKey = financeExpensesQueryKey(
     account?.id,
@@ -123,33 +158,26 @@ export default function FinanceExpensesScreen() {
     enabled: Boolean(account && canAccessExpenses),
   });
 
-  const accounts = useQuery({
-    queryKey: financeAccountsQueryKey(account?.id),
-    queryFn: listFinanceAccounts,
-    enabled: Boolean(
-      account &&
-        access?.canReadFinanceAccounts === true,
-    ),
+  const revisions = useQuery({
+    queryKey: ["finance", "expense-revisions", account?.id],
+    queryFn: listFinanceExpenseRevisions,
+    enabled: Boolean(account && canAccessExpenses),
   });
 
-  const activeAccounts = useMemo(
-    () =>
-      (accounts.data ?? []).filter(
-        (item) => item.status === "active",
-      ),
-    [accounts.data],
-  );
+  const bills = useQuery({
+    queryKey: ["finance", "expense-bills", account?.id],
+    queryFn: listFinanceExpenseBills,
+    enabled: Boolean(account && canAccessExpenses),
+  });
 
-  const accountNames = useMemo(
-    () =>
-      new Map(
-        (accounts.data ?? []).map((item) => [
-          item.id,
-          item.name,
-        ]),
-      ),
-    [accounts.data],
-  );
+  const accounts = useQuery({
+    queryKey: ["finance", "expense-payment-accounts", account?.id],
+    queryFn: listExpensePaymentAccounts,
+    enabled: Boolean(account && canAccessExpenses),
+  });
+
+  const activeAccounts = accounts.data ?? [];
+  const accountNames = new Map(activeAccounts.map((item) => [item.id, item.name]));
 
   const parsedAmount =
     parseRupeesToPaise(draft.amount);
@@ -161,33 +189,47 @@ export default function FinanceExpensesScreen() {
     draft.description.trim().length > 0 &&
     draft.description.trim().length <= 2000 &&
     draft.payee.trim().length <= 200 &&
-    isValidIsoDate(draft.businessDate);
+    isValidIsoDate(draft.businessDate) &&
+    (draft.missingBillReason.trim().length === 0 ||
+      (draft.missingBillReason.trim().length >= 10 && draft.missingBillReason.trim().length <= 1000));
 
   const submitExpense = useMutation({
     mutationFn: () =>
-      submitFinanceExpense({
+      (editingExpenseId ? resubmitFinanceExpense({
+        financeExpenseId: editingExpenseId,
+        financeAccountId: draft.financeAccountId,
+        amount: draft.amount,
+        description: draft.description,
+        payee: draft.payee,
+        businessDate: draft.businessDate,
+        missingBillReason: draft.missingBillReason,
+      }) : submitFinanceExpense({
         financeAccountId:
           draft.financeAccountId,
         amount: draft.amount,
         description: draft.description,
         payee: draft.payee,
         businessDate: draft.businessDate,
-      }),
+        missingBillReason: draft.missingBillReason,
+      })),
 
     onSuccess: async () => {
+      const wasRevision = Boolean(editingExpenseId);
+      setEditingExpenseId(null);
       setDraft({
         financeAccountId: "",
         amount: "",
         description: "",
         payee: "",
         businessDate: localIsoDate(),
+        missingBillReason: "",
       });
 
-      await expenses.refetch();
+      await Promise.all([expenses.refetch(), revisions.refetch(), bills.refetch()]);
 
       Alert.alert(
-        "Expense submitted",
-        "The expense is awaiting approval by another authorized Finance user.",
+        wasRevision ? "Expense resubmitted" : "Expense submitted",
+        "Attach a bill for this revision or record why there is none before approval.",
       );
     },
 
@@ -221,14 +263,83 @@ export default function FinanceExpensesScreen() {
     },
   });
 
+  const payExpense = useMutation({
+    mutationFn: payFinanceExpense,
+    onSuccess: async () => {
+      setPayingExpenseId(null);
+      setPaymentAmount("");
+      await expenses.refetch();
+      await queryClient.invalidateQueries({ queryKey: ["finance", "accounts"] });
+      await queryClient.invalidateQueries({ queryKey: ["finance", "transactions"] });
+      Alert.alert("Payment recorded", "The paid amount is now in the transaction ledger.");
+    },
+    onError: (error) => Alert.alert("Payment failed", expenseErrorMessage(error)),
+  });
+
+  const closeExpense = useMutation({
+    mutationFn: closeFinanceExpense,
+    onSuccess: async () => {
+      setClosingExpenseId(null);
+      setCloseReason("");
+      await expenses.refetch();
+      Alert.alert("Expense closed", "The unused approval was recorded without another payment.");
+    },
+    onError: (error) => Alert.alert("Close failed", expenseErrorMessage(error)),
+  });
+
+  const attachBill = useMutation({
+    mutationFn: async (expenseId: string) => {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["image/jpeg", "image/png", "application/pdf"],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+      if (result.canceled) return false;
+      await uploadFinanceExpenseBill(expenseId, result.assets[0]);
+      return true;
+    },
+    onSuccess: async (uploaded) => {
+      if (uploaded) {
+        await bills.refetch();
+        Alert.alert("Bill attached", "The bill is available for authorized review.");
+      }
+    },
+    onError: () => Alert.alert("Bill upload failed", "Choose a JPEG, PNG, or PDF up to 5 MiB and retry."),
+  });
+
+  const explainBill = useMutation({
+    mutationFn: ({ expenseId, reason }: { expenseId: string; reason: string }) =>
+      explainMissingFinanceExpenseBill(expenseId, reason),
+    onSuccess: async () => {
+      setReasonExpenseId(null);
+      setMissingBillReason("");
+      await expenses.refetch();
+    },
+    onError: (error) => Alert.alert("Reason not saved", expenseErrorMessage(error)),
+  });
+
+  async function viewBill(path: string) {
+    try {
+      await Linking.openURL(await financeExpenseBillSignedUrl(path));
+    } catch {
+      Alert.alert("Bill unavailable", "The private bill could not be opened.");
+    }
+  }
+
   function confirmApprove(
     expense: FinanceExpense,
   ) {
+    const hasBill = bills.data?.some((bill) =>
+      bill.financeExpenseId === expense.id && bill.revisionNumber === expense.revisionNumber);
+    if (!hasBill && !expense.missingBillReason) {
+      Alert.alert("Evidence required", "Attach a bill or record a missing-bill reason before approval.");
+      return;
+    }
     Alert.alert(
       "Approve expense?",
       `Approve ${formatFinanceMoney(
         expense.amountPaise,
-      )} for ${expense.description}? This will post an outflow to the selected Finance account.`,
+      )} for ${expense.description}? The Treasurer will record the payment separately. Approval does not change the account balance.`,
       [
         {
           text: "Cancel",
@@ -346,6 +457,7 @@ export default function FinanceExpensesScreen() {
   return (
     <Screen edges={["left", "right", "bottom"]}>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -353,12 +465,10 @@ export default function FinanceExpensesScreen() {
             refreshing={refreshing}
             onRefresh={() => {
               void expenses.refetch();
+              void bills.refetch();
+              void revisions.refetch();
 
-              if (
-                access.canReadFinanceAccounts
-              ) {
-                void accounts.refetch();
-              }
+              void accounts.refetch();
             }}
             tintColor={colors.deepEmerald}
           />
@@ -366,7 +476,7 @@ export default function FinanceExpensesScreen() {
       >
         <FinancePageHeader
           title="Expenses"
-          description="Submit operational expenses and review their maker/checker approval and posting lifecycle."
+          description="Submit expenses, approve requests, and record payments separately."
         />
 
         <View style={styles.summaryRow}>
@@ -401,14 +511,20 @@ export default function FinanceExpensesScreen() {
         {access.canCreateFinanceExpenses ? (
           <View style={styles.panel}>
             <Text style={styles.sectionTitle}>
-              Submit expense
+              {editingExpenseId ? "Edit rejected expense" : "Submit expense"}
             </Text>
 
+            {editingExpenseId ? (
+              <Pressable accessibilityRole="button" onPress={() => {
+                setEditingExpenseId(null);
+                setDraft({ financeAccountId: "", amount: "", description: "", payee: "",
+                  businessDate: localIsoDate(), missingBillReason: "" });
+              }}><Text style={styles.refreshAction}>Cancel editing</Text></Pressable>
+            ) : null}
             <Text style={styles.help}>
-              Submission does not immediately
-              reduce the account balance. Another
-              authorized Finance user must approve
-              it.
+              Submission and approval do not reduce
+              the account balance. Only a Treasurer
+              payment records an outflow.
             </Text>
 
             <Text style={styles.fieldLabel}>
@@ -479,11 +595,7 @@ export default function FinanceExpensesScreen() {
                             styles.accountChoiceMetaSelected,
                         ]}
                       >
-                        {financeAccount.accountType.toUpperCase()}{" "}
-                        ·{" "}
-                        {formatFinanceMoney(
-                          financeAccount.balancePaise,
-                        )}
+                        {financeAccount.accountType.toUpperCase()}
                       </Text>
                     </Pressable>
                   );
@@ -550,6 +662,17 @@ export default function FinanceExpensesScreen() {
               style={styles.input}
             />
 
+            <Text style={styles.fieldLabel}>No bill? Explain why</Text>
+            <TextInput
+              value={draft.missingBillReason}
+              onChangeText={(missingBillReason) => setDraft((current) => ({ ...current, missingBillReason }))}
+              multiline
+              maxLength={1000}
+              placeholder="Optional when you will attach a bill after submission"
+              placeholderTextColor="#929A96"
+              style={[styles.input, styles.multilineInput]}
+            />
+
             <Text style={styles.fieldLabel}>
               Business date
             </Text>
@@ -610,7 +733,7 @@ export default function FinanceExpensesScreen() {
               >
                 {submitExpense.isPending
                   ? "Submitting..."
-                  : "Submit expense"}
+                  : editingExpenseId ? "Resubmit for approval" : "Submit expense"}
               </Text>
             </Pressable>
           </View>
@@ -696,8 +819,7 @@ export default function FinanceExpensesScreen() {
 
             const canDecide =
               access.canApproveFinanceExpenses &&
-              expense.status === "submitted" &&
-              !submittedByCurrentUser;
+              expense.status === "submitted";
 
             const rejecting =
               rejectingExpenseId ===
@@ -748,6 +870,80 @@ export default function FinanceExpensesScreen() {
                   </Text>
                 </View>
 
+                {(expense.status === "approved" || expense.status === "partially_paid" || expense.status === "posted" || expense.status === "closed") ? (
+                  <Text style={styles.detail}>
+                    Paid {formatFinanceMoney(expense.paidAmountPaise)} of {formatFinanceMoney(expense.amountPaise)}
+                  </Text>
+                ) : null}
+
+                {expense.status === "closed" ? (
+                  <Text style={styles.detail}>
+                    Unused approval: {formatFinanceMoney(expense.amountPaise - expense.paidAmountPaise)}
+                    {expense.closeReason ? ` · ${expense.closeReason}` : ""}
+                  </Text>
+                ) : null}
+
+                {(bills.data ?? []).filter((bill) => bill.financeExpenseId === expense.id).map((bill) => (
+                  <Pressable key={bill.id} accessibilityRole="button" onPress={() => void viewBill(bill.storageObjectPath)}>
+                    <Text style={styles.refreshAction}>
+                      View private bill · revision {bill.revisionNumber} · {bill.createdAt.slice(0, 10)}
+                    </Text>
+                  </Pressable>
+                ))}
+                {(revisions.data ?? []).filter((item) => item.financeExpenseId === expense.id).map((item) => (
+                  <Text key={item.id} style={styles.detail}>
+                    Revision {item.revisionNumber}: rejected {item.decidedAt.slice(0, 10)} · {item.rejectionReason}
+                  </Text>
+                ))}
+                {expense.missingBillReason ? (
+                  <Text style={styles.detail}>No bill: {expense.missingBillReason}</Text>
+                ) : null}
+                {expense.status === "rejected" && submittedByCurrentUser && access.canCreateFinanceExpenses ? (
+                  <Pressable accessibilityRole="button" onPress={() => {
+                    setEditingExpenseId(expense.id);
+                    setDraft({
+                      financeAccountId: expense.financeAccountId,
+                      amount: (expense.amountPaise / 100).toFixed(2),
+                      description: expense.description,
+                      payee: expense.payee ?? "",
+                      businessDate: expense.businessDate,
+                      missingBillReason: expense.missingBillReason ?? "",
+                    });
+                    scrollRef.current?.scrollTo({ y: 0, animated: true });
+                  }} style={styles.secondaryButton}>
+                    <Text style={styles.secondaryButtonText}>Edit and resubmit</Text>
+                  </Pressable>
+                ) : null}
+
+                {expense.status === "submitted" && submittedByCurrentUser ? (
+                  <View style={styles.rejectionBox}>
+                    <Pressable accessibilityRole="button" disabled={attachBill.isPending}
+                      onPress={() => attachBill.mutate(expense.id)} style={styles.secondaryButton}>
+                      <Text style={styles.secondaryButtonText}>
+                        {attachBill.isPending ? "Uploading..." : "Attach bill (JPEG, PNG, PDF)"}
+                      </Text>
+                    </Pressable>
+                    {!expense.missingBillReason && reasonExpenseId !== expense.id ? (
+                      <Pressable accessibilityRole="button" onPress={() => setReasonExpenseId(expense.id)}>
+                        <Text style={styles.refreshAction}>Explain missing bill</Text>
+                      </Pressable>
+                    ) : null}
+                    {reasonExpenseId === expense.id && !expense.missingBillReason ? (
+                      <>
+                        <TextInput value={missingBillReason} onChangeText={setMissingBillReason}
+                          multiline maxLength={1000} placeholder="Why is no bill available?"
+                          style={[styles.input, styles.multilineInput]} />
+                        <Pressable accessibilityRole="button"
+                          disabled={explainBill.isPending || missingBillReason.trim().length < 10}
+                          onPress={() => explainBill.mutate({ expenseId: expense.id, reason: missingBillReason })}
+                          style={styles.secondaryButton}>
+                          <Text style={styles.secondaryButtonText}>Save explanation</Text>
+                        </Pressable>
+                      </>
+                    ) : null}
+                  </View>
+                ) : null}
+
                 {expense.payee ? (
                   <Text style={styles.detail}>
                     Payee: {expense.payee}
@@ -779,24 +975,90 @@ export default function FinanceExpensesScreen() {
                   </View>
                 ) : null}
 
-                {expense.status ===
-                  "submitted" &&
-                submittedByCurrentUser ? (
-                  <Text style={styles.notice}>
-                    Maker/checker control: another
-                    authorized Finance user must
-                    decide this expense.
-                  </Text>
+                {expense.status === "submitted" && !access.canApproveFinanceExpenses ? (
+                  <Text style={styles.notice}>Awaiting President or Vice President approval.</Text>
                 ) : null}
 
-                {expense.status ===
-                  "submitted" &&
-                !submittedByCurrentUser &&
-                !access.canApproveFinanceExpenses ? (
-                  <Text style={styles.notice}>
-                    Awaiting review by an authorized
-                    Finance approver.
-                  </Text>
+                {access.canPayFinanceExpenses &&
+                  (expense.status === "approved" || expense.status === "partially_paid") ? (
+                  <View style={styles.rejectionBox}>
+                    <Text style={styles.rejectionTitle}>
+                      Remaining {formatFinanceMoney(expense.amountPaise - expense.paidAmountPaise)}
+                    </Text>
+                    {payingExpenseId === expense.id ? (
+                      <>
+                        <TextInput
+                          value={paymentAmount}
+                          onChangeText={setPaymentAmount}
+                          keyboardType="decimal-pad"
+                          placeholder="Payment amount in rupees"
+                          style={styles.input}
+                        />
+                        <TextInput
+                          value={paymentDate}
+                          onChangeText={(value) => setPaymentDate(formatIsoDateInput(value, paymentDate))}
+                          keyboardType="number-pad"
+                          placeholder="YYYY-MM-DD"
+                          style={styles.input}
+                        />
+                        <Pressable
+                          accessibilityRole="button"
+                          disabled={payExpense.isPending || !isValidIsoDate(paymentDate) ||
+                            (parseRupeesToPaise(paymentAmount) ?? 0) <= 0 ||
+                            (parseRupeesToPaise(paymentAmount) ?? 0) > expense.amountPaise - expense.paidAmountPaise}
+                          onPress={() => Alert.alert("Record payment?",
+                            `Record ${paymentAmount} rupees as paid from this Finance account?`, [
+                              { text: "Cancel", style: "cancel" },
+                              { text: "Record", onPress: () => payExpense.mutate({
+                                financeExpenseId: expense.id, amount: paymentAmount, businessDate: paymentDate,
+                              }) },
+                            ])}
+                          style={styles.secondaryButton}
+                        >
+                          <Text style={styles.secondaryButtonText}>Record payment</Text>
+                        </Pressable>
+                      </>
+                    ) : (
+                      <Pressable accessibilityRole="button" onPress={() => {
+                        setPayingExpenseId(expense.id);
+                        setPaymentAmount("");
+                        setPaymentDate(localIsoDate());
+                      }} style={styles.secondaryButton}>
+                        <Text style={styles.secondaryButtonText}>Pay expense</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                ) : null}
+
+                {access.canPayFinanceExpenses && expense.status === "partially_paid" ? (
+                  <View style={styles.rejectionBox}>
+                    {closingExpenseId === expense.id ? (
+                      <>
+                        <Text style={styles.rejectionTitle}>Close with unused approval</Text>
+                        <TextInput value={closeReason} onChangeText={setCloseReason}
+                          multiline maxLength={1000} placeholder="Why will the remainder not be paid?"
+                          style={[styles.input, styles.multilineInput]} />
+                        <Pressable accessibilityRole="button"
+                          disabled={closeExpense.isPending || closeReason.trim().length < 10}
+                          onPress={() => Alert.alert("Close expense?",
+                            `Keep ${formatFinanceMoney(expense.paidAmountPaise)} as paid and close ${formatFinanceMoney(expense.amountPaise - expense.paidAmountPaise)} as unused?`, [
+                              { text: "Cancel", style: "cancel" },
+                              { text: "Close", onPress: () => closeExpense.mutate({
+                                financeExpenseId: expense.id, reason: closeReason,
+                              }) },
+                            ])} style={styles.secondaryButton}>
+                          <Text style={styles.secondaryButtonText}>Confirm closure</Text>
+                        </Pressable>
+                      </>
+                    ) : (
+                      <Pressable accessibilityRole="button" onPress={() => {
+                        setClosingExpenseId(expense.id);
+                        setCloseReason("");
+                      }} style={styles.secondaryButton}>
+                        <Text style={styles.secondaryButtonText}>Close unpaid remainder</Text>
+                      </Pressable>
+                    )}
+                  </View>
                 ) : null}
 
                 {canDecide ? (

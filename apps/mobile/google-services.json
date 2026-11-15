@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "173071668998",
+    "project_id": "masjid-e-mamoor-2",
+    "storage_bucket": "masjid-e-mamoor-2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:173071668998:android:8767001be2dfdac1f2b087",
+        "android_client_info": {
+          "package_name": "com.masjidemamoor.masjidemamoor2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvvjwRNMXKCCDcGW0hXSL595MxWP6JqOM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

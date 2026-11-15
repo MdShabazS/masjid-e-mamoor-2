@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
@@ -9,6 +9,9 @@ import {
   notificationUnreadCountQueryKey,
 } from "../modules/notifications";
 import { colors } from "../theme/colors";
+import { fontFamilies } from "../theme/tokens";
+import { AppIcon } from "./AppIcon";
+import { AppText as Text } from "./AppText";
 
 export function NotificationBell() {
   const { account } = useAuth();
@@ -38,11 +41,7 @@ export function NotificationBell() {
         pressed && styles.pressed,
       ]}
     >
-      <View style={styles.bell}>
-        <View style={styles.bellDome} />
-        <View style={styles.bellBase} />
-        <View style={styles.clapper} />
-      </View>
+      <AppIcon color={colors.textStrong} name="bell-outline" size={23} />
 
       {badge ? (
         <View style={styles.badge}>
@@ -65,39 +64,6 @@ const styles = StyleSheet.create({
     position: "relative",
     width: 44,
   },
-  bell: {
-    height: 24,
-    position: "relative",
-    width: 24,
-  },
-  bellDome: {
-    borderColor: colors.deepEmerald,
-    borderTopLeftRadius: 9,
-    borderTopRightRadius: 9,
-    borderWidth: 2,
-    height: 15,
-    left: 5,
-    position: "absolute",
-    top: 3,
-    width: 14,
-  },
-  bellBase: {
-    backgroundColor: colors.deepEmerald,
-    height: 2,
-    left: 3,
-    position: "absolute",
-    top: 17,
-    width: 18,
-  },
-  clapper: {
-    backgroundColor: colors.deepEmerald,
-    borderRadius: 2,
-    height: 4,
-    left: 10,
-    position: "absolute",
-    top: 19,
-    width: 4,
-  },
   badge: {
     alignItems: "center",
     backgroundColor: colors.danger,
@@ -115,7 +81,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: colors.surface,
     fontSize: 9,
-    fontWeight: "800",
+    fontFamily: fontFamilies.bold,
   },
   pressed: {
     opacity: 0.7,

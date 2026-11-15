@@ -33,13 +33,16 @@ import {
   listFinanceMonthlyReports,
 } from "../../../../src/modules/finance";
 import { colors } from "../../../../src/theme/colors";
+import { downloadFinanceDateRangeCsv, downloadFinanceDateRangePdf, financeMonthRange,
+  validFinanceDateRange } from "../../../../src/modules/finance-date-range";
 
 export default function FinanceMonthlyReportsScreen() {
   const { account } = useAuth();
 
-  const [reportMonth, setReportMonth] = useState(
-    defaultReportMonth,
-  );
+  const [reportMonth, setReportMonth] = useState(defaultReportMonth);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [csvMonth, setCsvMonth] = useState(defaultReportMonth);
 
   const capabilities = useQuery({
     queryKey: ["capabilities", account?.id],
@@ -93,6 +96,27 @@ export default function FinanceMonthlyReportsScreen() {
         "The PDF is not currently available. Refresh the report list and try again.",
       );
     },
+  });
+
+  const customReport = useMutation({
+    mutationFn: () => downloadFinanceDateRangePdf(startDate.trim(), endDate.trim()),
+    onSuccess: (saved) => {
+      if (saved) Alert.alert("Report saved", "The PDF was saved to the folder you selected.");
+    },
+    onError: (error) => Alert.alert("Report unavailable",
+      error.message === "invalid_report_range" ? "Enter valid YYYY-MM-DD dates, at most 366 days apart." :
+      "The PDF could not be downloaded. Check your report access and connection."),
+  });
+  const csvReport = useMutation({
+    mutationFn: (range: { start: string; end: string }) =>
+      downloadFinanceDateRangeCsv(range.start, range.end),
+    onSuccess: (saved) => {
+      if (saved) Alert.alert("Spreadsheet saved", "The CSV was saved to the folder you selected.");
+    },
+    onError: (error) => Alert.alert("Spreadsheet unavailable",
+      error.message === "invalid_report_range" || error.message === "invalid_report_month"
+        ? "Enter a valid month or date range of at most 366 days."
+        : "The CSV could not be saved. Check your report access and connection."),
   });
 
   if (!account) return null;
@@ -154,6 +178,44 @@ export default function FinanceMonthlyReportsScreen() {
               label="PDF ready"
               value={String(readyCount)}
             />
+          </View>
+
+          <View style={styles.adminPanel}>
+            <Text style={styles.adminTitle}>Custom date range exports</Text>
+            <Text style={styles.help}>Download posted Finance entries and balances for up to 366 days. Choose a folder on your phone to save the PDF or spreadsheet CSV.</Text>
+            <Text style={styles.fieldLabel}>From date (YYYY-MM-DD)</Text>
+            <FormTextInput value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD"
+              autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.input} />
+            <Text style={styles.fieldLabel}>To date (YYYY-MM-DD)</Text>
+            <FormTextInput value={endDate} onChangeText={setEndDate} placeholder="YYYY-MM-DD"
+              autoCapitalize="none" autoCorrect={false} maxLength={10} style={styles.input} />
+            <Pressable accessibilityRole="button" accessibilityLabel="Download date range PDF"
+              accessibilityState={{ disabled: customReport.isPending || !validFinanceDateRange(startDate.trim(), endDate.trim()) }}
+              disabled={customReport.isPending || !validFinanceDateRange(startDate.trim(), endDate.trim())}
+              onPress={() => customReport.mutate()} style={[styles.primaryButton,
+                (customReport.isPending || !validFinanceDateRange(startDate.trim(), endDate.trim())) && styles.disabled]}>
+              <Text style={styles.primaryButtonText}>{customReport.isPending ? "Preparing PDF..." : "Download date range PDF"}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Download date range spreadsheet CSV"
+              accessibilityState={{ disabled: csvReport.isPending || !validFinanceDateRange(startDate.trim(), endDate.trim()) }}
+              disabled={csvReport.isPending || !validFinanceDateRange(startDate.trim(), endDate.trim())}
+              onPress={() => csvReport.mutate({ start: startDate.trim(), end: endDate.trim() })}
+              style={[styles.primaryButton,
+                (csvReport.isPending || !validFinanceDateRange(startDate.trim(), endDate.trim())) && styles.disabled]}>
+              <Text style={styles.primaryButtonText}>{csvReport.isPending ? "Preparing CSV..." : "Download spreadsheet CSV"}</Text>
+            </Pressable>
+            <Text style={styles.fieldLabel}>Monthly spreadsheet (YYYY-MM)</Text>
+            <FormTextInput value={csvMonth} onChangeText={setCsvMonth} placeholder="YYYY-MM"
+              autoCapitalize="none" autoCorrect={false} maxLength={7} style={styles.input} />
+            <Pressable accessibilityRole="button" accessibilityLabel="Download monthly spreadsheet CSV"
+              accessibilityState={{ disabled: csvReport.isPending || !/^(?:20\d{2})-(?:0[1-9]|1[0-2])$/.test(csvMonth.trim()) }}
+              disabled={csvReport.isPending || !/^(?:20\d{2})-(?:0[1-9]|1[0-2])$/.test(csvMonth.trim())}
+              onPress={() => csvReport.mutate(financeMonthRange(csvMonth.trim()))}
+              style={[styles.primaryButton, (csvReport.isPending ||
+                !/^(?:20\d{2})-(?:0[1-9]|1[0-2])$/.test(csvMonth.trim())) && styles.disabled]}>
+              <Text style={styles.primaryButtonText}>Download monthly spreadsheet CSV</Text>
+            </Pressable>
+            <Text style={styles.help}>CSV exports show the current posted ledger. Immutable monthly PDF revisions remain separate.</Text>
           </View>
 
           {capabilities.data

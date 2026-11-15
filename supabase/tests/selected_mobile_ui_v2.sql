@@ -125,7 +125,19 @@ begin
     raise exception 'FAIL: announcement replay duplicated the durable record';
   end if;
   if (select count(*) from public.notifications
-      where source_entity_id = current_setting('test.v2_announcement_id')::uuid and kind = 'announcement') <> 4 then
+      where source_entity_id = current_setting('test.v2_announcement_id')::uuid and kind = 'announcement') < 4
+     or exists (
+       select 1 from public.application_users au
+       join public.application_user_roles aur on aur.application_user_id = au.id
+       join public.role_permissions rp on rp.role_id = aur.role_id
+       join public.permissions p on p.id = rp.permission_id
+       where au.status = 'active' and p.key = 'notifications.own.read'
+         and not exists (
+           select 1 from public.notifications n
+           where n.source_entity_id = current_setting('test.v2_announcement_id')::uuid
+             and n.kind = 'announcement' and n.recipient_application_user_id = au.id
+         )
+     ) then
     raise exception 'FAIL: announcement recipients did not resolve from active permission holders';
   end if;
   begin

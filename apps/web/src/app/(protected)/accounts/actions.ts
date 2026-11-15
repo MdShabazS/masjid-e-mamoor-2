@@ -35,7 +35,6 @@ export async function createAccountAction(
     username: formData.get("username"),
     role: formData.get("role"),
     displayName: formData.get("displayName") || undefined,
-    password: formData.get("password") || undefined,
   });
 
   if (!parsed.success) {

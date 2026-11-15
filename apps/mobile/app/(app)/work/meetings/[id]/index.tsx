@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as Location from "expo-location";
 import { Alert, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +23,7 @@ import { loadCapabilities } from "../../../../../src/modules/capabilities";
 import {
   committeeMeetingAttendanceQueryKey,
   committeeMeetingDecisionsQueryKey,
+  committeeMeetingResponsesQueryKey,
   committeeMeetingDetailQueryKey,
   committeeMeetingInvalidationKeys,
   createCommitteeMeetingDecision,
@@ -29,9 +31,11 @@ import {
   getCommitteeMeeting,
   getCommitteeMeetingAttendance,
   listCommitteeMeetingDecisions,
-  recordCommitteeMeetingAttendance,
+  listCommitteeMeetingResponses,
+  respondToCommitteeMeeting,
+  recordSelfCommitteeMeetingAttendance,
+  recordManualCommitteeMeetingAttendance,
   cancelCommitteeMeeting,
-  type CommitteeMeetingAttendanceStatus,
 } from "../../../../../src/modules/meetings";
 import {
   formatMeetingDateTime,
@@ -68,6 +72,8 @@ export default function CommitteeMeetingDetailScreen() {
   const queryClient = useQueryClient();
   const [decisionText, setDecisionText] = useState("");
   const [cancellationReason, setCancellationReason] = useState("");
+  const [declineReason, setDeclineReason] = useState("");
+  const [manualReason, setManualReason] = useState("");
   const [followupMode, setFollowupMode] = useState<"direct" | "open">("direct");
   const [followupDecisionId, setFollowupDecisionId] = useState<string | null>(null);
   const [taskDraft, setTaskDraft] = useState(initialTaskDraft);
@@ -93,6 +99,11 @@ export default function CommitteeMeetingDetailScreen() {
     queryFn: () => listCommitteeMeetingDecisions(meetingId),
     enabled: Boolean(account && meetingId && canRead),
   });
+  const responses = useQuery({
+    queryKey: committeeMeetingResponsesQueryKey(meetingId),
+    queryFn: () => listCommitteeMeetingResponses(meetingId),
+    enabled: Boolean(account && meetingId && canRead),
+  });
   const assigneeOptions = useQuery({
     queryKey: committeeAssigneeOptionsQueryKey(),
     queryFn: listCommitteeAssigneeOptions,
@@ -110,25 +121,40 @@ export default function CommitteeMeetingDetailScreen() {
       queryClient.invalidateQueries({
         queryKey: committeeMeetingDecisionsQueryKey(meetingId),
       }),
+      queryClient.invalidateQueries({
+        queryKey: committeeMeetingResponsesQueryKey(meetingId),
+      }),
     ]);
   };
 
   const attendanceMutation = useMutation({
-    mutationFn: ({
-      participantId,
-      status,
-    }: {
-      participantId: string;
-      status: CommitteeMeetingAttendanceStatus;
-    }) =>
-      recordCommitteeMeetingAttendance(
-        meetingId,
-        participantId,
-        status,
-        createCommitteeMeetingOperationId(),
-      ),
+    mutationFn: async () => {
+      let permission = await Location.getForegroundPermissionsAsync();
+      if (permission.status !== "granted") permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== "granted") throw new Error("Allow location access to check in.");
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      if (position.coords.accuracy == null) throw new Error("Location accuracy is unavailable. Try again outdoors.");
+      return recordSelfCommitteeMeetingAttendance(meetingId, {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+      }, createCommitteeMeetingOperationId());
+    },
     onSuccess: refreshMeeting,
-    onError: () => Alert.alert("Attendance could not be recorded", "Please try again."),
+    onError: (error) => Alert.alert("Check-in unavailable", error.message),
+  });
+  const manualMutation = useMutation({
+    mutationFn: (participantId: string) => recordManualCommitteeMeetingAttendance(
+      meetingId, participantId, manualReason, createCommitteeMeetingOperationId(),
+    ),
+    onSuccess: async () => { setManualReason(""); await refreshMeeting(); },
+    onError: (error) => Alert.alert("Manual attendance unavailable", error.message),
+  });
+  const responseMutation = useMutation({
+    mutationFn: ({ response, reason }: { response: "accepted" | "declined"; reason: string | null }) =>
+      respondToCommitteeMeeting(meetingId, response, reason, createCommitteeMeetingOperationId()),
+    onSuccess: async () => { setDeclineReason(""); await refreshMeeting(); },
+    onError: () => Alert.alert("Response could not be saved", "Check the invitation and try again."),
   });
   const decisionMutation = useMutation({
     mutationFn: (text: string) =>
@@ -188,10 +214,10 @@ export default function CommitteeMeetingDetailScreen() {
   if (capabilities.isError || !canRead) {
     return <PageState copy="This meeting is not available for your account." />;
   }
-  if (meeting.isLoading || attendance.isLoading || decisions.isLoading) {
+  if (meeting.isLoading || attendance.isLoading || decisions.isLoading || responses.isLoading) {
     return <PageState loading copy="Loading meeting details..." />;
   }
-  if (meeting.isError || attendance.isError || decisions.isError || !meeting.data) {
+  if (meeting.isError || attendance.isError || decisions.isError || responses.isError || !meeting.data) {
     return (
       <PageState
         copy="This meeting is unavailable or outside your authorized scope."
@@ -202,6 +228,7 @@ export default function CommitteeMeetingDetailScreen() {
 
   const hydratedMeeting = { ...meeting.data, attendance: attendance.data ?? [] };
   const isParticipant = hydratedMeeting.participantIds.includes(account.id);
+  const myResponse = responses.data?.find((entry) => entry.applicationUserId === account.id);
   const actions = meetingActionVisibility({
     canAdminister: capabilities.data?.canAdministerCommitteeMeetings === true,
     canAssignTasks: capabilities.data?.canAssignCommitteeTasks === true,
@@ -211,11 +238,18 @@ export default function CommitteeMeetingDetailScreen() {
     meeting: hydratedMeeting,
   });
   const attendanceRows = meetingAttendanceRows(hydratedMeeting);
+  const attendanceOpen = hydratedMeeting.status === "scheduled" &&
+    indiaDate(new Date()) === indiaDate(new Date(hydratedMeeting.scheduledStart));
+  const isCreator = hydratedMeeting.createdByApplicationUserId === account.id;
+  const myAttendance = attendanceRows.find((row) => row.participant.applicationUserId === account.id)?.attendance;
   const mutationPending =
     attendanceMutation.isPending ||
+    manualMutation.isPending ||
     decisionMutation.isPending ||
     cancelMutation.isPending ||
     followupMutation.isPending;
+  const responseOpen = hydratedMeeting.status === "scheduled" &&
+    indiaDate(new Date()) <= indiaDate(new Date(hydratedMeeting.scheduledStart));
 
   return (
     <Screen
@@ -252,7 +286,7 @@ export default function CommitteeMeetingDetailScreen() {
             label="Edit meeting"
             onPress={() =>
               router.push({
-                pathname: "/work/meetings/[id]/edit",
+                pathname: "/meetings/[id]/edit",
                 params: { id: meetingId },
               })
             }
@@ -263,6 +297,35 @@ export default function CommitteeMeetingDetailScreen() {
 
       <MeetingOverview meeting={hydratedMeeting} />
 
+      {isParticipant ? <View style={styles.section}>
+        <SectionHeader title="Your invitation" description="Accept or decline. Declining requires a reason and your response history is retained." />
+        <InformationCard style={styles.actionCard}>
+          <StatusChip label={myResponse ? (myResponse.response === "accepted" ? "Accepted" : "Declined") : "Awaiting response"}
+            tone={myResponse?.response === "accepted" ? "success" : myResponse?.response === "declined" ? "danger" : "neutral"} />
+          {myResponse?.declineReason ? <Text style={styles.muted}>{myResponse.declineReason}</Text> : null}
+          {responseOpen ? <>
+            <AppButton label="Accept invitation" variant="secondary" disabled={mutationPending || responseMutation.isPending}
+              onPress={() => responseMutation.mutate({ response: "accepted", reason: null })} />
+            <Text style={styles.fieldLabel}>Reason if declining</Text>
+            <FormTextInput value={declineReason} onChangeText={setDeclineReason}
+              placeholder="Why you cannot attend" maxLength={1000} multiline />
+            <AppButton label="Decline invitation" variant="secondary"
+              disabled={mutationPending || responseMutation.isPending || !declineReason.trim()}
+              onPress={() => responseMutation.mutate({ response: "declined", reason: declineReason })} />
+          </> : null}
+        </InformationCard>
+      </View> : null}
+
+      {isParticipant && attendanceOpen && !myAttendance ? <View style={styles.section}>
+        <SectionHeader title="Your attendance" description="Check in any time today from within 100 m of the masjid. Your precise location is not stored." />
+        <AppButton label="Check in with GPS" loading={attendanceMutation.isPending}
+          disabled={mutationPending} onPress={() => attendanceMutation.mutate()} />
+      </View> : null}
+      {isCreator && attendanceOpen ? <View style={styles.section}>
+        <SectionHeader title="Manual attendance exception" description="When GPS fails, enter a reason of at least 10 characters. Each exception is permanently audited." />
+        <FormTextInput value={manualReason} onChangeText={setManualReason} multiline
+          placeholder="Why is GPS check-in unavailable?" maxLength={1000} />
+      </View> : null}
       <View style={styles.section}>
         <SectionHeader
           description="Authorized participants and their recorded attendance"
@@ -292,43 +355,16 @@ export default function CommitteeMeetingDetailScreen() {
                           : "neutral"
                     }
                   />
+                  {entry?.attendanceSource === "manual" ?
+                    <Text style={styles.muted}>Manual exception: {entry.manualReason}</Text> : null}
+                  {responses.data?.find((response) => response.applicationUserId === participant.applicationUserId) ?
+                    <StatusChip label={`Invitation: ${responses.data.find((response) => response.applicationUserId === participant.applicationUserId)?.response ?? ""}`} tone="info" /> : null}
                 </View>
-                {actions.canRecordAttendance ? (
+                {isCreator && attendanceOpen && !entry && manualReason.trim().length >= 10 ? (
                   <View style={styles.attendanceActions}>
-                    <AppButton
-                      disabled={mutationPending}
-                      label="Present"
-                      loading={
-                        attendanceMutation.isPending &&
-                        attendanceMutation.variables?.participantId ===
-                          participant.applicationUserId &&
-                        attendanceMutation.variables?.status === "present"
-                      }
-                      onPress={() =>
-                        attendanceMutation.mutate({
-                          participantId: participant.applicationUserId,
-                          status: "present",
-                        })
-                      }
-                      variant="secondary"
-                    />
-                    <AppButton
-                      disabled={mutationPending}
-                      label="Absent"
-                      loading={
-                        attendanceMutation.isPending &&
-                        attendanceMutation.variables?.participantId ===
-                          participant.applicationUserId &&
-                        attendanceMutation.variables?.status === "absent"
-                      }
-                      onPress={() =>
-                        attendanceMutation.mutate({
-                          participantId: participant.applicationUserId,
-                          status: "absent",
-                        })
-                      }
-                      variant="secondary"
-                    />
+                    <AppButton disabled={mutationPending} label="Mark present manually"
+                      loading={manualMutation.isPending && manualMutation.variables === participant.applicationUserId}
+                      onPress={() => manualMutation.mutate(participant.applicationUserId)} variant="secondary" />
                   </View>
                 ) : null}
               </View>
@@ -595,6 +631,14 @@ function activityLabel(type: string) {
       decision_created: "Decision recorded",
     }[type] ?? "Meeting activity"
   );
+}
+
+function indiaDate(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(date);
+  const value = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
 }
 
 const styles = StyleSheet.create({

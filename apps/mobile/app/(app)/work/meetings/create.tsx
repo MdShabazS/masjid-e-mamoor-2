@@ -57,7 +57,7 @@ export default function CreateCommitteeMeetingScreen() {
         queryKey: committeeMeetingListQueryKey(account?.id),
       });
       router.replace({
-        pathname: "/work/meetings/[id]",
+        pathname: "/meetings/[id]",
         params: { id: meeting.id },
       });
     },

@@ -48,12 +48,13 @@ export function financeWorkspaceModules(access: MobileCapabilities): FinanceWork
   if (
     access.canReadFinanceTransactions ||
     access.canCreateFinanceExpenses ||
-    access.canApproveFinanceExpenses
+    access.canApproveFinanceExpenses ||
+    access.canPayFinanceExpenses
   ) {
     modules.push({
       key: "expenses",
       title: "Expenses",
-      description: "Submit, review, and trace expense posting",
+      description: "Submit, approve, and record expense payments",
       href: "/finance/expenses",
     });
   }
@@ -107,7 +108,7 @@ export function financeStatusTone(status: string): FinanceSemanticTone {
     return "success";
   }
   if (["failed", "rejected", "unresolved"].includes(status)) return "danger";
-  if (["in_progress", "open", "pending", "rendering", "submitted"].includes(status)) {
+  if (["in_progress", "open", "pending", "rendering", "submitted", "partially_paid"].includes(status)) {
     return "warning";
   }
   if (["active", "generated"].includes(status)) return "info";

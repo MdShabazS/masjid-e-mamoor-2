@@ -140,6 +140,10 @@ from public.submit_finance_expense(
 )
 \gset
 
+select id from public.set_finance_expense_missing_bill_reason(
+  :'sentinel_expense_id'::uuid, 'Historic test receipt unavailable; payment recorded separately.'
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"83000000-0000-0000-0000-000000000001","role":"authenticated"}',
@@ -152,6 +156,11 @@ from public.decide_finance_expense(
   'approve',
   null,
   'rename-test-sentinel-approve'
+);
+
+select id from public.pay_finance_expense(
+  :'sentinel_expense_id'::uuid, 2500, current_date,
+  'rename-test-sentinel-pay'
 );
 
 select set_config(

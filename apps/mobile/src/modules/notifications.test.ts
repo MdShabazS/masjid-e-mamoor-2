@@ -139,7 +139,10 @@ describe("mobile notification trusted RPC layer", () => {
       safeNotificationTarget(
         "/work/meetings/meeting-1",
       ),
-    ).toBe("/work/meetings/meeting-1");
+    ).toBe("/meetings/meeting-1");
+    expect(safeNotificationTarget("/referrals")).toBe(
+      "/community/referrals",
+    );
     expect(
       safeNotificationTarget("/work/task-1?from=notifications"),
     ).toBe("/work/task-1?from=notifications");
@@ -176,6 +179,16 @@ describe("mobile notification trusted RPC layer", () => {
         "meeting_created",
         "meeting_updated",
         "meeting_cancelled",
+        "expense_awaiting_approval",
+        "expense_approved",
+        "transfer_awaiting_approval",
+        "transfer_approved",
+        "adjustment_awaiting_approval",
+        "payment_submitted",
+        "payment_verified",
+        "referral_awaiting_review",
+        "referral_approved",
+        "referral_completed",
       ].map(notificationKindLabel),
     ).toEqual([
       "Task assigned",
@@ -187,6 +200,16 @@ describe("mobile notification trusted RPC layer", () => {
       "Meeting created",
       "Meeting updated",
       "Meeting cancelled",
+      "Expense awaiting approval",
+      "Expense approved",
+      "Transfer awaiting approval",
+      "Transfer approved",
+      "Adjustment awaiting approval",
+      "Payment awaiting review",
+      "Payment verified",
+      "Referral needs review",
+      "Referral approved",
+      "Referral registration completed",
     ]);
 
     expect(notificationKindLabel("future_kind")).toBe("Notification");

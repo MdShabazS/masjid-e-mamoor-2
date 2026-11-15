@@ -290,6 +290,7 @@ describe("Home dashboard", () => {
     const view = await render(<HomeScreen />);
 
     expect(view.getByText("Needs your attention")).toBeTruthy();
+    expect(view.getByText("3 items across your work and updates")).toBeTruthy();
 
     expect(view.getByText("Prepare committee agenda")).toBeTruthy();
 
@@ -335,7 +336,7 @@ describe("Home dashboard", () => {
     );
 
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/work/meetings/[id]",
+      pathname: "/meetings/[id]",
       params: {
         id: "meeting-1",
       },
@@ -448,6 +449,7 @@ describe("Home dashboard", () => {
 
     const view = await render(<HomeScreen />);
 
+    expect(view.getByText("All caught up")).toBeTruthy();
     expect(view.getByText("Nothing urgent right now")).toBeTruthy();
 
     expect(view.getByText("Tasks")).toBeTruthy();

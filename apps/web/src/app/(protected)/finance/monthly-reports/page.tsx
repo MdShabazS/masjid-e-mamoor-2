@@ -147,6 +147,23 @@ export default async function FinanceMonthlyReportsPage({
           />
         </section>
 
+        <section className="surface mt-8 p-6 sm:p-8">
+          <p className="eyebrow">On-demand report</p>
+          <h2 className="section-title">Custom date range exports</h2>
+          <p className="mt-2 max-w-2xl text-sm text-zinc-600">Download posted donations, paid expenses, account balances, adjustments, transfers, and every ledger entry for any range up to 366 days. Both exports show the ledger as it stands when downloaded.</p>
+          <form method="get" action="/finance/date-range/download" className="mt-5 flex flex-wrap items-end gap-3">
+            <label className="field-label">From<input className="field-input" type="date" name="start" required /></label>
+            <label className="field-label">To<input className="field-input" type="date" name="end" required /></label>
+            <button className="button-primary">Download date range PDF</button>
+            <button formAction="/finance/date-range/csv" className="button-secondary">Download spreadsheet CSV</button>
+          </form>
+          <form method="get" action="/finance/monthly-reports/csv" className="mt-6 flex flex-wrap items-end gap-3 border-t border-zinc-100 pt-5">
+            <label className="field-label">Month<input className="field-input" type="month" name="month" required defaultValue={previousMonth} /></label>
+            <button className="button-secondary">Download monthly spreadsheet CSV</button>
+          </form>
+          <p className="mt-2 text-xs text-zinc-500">The CSV is an on-demand ledger export. It is separate from immutable monthly PDF revisions.</p>
+        </section>
+
         {capabilities.canManage ? (
           <section className="surface mt-8 p-6 sm:p-8">
             <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">

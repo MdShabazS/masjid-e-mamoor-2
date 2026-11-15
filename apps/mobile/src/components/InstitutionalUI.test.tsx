@@ -1,5 +1,6 @@
 import { fireEvent, render } from "@testing-library/react-native";
-import { Text } from "react-native";
+import { StyleSheet, Text } from "react-native";
+import { fontFamilies } from "../theme/tokens";
 
 import {
   AppButton,
@@ -35,6 +36,9 @@ describe("InstitutionalUI", () => {
     );
 
     expect(view.getByRole("header", { name: "Dashboard" })).toBeTruthy();
+    expect(
+      StyleSheet.flatten(view.getByRole("header", { name: "Dashboard" }).props.style).fontFamily,
+    ).toBe(fontFamilies.bold);
     expect(view.getByRole("header", { name: "Summary" })).toBeTruthy();
     expect(view.getByText("Trusted information")).toBeTruthy();
     expect(view.getByText("12")).toBeTruthy();

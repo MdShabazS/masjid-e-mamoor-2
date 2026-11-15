@@ -229,10 +229,12 @@ committee-management permissions.
 
 | Permission group | President / Super Admin | Vice President | Secretary | Finance | Auditor | Committee Member | Member |
 |---|---|---|---|---|---|---|---|
-| Record attendance | Full | Full | Full | None | None | Assigned | Own |
+| Record committee attendance | Full | Full | Full | None | None | Assigned | None |
+| Record Jummah self-attendance | None | None | None | None | None | None | Own |
 | View attendance | Full | Read | Read | None | Read | Assigned | Own |
 | Manage attendance | Full | Explicit grant | Explicit grant | None | None | Explicit grant | None |
 | Offline attendance synchronization | Full | Full | Full | None | None | Assigned | Own submission |
+| Create/configure Jummah events | Full | None | None | None | None | None | None |
 
 Offline mutations require stable operation IDs, retries, duplicate prevention, and server revalidation.
 

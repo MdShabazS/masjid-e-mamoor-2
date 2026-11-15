@@ -22,6 +22,7 @@ import {
   changeManagedAccountRole,
   changeManagedAccountStatus,
   changeManagedAccountUsername,
+  editableAccountRole,
   isProtectedSystemAdminTarget,
   listManagedAccounts,
   resetManagedAccountPassword,
@@ -86,7 +87,7 @@ export default function AccountDetailScreen() {
     mutationFn: async () => {
       const role =
         selectedRoleDraft ??
-        (target && target.role !== "system_admin" ? target.role : "member");
+        editableAccountRole(target?.role ?? "committee_member");
       await changeManagedAccountRole(session!, accountId, role);
     },
     onSuccess: refreshDirectory,
@@ -131,7 +132,7 @@ export default function AccountDetailScreen() {
   const username = usernameDraft ?? target.username ?? "";
   const selectedRole =
     selectedRoleDraft ??
-    (target.role !== "system_admin" ? target.role : "member");
+    editableAccountRole(target.role);
 
   function confirmRoleChange() {
     Alert.alert(

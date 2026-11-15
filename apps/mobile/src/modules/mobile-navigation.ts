@@ -7,6 +7,7 @@ export type MobileModuleKey =
   | "home"
   | "tasks"
   | "meetings"
+  | "attendance"
   | "community"
   | "donations"
   | "finance"
@@ -25,7 +26,8 @@ export interface MobileModuleDefinition {
 
 const definitions: Record<Exclude<MobileModuleKey, "home" | "more">, MobileModuleDefinition> = {
   tasks: { key: "tasks", label: "Tasks", href: "/work", description: "Assigned and open committee work" },
-  meetings: { key: "meetings", label: "Meetings", href: "/work/meetings", description: "Committee schedules, agendas, and records" },
+  meetings: { key: "meetings", label: "Meetings", href: "/meetings", description: "Committee schedules, agendas, and records" },
+  attendance: { key: "attendance", label: "Jummah attendance", href: "/attendance", description: "Member self-attendance with server-verified location" },
   community: { key: "community", label: "Community", href: "/community", description: "Members and referral workflows" },
   donations: { key: "donations", label: "Donations", href: "/donations", description: "Obligations, payments, and donation records" },
   finance: { key: "finance", label: "Finance", href: "/finance", description: "Authorized accounts and financial workflows" },
@@ -39,6 +41,7 @@ function authorizedModules(capabilities: MobileCapabilities): MobileModuleKey[] 
   const modules: MobileModuleKey[] = [];
   if (capabilities.canReadCommitteeTasks) modules.push("tasks");
   if (capabilities.canReadCommitteeMeetings) modules.push("meetings");
+  if (capabilities.canReadJummahAttendance === true) modules.push("attendance");
   if (capabilities.canReadMembers || capabilities.canUseReferrals) modules.push("community");
   if (capabilities.canReadDonations) modules.push("donations");
   if (hasFinanceAccess(capabilities)) modules.push("finance");
@@ -54,8 +57,12 @@ export function primaryMobileTabs(
   capabilities: MobileCapabilities,
 ): MobileModuleKey[] {
   const available = new Set(authorizedModules(capabilities));
+  const managementRole =
+    role === "president" || role === "vice_president" || role === "secretary";
   const preference: MobileModuleKey[] =
-    role === "finance"
+    managementRole
+      ? ["tasks", "meetings", "notifications", "community", "profile"]
+      : role === "finance"
       ? ["donations", "finance", "tasks", "notifications", "profile"]
       : role === "auditor"
         ? ["finance", "tasks", "notifications", "profile"]

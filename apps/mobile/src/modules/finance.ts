@@ -11,7 +11,12 @@ import {
 
 import { isValidIsoDate } from "../lib/date-input";
 import { supabase } from "../lib/supabase";
-import { parseRupeesToPaise } from "./donation-presentation";
+import {
+  donationProofExtension,
+  parseRupeesToPaise,
+  validateDonationProofBytes,
+  validateDonationProofMetadata,
+} from "./donation-presentation";
 
 type DbRow = Record<string, unknown>;
 
@@ -67,6 +72,22 @@ export async function listActiveFinanceAccounts(): Promise<
   return (data ?? []).map((row) =>
     mapFinanceAccount(row as DbRow),
   );
+}
+
+export interface ExpensePaymentAccount {
+  id: string;
+  name: string;
+  accountType: FinanceAccount["accountType"];
+}
+
+export async function listExpensePaymentAccounts(): Promise<ExpensePaymentAccount[]> {
+  const { data, error } = await supabase.rpc("list_expense_payment_accounts");
+  if (error) throw new Error("expense_payment_accounts_unavailable");
+  return (data ?? []).map((row: DbRow) => ({
+    id: String(row.id),
+    name: String(row.name),
+    accountType: row.account_type as FinanceAccount["accountType"],
+  }));
 }
 
 export async function listFinanceAccounts(): Promise<
@@ -676,6 +697,9 @@ export function financeTransferStatusLabel(
 
 export type FinanceExpenseStatus =
   | "submitted"
+  | "approved"
+  | "partially_paid"
+  | "closed"
   | "posted"
   | "rejected";
 
@@ -683,6 +707,12 @@ export interface FinanceExpense {
   id: string;
   financeAccountId: string;
   amountPaise: number;
+  paidAmountPaise: number;
+  missingBillReason: string | null;
+  closedAt: string | null;
+  closedByApplicationUserId: string | null;
+  closeReason: string | null;
+  revisionNumber: number;
   currency: string;
   description: string;
   payee: string | null;
@@ -710,6 +740,15 @@ function mapFinanceExpense(
     id: String(row.id),
     financeAccountId: String(row.finance_account_id),
     amountPaise: Number(row.amount_paise),
+    paidAmountPaise: Number(
+      row.paid_amount_paise ??
+        (row.status === "posted" ? row.amount_paise : 0),
+    ),
+    missingBillReason: nullableFinanceString(row.missing_bill_reason),
+    closedAt: nullableFinanceString(row.closed_at),
+    closedByApplicationUserId: nullableFinanceString(row.closed_by_application_user_id),
+    closeReason: nullableFinanceString(row.close_reason),
+    revisionNumber: Number(row.revision_number ?? 1),
     currency: String(row.currency),
     description: String(row.description),
     payee: nullableFinanceString(row.payee),
@@ -764,6 +803,12 @@ export async function listFinanceExpenses(): Promise<
         "id",
         "finance_account_id",
         "amount_paise",
+        "paid_amount_paise",
+        "missing_bill_reason",
+        "closed_at",
+        "closed_by_application_user_id",
+        "close_reason",
+        "revision_number",
         "currency",
         "description",
         "payee",
@@ -796,6 +841,7 @@ export async function submitFinanceExpense(input: {
   description: string;
   payee?: string;
   businessDate: string;
+  missingBillReason?: string;
 }) {
   const financeAccountId =
     input.financeAccountId.trim();
@@ -804,6 +850,10 @@ export async function submitFinanceExpense(input: {
   const description = input.description.trim();
   const payee = input.payee?.trim() || null;
   const businessDate = input.businessDate.trim();
+  const missingBillReason = input.missingBillReason?.trim() || null;
+  if (missingBillReason !== null && (missingBillReason.length < 10 || missingBillReason.length > 1000)) {
+    throw new Error("finance_expense_missing_bill_reason_invalid");
+  }
 
   if (!financeAccountId) {
     throw new Error(
@@ -843,7 +893,7 @@ export async function submitFinanceExpense(input: {
   }
 
   const { data, error } = await supabase.rpc(
-    "submit_finance_expense",
+    "submit_finance_expense_with_evidence",
     {
       p_finance_account_id: financeAccountId,
       p_amount_paise: amountPaise,
@@ -851,6 +901,7 @@ export async function submitFinanceExpense(input: {
       p_payee: payee,
       p_business_date: businessDate,
       p_operation_id: randomUUID(),
+      p_missing_bill_reason: missingBillReason,
     },
   );
 
@@ -919,11 +970,189 @@ export async function decideFinanceExpense(input: {
   return unwrapFinanceExpense(data);
 }
 
+export interface FinanceExpenseBill {
+  id: string;
+  financeExpenseId: string;
+  storageObjectPath: string;
+  revisionNumber: number;
+  createdAt: string;
+}
+
+export async function listFinanceExpenseBills(): Promise<FinanceExpenseBill[]> {
+  const { data, error } = await supabase.from("finance_expense_bills")
+    .select("id, finance_expense_id, storage_object_path, revision_number, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("finance_expense_bills_unavailable");
+  return (data ?? []).map((row) => ({
+    id: String(row.id),
+    financeExpenseId: String(row.finance_expense_id),
+    storageObjectPath: String(row.storage_object_path),
+    revisionNumber: Number(row.revision_number ?? 1),
+    createdAt: String(row.created_at),
+  }));
+}
+
+export interface FinanceExpenseRevision {
+  id: string;
+  financeExpenseId: string;
+  revisionNumber: number;
+  amountPaise: number;
+  description: string;
+  rejectionReason: string;
+  decidedAt: string;
+}
+
+export async function listFinanceExpenseRevisions(): Promise<FinanceExpenseRevision[]> {
+  const { data, error } = await supabase.from("finance_expense_revisions")
+    .select("id, finance_expense_id, revision_number, amount_paise, description, rejection_reason, decided_at")
+    .order("archived_at", { ascending: false });
+  if (error) throw new Error("finance_expense_revisions_unavailable");
+  return (data ?? []).map((row) => ({
+    id: String(row.id),
+    financeExpenseId: String(row.finance_expense_id),
+    revisionNumber: Number(row.revision_number),
+    amountPaise: Number(row.amount_paise),
+    description: String(row.description),
+    rejectionReason: String(row.rejection_reason),
+    decidedAt: String(row.decided_at),
+  }));
+}
+
+export async function uploadFinanceExpenseBill(
+  expenseId: string,
+  asset: { uri: string; mimeType?: string | null; size?: number | null },
+) {
+  if (validateDonationProofMetadata(asset.mimeType, asset.size) || !asset.mimeType) {
+    throw new Error("finance_expense_bill_invalid");
+  }
+  const response = await fetch(asset.uri);
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (validateDonationProofBytes(asset.mimeType, bytes)) {
+    throw new Error("finance_expense_bill_invalid");
+  }
+  const extension = donationProofExtension(asset.mimeType);
+  if (!extension) throw new Error("finance_expense_bill_invalid");
+  const objectPath = `${expenseId}/${randomUUID()}.${extension}`;
+  const { error: uploadError } = await supabase.storage.from("finance-expense-bills")
+    .upload(objectPath, bytes, { contentType: asset.mimeType, upsert: false });
+  if (uploadError) throw new Error("finance_expense_bill_upload_failed");
+  const { error } = await supabase.rpc("register_finance_expense_bill", {
+    p_finance_expense_id: expenseId,
+    p_storage_object_path: objectPath,
+  });
+  if (error) throw new Error("finance_expense_bill_register_failed");
+}
+
+export async function financeExpenseBillSignedUrl(path: string) {
+  const { data, error } = await supabase.storage.from("finance-expense-bills")
+    .createSignedUrl(path, 60);
+  if (error || !data?.signedUrl) throw new Error("finance_expense_bill_unavailable");
+  return data.signedUrl;
+}
+
+export async function explainMissingFinanceExpenseBill(expenseId: string, reason: string) {
+  const value = reason.trim();
+  if (value.length < 10 || value.length > 1000) {
+    throw new Error("finance_expense_missing_bill_reason_invalid");
+  }
+  const { data, error } = await supabase.rpc("set_finance_expense_missing_bill_reason", {
+    p_finance_expense_id: expenseId,
+    p_reason: value,
+  });
+  if (error) throw new Error("finance_expense_missing_bill_reason_failed");
+  return unwrapFinanceExpense(data);
+}
+
+export async function resubmitFinanceExpense(input: {
+  financeExpenseId: string;
+  financeAccountId: string;
+  amount: string;
+  description: string;
+  payee?: string;
+  businessDate: string;
+  missingBillReason?: string;
+}) {
+  const amountPaise = parseRupeesToPaise(input.amount);
+  const description = input.description.trim();
+  const payee = input.payee?.trim() || null;
+  const reason = input.missingBillReason?.trim() || null;
+  if (!input.financeExpenseId || !input.financeAccountId) {
+    throw new Error("finance_expense_account_required");
+  }
+  if (amountPaise === null || !Number.isSafeInteger(amountPaise) || amountPaise <= 0) {
+    throw new Error("finance_expense_amount_invalid");
+  }
+  if (description.length < 1 || description.length > 2000) {
+    throw new Error("finance_expense_description_invalid");
+  }
+  if (payee !== null && payee.length > 200) throw new Error("finance_expense_payee_invalid");
+  if (!isValidIsoDate(input.businessDate)) throw new Error("finance_expense_business_date_invalid");
+  if (reason !== null && (reason.length < 10 || reason.length > 1000)) {
+    throw new Error("finance_expense_missing_bill_reason_invalid");
+  }
+  const { data, error } = await supabase.rpc("resubmit_finance_expense", {
+    p_finance_expense_id: input.financeExpenseId,
+    p_finance_account_id: input.financeAccountId,
+    p_amount_paise: amountPaise,
+    p_description: description,
+    p_payee: payee,
+    p_business_date: input.businessDate,
+    p_missing_bill_reason: reason,
+    p_operation_id: randomUUID(),
+  });
+  if (error) throw new Error("finance_expense_resubmit_failed");
+  return unwrapFinanceExpense(data);
+}
+
+export async function payFinanceExpense(input: {
+  financeExpenseId: string;
+  amount: string;
+  businessDate: string;
+}) {
+  const amountPaise = parseRupeesToPaise(input.amount);
+  if (amountPaise === null || !Number.isSafeInteger(amountPaise) || amountPaise <= 0) {
+    throw new Error("finance_expense_amount_invalid");
+  }
+  if (!isValidIsoDate(input.businessDate)) {
+    throw new Error("finance_expense_business_date_invalid");
+  }
+  const { data, error } = await supabase.rpc("pay_finance_expense", {
+    p_finance_expense_id: input.financeExpenseId,
+    p_amount_paise: amountPaise,
+    p_business_date: input.businessDate,
+    p_operation_id: randomUUID(),
+  });
+  if (error) {
+    throw new Error("finance_expense_payment_failed");
+  }
+  return unwrapFinanceExpense(data);
+}
+
+export async function closeFinanceExpense(input: {
+  financeExpenseId: string;
+  reason: string;
+}) {
+  const reason = input.reason.trim();
+  if (reason.length < 10 || reason.length > 1000) {
+    throw new Error("finance_expense_close_reason_invalid");
+  }
+  const { data, error } = await supabase.rpc("close_finance_expense", {
+    p_finance_expense_id: input.financeExpenseId,
+    p_reason: reason,
+    p_operation_id: randomUUID(),
+  });
+  if (error) throw new Error("finance_expense_close_failed");
+  return unwrapFinanceExpense(data);
+}
+
 export function financeExpenseStatusLabel(
   status: FinanceExpenseStatus,
 ) {
   return {
     submitted: "Submitted",
+    approved: "Approved, awaiting payment",
+    partially_paid: "Partially paid",
+    closed: "Closed with unused approval",
     posted: "Posted",
     rejected: "Rejected",
   }[status];

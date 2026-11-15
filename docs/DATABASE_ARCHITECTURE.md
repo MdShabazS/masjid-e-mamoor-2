@@ -701,10 +701,17 @@ Conceptual fields:
 -   event identifier
 -   event type
 -   scheduled date/time
+-   check-in opening and closing timestamps for Jummah
+-   President-configured Jummah GPS centre (not returned in Member event-list responses)
 -   location policy
 -   status
 -   created_by
 -   created_at
+
+The V1 Jummah implementation uses `jummah_attendance_events`,
+`jummah_attendance_records`, `jummah_attendance_operations`, and an
+append-oriented `jummah_attendance_activity` history. Member coordinates are
+validated by the trusted operation and are not stored in attendance records.
 
 ------------------------------------------------------------------------
 

@@ -5,7 +5,10 @@ import type {
 } from "@masjid-e-mamoor/types";
 import { getMobileConfig } from "../lib/config";
 
-export type AccountProvisionRole = Exclude<ApplicationRole, "system_admin">;
+export type AccountProvisionRole = Exclude<
+  ApplicationRole,
+  "system_admin" | "auditor" | "member"
+>;
 
 export interface AccountCreationDraft {
   username: string;
@@ -14,7 +17,7 @@ export interface AccountCreationDraft {
 }
 
 export function initialAccountCreationDraft(): AccountCreationDraft {
-  return { username: "", role: "member", displayName: "" };
+  return { username: "", role: "committee_member", displayName: "" };
 }
 
 export interface ManagedAccount {
@@ -28,30 +31,29 @@ export interface ManagedAccount {
   displayName: string | null;
 }
 
-const presidentRoles: readonly AccountProvisionRole[] = [
+const systemAdminRoles: readonly AccountProvisionRole[] = [
+  "president",
   "vice_president",
   "secretary",
   "finance",
-  "auditor",
   "committee_member",
-  "member",
-];
-
-const systemAdminRoles: readonly AccountProvisionRole[] = [
-  "president",
-  ...presidentRoles,
 ];
 
 export function canAccessAccountAdministration(role: ApplicationRole) {
-  return role === "system_admin" || role === "president";
+  return role === "system_admin";
 }
 
 export function availableAccountRoles(
   actorRole: ApplicationRole,
 ): readonly AccountProvisionRole[] {
   if (actorRole === "system_admin") return systemAdminRoles;
-  if (actorRole === "president") return presidentRoles;
   return [];
+}
+
+export function editableAccountRole(role: ApplicationRole): AccountProvisionRole {
+  return systemAdminRoles.includes(role as AccountProvisionRole)
+    ? (role as AccountProvisionRole)
+    : "committee_member";
 }
 
 export function isProtectedSystemAdminTarget(account: ManagedAccount) {

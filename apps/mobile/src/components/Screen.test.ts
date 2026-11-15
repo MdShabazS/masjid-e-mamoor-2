@@ -1,6 +1,7 @@
 import { fireEvent, render } from "@testing-library/react-native";
 import { createElement } from "react";
-import { Text } from "react-native";
+import { StyleSheet, Text } from "react-native";
+import { fontFamilies } from "../theme/tokens";
 import { FormTextInput, Screen } from "./Screen";
 
 jest.mock("react-native-keyboard-controller", () => {
@@ -25,6 +26,9 @@ describe("Screen", () => {
     fireEvent(view.getByTestId("field"), "focus");
 
     expect(onFocus).toHaveBeenCalledTimes(1);
+    expect(StyleSheet.flatten(view.getByTestId("field").props.style).fontFamily).toBe(
+      fontFamilies.regular,
+    );
   });
 
   it("renders keyboard-aware scroll content", async () => {

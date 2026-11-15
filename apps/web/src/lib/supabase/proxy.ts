@@ -6,6 +6,10 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
+  // Public receipt verification is available even if an old account cookie
+  // belongs to an inactive member or a member who must reset a password.
+  if (request.nextUrl.pathname === "/receipt-lookup") return response;
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 

@@ -415,3 +415,12 @@ enabled = true
 
 [functions.render-finance-monthly-report]
 verify_jwt = false
+
+[functions.dispatch-notification-push]
+verify_jwt = false
+
+[functions.render-finance-date-range]
+verify_jwt = false
+
+[functions.render-referred-donor-receipt]
+verify_jwt = false

@@ -1,4 +1,5 @@
 import { signInWithUsernamePassword } from "./actions";
+import Link from "next/link";
 
 type LoginPageProps = {
   searchParams: Promise<{
@@ -60,6 +61,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Sign in
           </button>
         </form>
+        <Link href="/receipt-lookup" className="mt-6 inline-block text-sm text-emerald-900 underline">Verify a donation receipt</Link>
       </div>
       </section>
     </main>

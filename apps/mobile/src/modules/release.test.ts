@@ -71,7 +71,7 @@ describe("mobile release compatibility", () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
-  it("surfaces RPC and malformed-response failures for fail-open handling", async () => {
+  it("surfaces RPC and malformed-response failures for the release gate", async () => {
     rpc
       .mockResolvedValueOnce({
         data: null,
@@ -121,7 +121,7 @@ describe("mobile release compatibility", () => {
     });
   });
 
-  it("accepts only the official HTTPS store for each platform", () => {
+  it("accepts HTTPS direct Android APK links and official app stores", () => {
     expect(
       safeHttpsStoreUrl("https://play.google.com/store/apps/details?id=example", "android"),
     ).toBe("https://play.google.com/store/apps/details?id=example");
@@ -135,6 +135,7 @@ describe("mobile release compatibility", () => {
     ).toBeNull();
 
     expect(safeHttpsStoreUrl("https://example.com/app", "android")).toBeNull();
+    expect(safeHttpsStoreUrl("https://expo.dev/artifacts/eas/release.apk", "android")).toBe("https://expo.dev/artifacts/eas/release.apk");
 
     expect(safeHttpsStoreUrl("https://apps.apple.com/in/app/example/id123", "android")).toBeNull();
 

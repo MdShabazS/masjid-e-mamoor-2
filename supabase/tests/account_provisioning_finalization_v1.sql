@@ -49,11 +49,31 @@ begin
   end if;
 end $$;
 
--- President may create an allowed non-member account.
+-- A President cannot create even an ordinary account.
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
   '{"sub":"91000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+do $$
+begin
+  begin
+    perform public.finalize_account_provisioning(
+      '91000000-0000-0000-0000-000000000010',
+      'finalize-secretary@auth.masjid.local',
+      'finalize.secretary', 'finalize.secretary',
+      'Finalized Secretary', 'secretary', null
+    );
+    raise exception 'FAIL: President provisioned a Secretary';
+  exception when others then
+    if sqlerrm not like '%not_authorized%' then raise; end if;
+  end;
+end $$;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"91000000-0000-0000-0000-000000000001","role":"authenticated"}',
   true
 );
 select public.finalize_account_provisioning(
@@ -90,7 +110,7 @@ begin
   end if;
 end $$;
 
--- Member finalization creates one complete database aggregate.
+-- A Committee Member account is finalized once, with no member profile.
 set local role authenticated;
 select public.finalize_account_provisioning(
   '91000000-0000-0000-0000-000000000011',
@@ -98,8 +118,8 @@ select public.finalize_account_provisioning(
   'finalize.member',
   'finalize.member',
   'Finalized Member',
-  'member',
-  '+919999999991'
+  'committee_member',
+  null
 );
 
 -- Matching replay returns the same identity without duplicate rows.
@@ -109,8 +129,8 @@ select public.finalize_account_provisioning(
   'finalize.member',
   'finalize.member',
   'Finalized Member',
-  'member',
-  '+919999999991'
+  'committee_member',
+  null
 );
 reset role;
 
@@ -122,7 +142,7 @@ begin
   if (select count(*) from public.application_user_roles
       where application_user_id = v_account_id) <> 1
      or (select count(*) from public.member_profiles
-         where application_user_id = v_account_id) <> 1
+         where application_user_id = v_account_id) <> 0
      or (select count(*) from public.account_security_events
          where target_application_user_id = v_account_id
            and event_type = 'account.created') <> 1 then
@@ -141,8 +161,8 @@ begin
       'finalize.member',
       'finalize.member',
       'Different Name',
-      'member',
-      '+919999999991'
+      'committee_member',
+      null
     );
     raise exception 'FAIL: conflicting finalization replay succeeded';
   exception when others then
@@ -184,8 +204,8 @@ begin
       'rollback.member',
       'rollback.member',
       'Rollback Member',
-      'member',
-      '+919999999992'
+      'committee_member',
+      null
     );
     raise exception 'FAIL: injected database failure did not fail finalization';
   exception when others then
@@ -218,6 +238,11 @@ drop function public.test_fail_account_finalization_audit();
 
 -- President and System Admin cannot provision System Admin through this RPC.
 set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"91000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
 do $$
 begin
   begin
@@ -270,7 +295,7 @@ begin
     );
     raise exception 'FAIL: System Admin provisioned System Admin';
   exception when others then
-    if sqlerrm not like '%not_authorized%' then raise; end if;
+    if sqlerrm not like '%invalid_role%' then raise; end if;
   end;
 end $$;
 

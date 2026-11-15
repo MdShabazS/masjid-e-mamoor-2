@@ -3,7 +3,7 @@ import { act, fireEvent, render } from "@testing-library/react-native";
 import { router } from "expo-router";
 
 import { useAuth } from "../../../../auth/AuthProvider";
-import CreateCommitteeMeetingScreen from "../../../../../app/(app)/work/meetings/create";
+import CreateCommitteeMeetingScreen from "../../../../../app/(app)/meetings/create";
 
 jest.mock("@tanstack/react-query", () => ({
   useMutation: jest.fn(),
@@ -81,7 +81,7 @@ describe("Create committee meeting", () => {
       queryKey: ["committee-meetings", "manager-1"],
     });
     expect(mockReplace).toHaveBeenCalledWith({
-      pathname: "/work/meetings/[id]",
+      pathname: "/meetings/[id]",
       params: { id: "meeting-new" },
     });
     await view.unmount();

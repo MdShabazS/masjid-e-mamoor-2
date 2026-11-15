@@ -104,12 +104,12 @@ describe("Work list screen", () => {
 
     const view = await render(<WorkScreen />);
 
-    expect(view.getByText("My tasks · 1")).toBeTruthy();
-    expect(view.getByText("Open volunteer tasks · 1")).toBeTruthy();
-    expect(view.getByText("Completed · 1")).toBeTruthy();
+    expect(view.getByRole("header", { name: "My tasks" })).toBeTruthy();
+    expect(view.getByRole("header", { name: "Open tasks" })).toBeTruthy();
+    expect(view.getByRole("header", { name: "Completed" })).toBeTruthy();
     expect(view.getByLabelText("Status: Overdue")).toBeTruthy();
 
-    await act(async () => fireEvent.press(view.getByText("Volunteer work")));
+    await act(async () => fireEvent.press(view.getByRole("button", { name: "View task: Volunteer work" })));
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/work/[id]",
       params: { id: "open" },
@@ -132,19 +132,11 @@ describe("Work list screen", () => {
     await managerView.unmount();
   });
 
-  it("exposes the canonical Meetings entry only with meeting read capability", async () => {
-    taskQuery = queryResult([task({ id: "assigned" })]);
-    const restrictedView = await render(<WorkScreen />);
-    expect(restrictedView.queryByRole("button", { name: "View committee meetings" })).toBeNull();
-    await restrictedView.unmount();
-
+  it("keeps meeting navigation in its dedicated tab instead of duplicating it on Tasks", async () => {
     capabilityQuery = queryResult({ ...capabilities, canReadCommitteeMeetings: true });
-    const allowedView = await render(<WorkScreen />);
-    await act(async () =>
-      fireEvent.press(allowedView.getByRole("button", { name: "View committee meetings" })),
-    );
-    expect(mockPush).toHaveBeenCalledWith("/work/meetings");
-    await allowedView.unmount();
+    const view = await render(<WorkScreen />);
+    expect(view.queryByRole("button", { name: "View committee meetings" })).toBeNull();
+    await view.unmount();
   });
 
   it("renders loading, empty, and retryable error states", async () => {
