@@ -71,14 +71,17 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] All 188 automated tests, lint, format, typecheck, web build and Android export passed again. Device-level proof is only what the emulator and browser journeys below record; items marked "code fix, not exercised" are still unproven on a device
 - [x] Documentation brought up to date: setup after cloning, environments, current counts. Unused local files and old backups removed; everything else is in Git
 - [x] A fresh clone of the repository installed, tested, linted, type-checked and built for web and Android
+- [x] Installable web app (owner decision 15 November: testers use the web app on Android and iPhone; the native app follows as a later update). Manifest, placeholder icon (dome and crescent until the masjid logo arrives) and a "No connection" page. Checked in a browser: the app is installable, and with the server stopped a screen showed the offline page. The phone stores only that page, never records
 
 ## Pending — before the phone ground test
 
-- [ ] Make the web app reachable from phones: Vercel previews need a Vercel login (choose a public staging deploy or remove preview protection)
+- [ ] Publish the staging web app at Vercel's public main address (free plan) with staging Supabase settings. Needs the owner's Vercel approval
 - [ ] Apply the 10 November account management migration to staging
 - [ ] Remove staging test accounts (`stgtest*`) and the "STAGING TEST cash" account, then create the real first System Admin
-- [ ] Build an installable APK from `eas.json` and write the tester checklist
 - [ ] Set a test check-in location for attendance
+- [ ] One-page tester guide: add to home screen on iPhone and Android, accounts, what to try
+- [ ] Test on 3–4 real phones, including at least one iPhone
+- [ ] Later: native Android APK from `eas.json` as a future update
 
 ## Pending — features not built
 
