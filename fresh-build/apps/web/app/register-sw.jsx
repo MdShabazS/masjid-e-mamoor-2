@@ -1,10 +1,10 @@
 'use client';
 import { useEffect } from 'react';
 
-/** Registers the offline-page service worker on production builds only. */
+/** Registers the offline-page service worker. It only answers when the network fails, so it is safe in development too. */
 export default function RegisterServiceWorker() {
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production' || !('serviceWorker' in navigator)) return;
+    if (!('serviceWorker' in navigator)) return;
     navigator.serviceWorker
       .register('/sw.js', { scope: '/', updateViaCache: 'none' })
       .catch(() => {});
