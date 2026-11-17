@@ -41,6 +41,34 @@ KNOWN_MODERATE_VIA = {
 }
 
 
+# Accepted 18 November 2026 by the release owner: GHSA-fc5q-39xc-vjpf (picomatch ReDoS) reaches only
+# Android build tools (Expo CLI, Metro, Jest); no fixed picomatch exists yet. Remove when one ships.
+# See docs/DEPENDENCY_RELEASE_DECISION_2026-10-26.md.
+KNOWN_HIGH_VIA = {
+    "@expo/cli": {"@expo/metro", "@expo/metro-config", "@expo/metro-file-map", "glob", "picomatch"},
+    "@expo/metro": {"metro", "metro-config", "metro-file-map", "metro-transform-worker"},
+    "@expo/metro-config": {"@expo/metro", "glob", "picomatch"},
+    "@expo/metro-file-map": {"jest-worker"},
+    "@react-native/babel-plugin-codegen": {"@react-native/codegen"},
+    "@react-native/codegen": {"tinyglobby"},
+    "@react-native/community-cli-plugin": {"metro"},
+    "@react-native/virtualized-lists": {"react-native"},
+    "babel-preset-expo": {"@react-native/babel-plugin-codegen"},
+    "expo": {"@expo/fingerprint", "@expo/metro", "babel-preset-expo"},
+    "fdir": {"picomatch"},
+    "jest-util": {"picomatch"},
+    "jest-worker": {"jest-util"},
+    "metro": {"jest-worker", "metro-config", "metro-file-map", "metro-transform-worker"},
+    "metro-config": {"metro"},
+    "metro-file-map": {"jest-worker", "micromatch"},
+    "metro-transform-worker": {"metro"},
+    "micromatch": {"picomatch"},
+    "picomatch": {"https://github.com/advisories/GHSA-fc5q-39xc-vjpf"},
+    "react-native": {"@react-native/codegen", "@react-native/community-cli-plugin", "@react-native/virtualized-lists", "tinyglobby"},
+    "tinyglobby": {"fdir", "picomatch"},
+}
+
+
 def check_audit(audit: object) -> list[str]:
     if not isinstance(audit, dict):
         return ["npm audit output is not an object"]
@@ -68,7 +96,7 @@ def check_audit(audit: object) -> list[str]:
         if severity == "critical":
             errors.append(f"Critical dependency finding: {name}")
         elif severity in ("high", "moderate", "low"):
-            known = KNOWN_MODERATE_VIA if severity == "moderate" else {}
+            known = {"moderate": KNOWN_MODERATE_VIA, "high": KNOWN_HIGH_VIA}.get(severity, {})
             allowed_via = known.get(name)
             if allowed_via is None:
                 errors.append(f"New {severity} dependency finding: {name}")

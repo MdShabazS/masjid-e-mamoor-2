@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { getBrowserClient } from '../../lib/supabase.js';
+import { userMessage } from '../../../../packages/api-client/messages.js';
 
 export default function InboxPage() {
   const [state, setState] = useState('loading');
@@ -27,7 +28,7 @@ export default function InboxPage() {
     let active = true;
     reload().catch((cause) => {
       if (active) {
-        setError(cause.message || 'Unable to load notifications.');
+        setError(userMessage(cause, 'Unable to load notifications.'));
         setState('error');
       }
     });
@@ -47,7 +48,7 @@ export default function InboxPage() {
       if (rpcError || !data) throw rpcError || new Error('Notification is unavailable.');
       await reload();
     } catch (cause) {
-      setError(cause.message || 'Could not mark as read.');
+      setError(userMessage(cause, 'Could not mark as read.'));
     } finally {
       setBusy(null);
     }
@@ -55,7 +56,7 @@ export default function InboxPage() {
 
   return (
     <main className="management">
-      <Link href="/">← Masjid E Mamoor 2</Link>
+      <Link href="/home">← Home</Link>
       <h1>Notifications</h1>
       <p className="muted">
         Your in-app announcements stay here even if device alerts are unavailable.
@@ -73,7 +74,10 @@ export default function InboxPage() {
       )}
       {state === 'ready' && (
         <section className="panel" aria-label="Your notifications">
-          <button type="button" onClick={() => reload().catch((cause) => setError(cause.message))}>
+          <button
+            type="button"
+            onClick={() => reload().catch((cause) => setError(userMessage(cause)))}
+          >
             Refresh
           </button>
           {items.length === 0 ? (

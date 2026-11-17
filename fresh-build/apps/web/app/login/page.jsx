@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getBrowserClient } from '../../lib/supabase.js';
 import { signInUsername, changeInitialPassword } from '../../../../packages/api-client/identity.js';
+import { userMessage } from '../../../../packages/api-client/messages.js';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export default function LoginPage() {
         }
         if (!active) return;
         if (gate.must_change_password) setMustChangePassword(true);
-        else router.replace('/contributors');
+        else router.replace('/home');
       } catch {
         // The sign-in form remains available if a saved session cannot be read.
       } finally {
@@ -53,9 +54,9 @@ export default function LoginPage() {
         password: String(form.get('password')),
       });
       if (result.mustChangePassword) setMustChangePassword(true);
-      else router.replace('/contributors');
+      else router.replace('/home');
     } catch (cause) {
-      setError(cause.message || 'Unable to sign in.');
+      setError(userMessage(cause, 'Unable to sign in.'));
     } finally {
       setBusy(false);
     }
@@ -73,7 +74,7 @@ export default function LoginPage() {
       setMustChangePassword(false);
       setNotice('Password changed. Sign in with your new password.');
     } catch (cause) {
-      setError(cause.message || 'Unable to change password.');
+      setError(userMessage(cause, 'Unable to change password.'));
     } finally {
       setBusy(false);
     }
@@ -87,7 +88,7 @@ export default function LoginPage() {
       setMustChangePassword(false);
       setNotice('Signed out. Use your assigned username to sign in.');
     } catch (cause) {
-      setError(cause.message || 'Unable to sign out.');
+      setError(userMessage(cause, 'Unable to sign out.'));
     } finally {
       setBusy(false);
     }

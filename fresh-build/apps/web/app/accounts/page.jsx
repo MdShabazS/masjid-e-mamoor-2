@@ -81,7 +81,7 @@ export default function AccountsPage() {
 
   return (
     <main className="management">
-      <Link href="/contributors">← Management</Link>
+      <Link href="/home">← Home</Link>
       <h1>People and roles</h1>
       {page.session === 'checking' && <p>Checking your account…</p>}
       {page.session === 'signed-out' && (

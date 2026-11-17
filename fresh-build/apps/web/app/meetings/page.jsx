@@ -5,6 +5,7 @@ import { buildMeetingArgs } from '../../../../packages/api-client/meeting-input.
 import { getBrowserClient } from '../../lib/supabase.js';
 import { MemberSelect } from '../../lib/management.js';
 import { FinalizationFallback, MasjidSiteSetting, MeetingAttendance } from './attendance.jsx';
+import { userMessage } from '../../../../packages/api-client/messages.js';
 
 const LOCATION_FIELDS = new Set([
   'p_latitude',
@@ -63,7 +64,10 @@ export default function MeetingsPage() {
           await load();
           if (active) setSession('ready');
         } catch (cause) {
-          if (active) setError(cause.message);
+          if (active) {
+            setError(userMessage(cause));
+            setSession('error');
+          }
         }
       })
       .catch(() => {
@@ -76,13 +80,14 @@ export default function MeetingsPage() {
   async function command(name, args, key) {
     setBusy(true);
     setError('');
+    setNotice('');
     const id = operations.current.get(key) ?? crypto.randomUUID();
     operations.current.set(key, id);
     try {
       await rpc(name, { ...args, p_operation_id: id });
       operations.current.delete(key);
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
       setBusy(false);
       return false;
     }
@@ -112,6 +117,7 @@ export default function MeetingsPage() {
     try {
       const args = buildMeetingArgs({ title, description, date, time, location });
       if (await command('create_committee_meeting', args, `create:${JSON.stringify(args)}`)) {
+        setNotice('Meeting created. Invite members from the meeting below.');
         setTitle('');
         setDescription('');
         setDate('');
@@ -119,12 +125,12 @@ export default function MeetingsPage() {
         setLocation('');
       }
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   return (
     <main className="management">
-      <Link href="/">← Masjid E Mamoor 2</Link>
+      <Link href="/home">← Home</Link>
       <h1>Committee meetings</h1>
       {session === 'checking' && <p>Checking your account…</p>}
       {session === 'signed-out' && (
@@ -305,8 +311,10 @@ export default function MeetingsPage() {
                               },
                               `invite:${meeting.meeting_id}:${memberId}`,
                             )
-                          )
+                          ) {
                             setInvitees((current) => ({ ...current, [meeting.meeting_id]: '' }));
+                            setNotice('Invitation sent.');
+                          }
                         }}
                       >
                         Invite member

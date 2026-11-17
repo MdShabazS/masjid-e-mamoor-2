@@ -39,6 +39,7 @@ function Roster({ meetingId, canMark, busy, run, version }) {
   const [selected, setSelected] = useState('');
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
+  const [locating, setLocating] = useState(false);
   const load = useCallback(() => {
     rpc('list_committee_meeting_roster', { p_meeting_id: meetingId })
       .then((data) => setRows(data ?? []))
@@ -48,12 +49,15 @@ function Roster({ meetingId, canMark, busy, run, version }) {
 
   async function mark() {
     setError('');
+    setLocating(true);
     let fix;
     try {
       fix = await currentFix();
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
       return;
+    } finally {
+      setLocating(false);
     }
     if (
       await run(
@@ -67,16 +71,16 @@ function Roster({ meetingId, canMark, busy, run, version }) {
     }
   }
 
-  if (error)
-    return (
-      <p role="alert" className="notice error">
-        {error}
-      </p>
-    );
-  if (!rows) return <p className="muted">Loading roster…</p>;
+  const alert = error && (
+    <p role="alert" className="notice error">
+      {error}
+    </p>
+  );
+  if (!rows) return alert || <p className="muted">Loading roster…</p>;
   return (
     <div>
       <h4>Attendance roster</h4>
+      {alert}
       <ul className="roster">
         {rows.map((row) => (
           <li key={row.member_id}>
@@ -114,8 +118,11 @@ function Roster({ meetingId, canMark, busy, run, version }) {
             Why can’t their phone check in? (3–500 characters)
             <input maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />
           </label>
-          <button disabled={busy || !selected || reason.trim().length < 3} onClick={mark}>
-            Mark present
+          <button
+            disabled={busy || locating || !selected || reason.trim().length < 3}
+            onClick={mark}
+          >
+            {locating ? 'Finding your location…' : 'Mark present'}
           </button>
         </>
       )}
@@ -126,6 +133,7 @@ function Roster({ meetingId, canMark, busy, run, version }) {
 /** Check-in and organizer controls for one meeting. */
 export function MeetingAttendance({ meeting, mine, busy, run, setError, version }) {
   const [rosterOpen, setRosterOpen] = useState(false);
+  const [locating, setLocating] = useState(false);
   if (meeting.status !== 'active' || !mine) return null;
   const today = indiaToday();
   const isToday = meeting.meeting_date === today;
@@ -135,15 +143,19 @@ export function MeetingAttendance({ meeting, mine, busy, run, setError, version 
 
   async function checkIn() {
     setError('');
+    setLocating(true);
     try {
       const fix = await currentFix();
+      setLocating(false);
       await run(
         'check_in_committee_meeting',
         { p_meeting_id: meeting.meeting_id, ...fix },
         'You are checked in.',
       );
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
+    } finally {
+      setLocating(false);
     }
   }
 
@@ -154,8 +166,8 @@ export function MeetingAttendance({ meeting, mine, busy, run, setError, version 
         <p className="notice">You are marked present for this meeting.</p>
       )}
       {canCheckIn && (
-        <button className="primary" disabled={busy} onClick={checkIn}>
-          Check in at the masjid
+        <button className="primary" disabled={busy || locating} onClick={checkIn}>
+          {locating ? 'Finding your location…' : 'Check in at the masjid'}
         </button>
       )}
       {mine.is_creator && (
@@ -279,7 +291,7 @@ export function MasjidSiteSetting({ busy, run, setError, version }) {
         setConfirmed(false);
       }
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   return (

@@ -5,6 +5,7 @@ import { parseINRToPaise } from '../../../../packages/api-client/index.js';
 import { runTaskCommand } from '../../../../packages/api-client/task-command.js';
 import { getBrowserClient } from '../../lib/supabase.js';
 import { MemberSelect } from '../../lib/management.js';
+import { userMessage } from '../../../../packages/api-client/messages.js';
 
 const creators = new Set(['president', 'vice_president', 'secretary']);
 const taskReaders = new Set([
@@ -37,7 +38,7 @@ function CashCountForm({ taskId, busy, correction, onSubmit }) {
         setEvidence('');
       }
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   return (
@@ -91,6 +92,28 @@ function CashCountForm({ taskId, busy, correction, onSubmit }) {
     </form>
   );
 }
+const PARTICIPANT_STATUS = {
+  invited: 'Invited',
+  confirmed: 'Joined',
+  waitlisted: 'On the waiting list',
+  declined: 'Declined',
+  withdrawn: 'Left the task',
+  completion_submitted: 'Completion sent for review',
+  returned: 'Returned for changes',
+  verified: 'Completed and accepted',
+};
+const TASK_STATUS = { active: 'Open', cancelled: 'Cancelled' };
+const TASK_DONE = {
+  create_work_task: 'Task created. Members can now join it.',
+  create_cash_collection_task: 'Cash collection task created.',
+  join_work_task: 'Joined. If the places are full you are on the waiting list.',
+  leave_work_task: 'You have left the task.',
+  submit_work_task_completion: 'Completion sent to the organizer for review.',
+  review_work_task_completion: 'Review saved.',
+  invite_work_task_member: 'Invitation sent.',
+  cancel_work_task: 'Task cancelled.',
+};
+
 export default function TasksPage() {
   const [role, setRole] = useState(null),
     [session, setSession] = useState('checking');
@@ -99,6 +122,8 @@ export default function TasksPage() {
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [stale, setStale] = useState(false);
+  const [names, setNames] = useState(new Map());
+  const [notice, setNotice] = useState('');
   const [title, setTitle] = useState(''),
     [description, setDescription] = useState('');
   const [cashCollection, setCashCollection] = useState(false);
@@ -150,7 +175,7 @@ export default function TasksPage() {
           if (active) setSession('ready');
         } catch (cause) {
           if (active) {
-            setError(cause.message);
+            setError(userMessage(cause));
             setSession('error');
           }
         }
@@ -169,6 +194,7 @@ export default function TasksPage() {
     }
     setBusy(true);
     setError('');
+    setNotice('');
     const result = await runTaskCommand({
       operations: operations.current,
       key,
@@ -179,11 +205,11 @@ export default function TasksPage() {
       createId: () => crypto.randomUUID(),
     });
     if (!result.saved)
-      setError(result.error?.message || 'Task action failed. Retry the same action.');
+      setError(userMessage(result.error, 'Task action failed. Retry the same action.'));
     else if (!result.refreshed) {
       setError('Action saved, but the task list could not refresh. Reload before another action.');
       setStale(true);
-    }
+    } else setNotice(TASK_DONE[name] ?? 'Saved.');
     setBusy(false);
     return result.saved;
   }
@@ -195,7 +221,7 @@ export default function TasksPage() {
       setError('');
       setSession('ready');
     } catch (cause) {
-      setError(cause.message || 'Could not load tasks.');
+      setError(userMessage(cause, 'Could not load tasks.'));
     } finally {
       setBusy(false);
     }
@@ -227,16 +253,20 @@ export default function TasksPage() {
   }
   async function showParticipants(id) {
     try {
-      const list = await rpc('list_work_task_participants', { p_task_id: id });
+      const [list, members] = await Promise.all([
+        rpc('list_work_task_participants', { p_task_id: id }),
+        names.size ? null : rpc('list_active_members'),
+      ]);
+      if (members) setNames(new Map(members.map((m) => [m.member_id, m.username])));
       setParticipants({ ...participants, [id]: list ?? [] });
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   const cashByTask = new Map(cashTasks.map((task) => [task.task_id, task]));
   return (
     <main className="management">
-      <Link href="/">← Masjid E Mamoor 2</Link>
+      <Link href="/home">← Home</Link>
       <h1>Work tasks</h1>
       {session === 'checking' && <p>Checking your account…</p>}
       {session === 'signed-out' && (
@@ -255,6 +285,11 @@ export default function TasksPage() {
       {error && (
         <p role="alert" className="notice error">
           {error}
+        </p>
+      )}
+      {notice && (
+        <p role="status" className="notice">
+          {notice}
         </p>
       )}
       {session === 'ready' && taskReaders.has(role) && (
@@ -378,10 +413,11 @@ export default function TasksPage() {
                   <h3>{task.title}</h3>
                   <p>{task.description}</p>
                   <p className="muted">
-                    {task.status} · {task.confirmed_count}/{task.total_cap} places
+                    {TASK_STATUS[task.status] ?? task.status} · {task.confirmed_count}/
+                    {task.total_cap} places
                     {task.scheduled_date ? ` · ${task.scheduled_date}` : ''}
                   </p>
-                  <p>My status: {task.my_status ?? 'Not joined'}</p>
+                  <p>My status: {PARTICIPANT_STATUS[task.my_status] ?? 'Not joined'}</p>
                   {cashByTask.has(task.task_id) && (
                     <>
                       <p>
@@ -489,7 +525,8 @@ export default function TasksPage() {
                         <ul>
                           {participants[task.task_id].map((person) => (
                             <li key={person.member_id}>
-                              {person.member_id} · {person.source} · {person.status}
+                              {names.get(person.member_id) ?? 'Former member'} · {person.source} ·{' '}
+                              {PARTICIPANT_STATUS[person.status] ?? person.status}
                               {person.completion_note && ` · ${person.completion_note}`}
                               {person.status === 'completion_submitted' &&
                                 task.status === 'active' && (

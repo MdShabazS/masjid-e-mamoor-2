@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { prepareManualReceiptHandoff } from '../../../../../packages/api-client/receipt-handoff.js';
 import { getBrowserClient } from '../../../lib/supabase.js';
+import { userMessage } from '../../../../../packages/api-client/messages.js';
 
 const HANDOFF_ROLES = new Set(['treasurer', 'committee_member']);
 
@@ -77,7 +78,7 @@ export default function ReceiptHandoffPage() {
         result,
       });
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
       return;
     }
     const key = JSON.stringify(args);
@@ -96,7 +97,7 @@ export default function ReceiptHandoffPage() {
       setEvidenceReference('');
       setConfirmed(false);
     } catch (cause) {
-      setError(cause.message || 'Handoff could not be recorded. Check the receipt status.');
+      setError(userMessage(cause, 'Handoff could not be recorded. Check the receipt status.'));
     } finally {
       setBusy(false);
     }

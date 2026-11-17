@@ -9,6 +9,7 @@ import {
   verifyCsvDigest,
 } from '../../../lib/report-view.js';
 import { getBrowserClient } from '../../../lib/supabase.js';
+import { userMessage } from '../../../../../packages/api-client/messages.js';
 
 const READERS = new Set(['system_admin', 'president', 'vice_president', 'secretary', 'treasurer']);
 const REQUESTERS = new Set(['president', 'vice_president', 'secretary', 'treasurer']);
@@ -123,7 +124,7 @@ export default function FinanceReportsPage() {
       await load(id);
       operation.current = null;
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setBusy(false);
     }
@@ -139,7 +140,7 @@ export default function FinanceReportsPage() {
       await ensureApproved();
       await load(runId);
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setBusy(false);
     }
@@ -189,7 +190,7 @@ export default function FinanceReportsPage() {
         `Verified ${format.toUpperCase()} downloaded. Keep this private finance file secure.`,
       );
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setBusy(false);
     }

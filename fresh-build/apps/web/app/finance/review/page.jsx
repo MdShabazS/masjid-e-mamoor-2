@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { parseINRToPaise } from '../../../../../packages/api-client/index.js';
 import { getBrowserClient } from '../../../lib/supabase.js';
+import { indiaToday } from '../../../lib/management.js';
+import { userMessage } from '../../../../../packages/api-client/messages.js';
 
 function money(value) {
   const n = BigInt(value),
@@ -60,7 +62,7 @@ export default function FinanceReviewPage() {
           if (active) setSession('ready');
         } catch (cause) {
           if (active) {
-            setError(cause.message);
+            setError(userMessage(cause));
             setSession('ready');
           }
         }
@@ -89,7 +91,7 @@ export default function FinanceReviewPage() {
         setError('Saved, but the queue did not refresh. Reload before retrying.');
       }
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setBusy(false);
     }
@@ -110,14 +112,15 @@ export default function FinanceReviewPage() {
         'Actual amount verified and posted. Receipt code was created.',
       );
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   function postPayment(item) {
     try {
       const chosen = accounts.find((a) => a.account_id === account[item.expense_id]);
       if (!chosen) throw new Error('Choose the account used for this payment.');
-      if (!paymentDate[item.expense_id] || (proof[item.expense_id] ?? '').trim().length < 3)
+      const date = paymentDate[item.expense_id] ?? indiaToday();
+      if (!date || (proof[item.expense_id] ?? '').trim().length < 3)
         throw new Error('Enter the payment date and proof reference.');
       execute(
         'post_expense_payment',
@@ -126,13 +129,13 @@ export default function FinanceReviewPage() {
           p_account_id: chosen.account_id,
           p_amount_paise: parseINRToPaise(payment[item.expense_id] ?? ''),
           p_method: chosen.account_kind,
-          p_date: paymentDate[item.expense_id],
+          p_date: date,
           p_proof: (proof[item.expense_id] ?? '').trim(),
         },
         'Payment posted against the approved expense.',
       );
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   return (
@@ -330,7 +333,7 @@ export default function FinanceReviewPage() {
                       Payment date in India
                       <input
                         type="date"
-                        value={paymentDate[item.expense_id] ?? ''}
+                        value={paymentDate[item.expense_id] ?? indiaToday()}
                         onChange={(e) =>
                           setPaymentDate({ ...paymentDate, [item.expense_id]: e.target.value })
                         }

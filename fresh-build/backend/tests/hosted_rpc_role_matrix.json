@@ -1,6 +1,6 @@
 {
   "project_id": "necattvpncnsrfcrwpjn",
-  "guarded_rpc_count": 80,
+  "guarded_rpc_count": 82,
   "cases": [
     {
       "rpc": "activate_payment_qr",
@@ -1059,6 +1059,38 @@
       "roles": [
         "system_admin",
         "president"
+      ]
+    },
+    {
+      "rpc": "list_messageable_donors",
+      "args": [
+        "2026-11-01"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
+      ]
+    },
+    {
+      "rpc": "prepare_donor_whatsapp",
+      "args": [
+        "00000000-0000-0000-0000-000000000000",
+        "reminder",
+        "2026-11-01"
+      ],
+      "roles": [
+        "president",
+        "vice_president",
+        "secretary",
+        "treasurer",
+        "committee_member",
+        "member",
+        "data_entry"
       ]
     }
   ]

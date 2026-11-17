@@ -7,6 +7,7 @@ import {
   financePageCursor,
 } from '../../../../../packages/api-client/finance-pagination.js';
 import { getBrowserClient } from '../../../lib/supabase.js';
+import { userMessage } from '../../../../../packages/api-client/messages.js';
 
 const readers = new Set(['system_admin', 'president', 'vice_president', 'secretary', 'treasurer']);
 const HISTORY_LIMIT = 50;
@@ -151,7 +152,7 @@ export default function FinanceAccountsPage() {
       setHistory((previous) => appendFinancePage(previous, page ?? [], 'effect_id'));
       setHistoryHasMore((page?.length ?? 0) === HISTORY_LIMIT);
     } catch (cause) {
-      if (request === accountRequest.current) setError(cause.message);
+      if (request === accountRequest.current) setError(userMessage(cause));
     } finally {
       if (request === accountRequest.current) setHistoryLoading(false);
     }
@@ -171,7 +172,7 @@ export default function FinanceAccountsPage() {
       setObservations((previous) => appendFinancePage(previous, page ?? [], 'reconciliation_id'));
       setObservationHasMore((page?.length ?? 0) === OBSERVATION_LIMIT);
     } catch (cause) {
-      if (request === accountRequest.current) setError(cause.message);
+      if (request === accountRequest.current) setError(userMessage(cause));
     } finally {
       if (request === accountRequest.current) setObservationLoading(false);
     }
@@ -191,7 +192,7 @@ export default function FinanceAccountsPage() {
           if (active) setSession('ready');
         } catch (cause) {
           if (active) {
-            setError(cause.message);
+            setError(userMessage(cause));
             setSession('ready');
           }
         }
@@ -222,7 +223,7 @@ export default function FinanceAccountsPage() {
       }
       return true;
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
       return false;
     } finally {
       setBusy(false);
@@ -268,7 +269,7 @@ export default function FinanceAccountsPage() {
         setOpeningProof('');
       }
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   async function correctBeneficiary(event) {
@@ -325,7 +326,7 @@ export default function FinanceAccountsPage() {
       setActiveQr(null);
       qrOperation.current = null;
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setBusy(false);
     }
@@ -360,7 +361,7 @@ export default function FinanceAccountsPage() {
         versionId: response.headers.get('X-QR-Version-ID'),
       });
     } catch (cause) {
-      if (request === accountRequest.current) setError(cause.message);
+      if (request === accountRequest.current) setError(userMessage(cause));
     } finally {
       if (request === accountRequest.current) setQrLoading(false);
     }
@@ -384,7 +385,7 @@ export default function FinanceAccountsPage() {
         setTransferProof('');
       }
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   async function reconcile(event) {
@@ -407,7 +408,7 @@ export default function FinanceAccountsPage() {
         setExplanation('');
       }
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   async function correct(event) {
@@ -442,7 +443,7 @@ export default function FinanceAccountsPage() {
         setCorrectionReason('');
       }
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   const active = accounts.filter((account) => account.active && account.account_kind !== 'advance');
@@ -506,7 +507,7 @@ export default function FinanceAccountsPage() {
                   try {
                     await loadAccount(id);
                   } catch (cause) {
-                    setError(cause.message);
+                    setError(userMessage(cause));
                   }
                 }}
               >
@@ -518,6 +519,12 @@ export default function FinanceAccountsPage() {
                 ))}
               </select>
             </label>
+            {!selected && role === 'treasurer' && (
+              <p className="muted">
+                Choose an account above to submit its opening balance, record a counted balance or
+                see its history.
+              </p>
+            )}
           </section>
           {selected && ['president', 'treasurer'].includes(role) && (
             <section className="panel">

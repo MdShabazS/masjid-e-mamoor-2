@@ -45,6 +45,73 @@ const MESSAGES = {
   member_not_found: 'That member is not active.',
   invalid_activity_period: 'Choose a month or a year.',
   role_not_manageable: 'You cannot manage that role.',
+  not_authorized: 'This account cannot do that, or it has been deactivated. Ask the President.',
+  ACCOUNT_INACTIVE: 'This account has been deactivated. Ask the President.',
+  account_not_active: 'That account is not active.',
+  account_not_found: 'That account was not found. Refresh the page.',
+  stale_credential_gate: 'Your sign-in changed. Sign in again.',
+  self_admin_removal_denied: 'You cannot remove your own System Admin access.',
+  last_admin_required: 'There must always be at least one active System Admin.',
+  invalid_identity:
+    'Check the username: 3–32 letters, numbers, dot, dash or underscore, starting with a letter.',
+  meeting_start_in_past: 'That start time has already passed. Choose a later time.',
+  meeting_not_cancellable: 'This meeting can no longer be cancelled.',
+  invalid_meeting: 'Check the title, date, time and place.',
+  invalid_cancellation: 'Enter a cancellation reason between 3 and 500 characters.',
+  rsvp_not_allowed: 'You cannot answer this invitation now.',
+  invitation_not_allowed: 'This person cannot be invited to this meeting or task.',
+  invalid_invitation: 'Choose a member to invite.',
+  invalid_check_in: 'Could not check you in. Try again.',
+  invalid_manual_attendance: 'Choose the member and enter why their phone could not check in.',
+  invalid_finalization: 'This meeting cannot be finalized yet.',
+  roster_not_allowed: 'Only the organizer can see this roster.',
+  task_not_joinable: 'This task is not open for joining.',
+  task_not_active: 'This task is no longer active.',
+  task_not_found: 'That task was not found. Refresh the page.',
+  task_not_cancellable: 'This task can no longer be cancelled.',
+  already_participating: 'You have already joined this task.',
+  member_not_confirmed: 'Only confirmed participants can submit completion.',
+  completion_not_submitted: 'This person has not submitted completion yet.',
+  task_review_not_authorized: 'Only the task organizer can review completion.',
+  invalid_task: 'Check the title and the number of places.',
+  invalid_task_review: 'A return needs a reason of at least 3 characters.',
+  invalid_completion: 'The completion note is too long.',
+  invalid_donation: 'Check the donor name, date, method, amount and evidence.',
+  invalid_donation_decision: 'Check the received amount and the account.',
+  donation_not_found: 'That donation was not found. Refresh the page.',
+  invalid_expense:
+    'Enter a title, category, amount and a bill reference or the reason there is no bill.',
+  invalid_expense_decision: 'A rejection needs a reason of at least 3 characters.',
+  invalid_expense_payment: 'Check the account, amount, date and proof reference.',
+  expense_not_found: 'That expense was not found. Refresh the page.',
+  invalid_opening: 'Enter the counted amount and an evidence reference.',
+  opening_already_verified_or_self:
+    'This opening is already verified, or you submitted it yourself.',
+  verified_opening_required: 'This account needs a verified opening balance first.',
+  invalid_transfer: 'Choose two different accounts, a positive amount and a reference.',
+  invalid_observed_balance: 'Enter the balance you counted and a reference.',
+  variance_explanation_required:
+    'The counted balance differs from the books. Explain the difference.',
+  correction_overdraws_account: 'This correction would make the account balance negative.',
+  posting_already_corrected: 'This posting has already been corrected.',
+  invalid_account: 'Enter an account name and choose its kind.',
+  cash_slip_already_claimed: 'That cash slip number is already used. Use the next slip.',
+  independent_cash_counter_required: 'A different person must verify this cash count.',
+  invalid_cash_count: 'Check the amount and the slip number.',
+  invalid_donor_enrollment: 'Check the contributor details and try again.',
+  consent_required: 'Record how the contributor agreed before saving.',
+  donor_phone_duplicate_review: 'This WhatsApp number may already be enrolled. Check the roster.',
+  invalid_prayer_attestation: 'Tick that the prayer has taken place before marking it.',
+  salary_view_not_approved: 'Salary details appear after the Board approves showing them.',
+  invalid_salary_month: 'Choose a valid month.',
+  invalid_advance_payment: 'Check the account, date and proof reference.',
+  invalid_advance_settlement: 'Enter the amount and a bill, receipt or return slip reference.',
+  advance_not_found: 'That advance was not found. Refresh the page.',
+  invalid_content: 'Check the title and the text.',
+  donor_not_active: 'This contributor is not active or has asked not to be contacted.',
+  already_paid_for_period:
+    'This contributor has already paid for this month. No reminder is needed.',
+  invalid_whatsapp_send: 'Could not prepare the WhatsApp message. Refresh and try again.',
   OPERATION_CONFLICT:
     'That username is taken or this request is out of date. Try another username.',
   VALIDATION_FAILED:
@@ -73,6 +140,7 @@ export function userMessage(cause, fallback = 'That action could not be complete
   if (cause?.code === '42501' || /permission denied|not authorized/i.test(text))
     return MESSAGES.FORBIDDEN;
   if (MESSAGES[text]) return MESSAGES[text];
+  if (/^invalid_[a-z_]+$/.test(text)) return 'Check the details and try again.';
   // Bare machine codes and parser errors are not useful to the person reading them.
   if (!text || /^[A-Za-z0-9_]+$/.test(text) || /JSON/.test(text)) return fallback;
   return text;
