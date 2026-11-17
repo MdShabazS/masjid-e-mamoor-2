@@ -11,7 +11,7 @@
 ### Foundation
 
 - [x] Clean npm workspace, CI on GitHub, lint, formatting, typecheck, 193 automated tests and 20 rollback-only database test files
-- [x] 40 database migrations. Staging holds 39 (the 18 November volunteer WhatsApp migration is next) and only the System Admin; production is paused, holds no real data, and its migration history needs repair before use
+- [x] 40 database migrations. Staging holds all 40 and only the System Admin; production is paused, holds no real data, and its migration history needs repair before use
 - [x] Protected Vercel previews; nothing is live
 - [x] 8-role permission system, wrong-role denial matrix, username login, temporary password flow
 
@@ -79,7 +79,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] 14 problems found and fixed, including a new Home screen, plain messages instead of codes on 14 pages, usernames in task review, 10-digit WhatsApp numbers, a form reset bug and enrollment failing when a phone clock runs ahead
 - [x] Volunteer WhatsApp (owner decision 17 November): the donor's referrer, the Treasurer and the President get "Send monthly request / reminder on WhatsApp" buttons that open their own WhatsApp with the message typed; every hand-out is recorded. The WhatsApp Business API stays a future integration
 - [ ] Members-only announcements need the scheduler (or a small database change) before members see them; notifications show only the title
-- [ ] Apply migration `20261118120000_volunteer_whatsapp_send.sql` to staging
+- [x] 18 November: volunteer WhatsApp migration applied to staging (40 of 40); its test, the security catalog and account tests pass there and left no data
 
 ## Pending — before the phone ground test
 
