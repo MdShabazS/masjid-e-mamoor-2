@@ -42,3 +42,9 @@ New advisories had appeared since 30 October. The same 17 findings (3 high, 12 m
 **Evidence:** Expo doctor 20/20, clean debug native build under JDK 21, signed-in emulator journey (login, date and time pickers, meeting creation, invitation, session kept after restart).
 
 **Still open:** this is an engineering review, not a release owner's signed acceptance. Not yet repeated on Expo 58: signed release build, real device, payment QR upload through the file API, and hosted CI.
+
+## 18 November 2026: picomatch high advisory accepted for build tools
+
+`npm audit` began reporting GHSA-fc5q-39xc-vjpf (picomatch, regular-expression slowdown through repeated extglobs) as **high**. Every published picomatch up to 4.0.7 is affected and no fixed release exists; npm's only suggested fix is downgrading React Native, which is not acceptable. The paths are Expo CLI, Metro, Jest and their file-matching helpers, all used only when building the Android bundle. The website and the code that runs on phones do not include picomatch, and the patterns it matches come from our own build configuration, never from users.
+
+The release owner accepted it on 18 November 2026. `scripts/check_dependency_audit.py` lists the exact 21 high entries and their paths in `KNOWN_HIGH_VIA`; any other high advisory or path still fails CI. Remove the list when picomatch publishes a fix, then update the lockfile.
