@@ -78,7 +78,8 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] 17 November: the staging web app is public at `https://masjid-e-mamoor-2.vercel.app` (Vercel free plan, staging database, test data only). Pages, install files and the sign-in API answer without a Vercel login; a wrong sign-in reaches staging. No signed-in journey there yet
 
 - [x] 17 November: account management migration applied to staging (39 of 39). Staging test logins and the "STAGING TEST cash" account removed; all 19 database test files pass there
-- [ ] Create the real first System Admin on staging
+- [x] 17 November: first System Admin `sys.admin` created on staging with `backend/scripts/bootstrap_system_admin.py` (temporary password kept in a private local file, must be changed at first sign-in). Sign-in on the public site returned must-change-password. The check accidentally printed that test session's tokens; the session was deleted and its token is now rejected
+- [ ] Owner signs in as `sys.admin`, sets a password and creates the President
 - [ ] Set a test check-in location for attendance
 - [ ] One-page tester guide: add to home screen on iPhone and Android, accounts, what to try
 - [ ] Test on 3–4 real phones, including at least one iPhone
