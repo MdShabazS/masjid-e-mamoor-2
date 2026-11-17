@@ -14,8 +14,8 @@ history cannot be edited, and repeated requests are made safe by operation IDs.
 - `reports/`, `receipts/`, `qr/`, `jobs/`, `whatsapp/`, `backup/`, `ops/`: server services. Each is switched off by an environment flag until the owner approves it.
 - `scripts/`: operator and test scripts.
 
-State on 15 November 2026: staging has 38 of the 39 migrations (the 10 November
-account management migration is next). Production is paused and untouched. See
+State on 17 November 2026: staging has all 39 migrations and no data; all 19
+test files pass there. Production is paused and untouched. See
 `../PROJECT_STATUS.md`.
 
 For local start, reset and environment custody, see

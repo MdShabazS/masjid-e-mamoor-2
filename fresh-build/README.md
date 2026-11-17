@@ -65,11 +65,11 @@ migrations.
 
 ## Environments
 
-| Environment | Supabase project       | State                                                       |
-| ----------- | ---------------------- | ----------------------------------------------------------- |
-| Staging     | `mjcuxvcmebmhvqqzcshm` | Active. 38 migrations applied; account management not yet   |
-| Production  | `ifyluztozjetusholoaw` | Paused. Untouched; its migration history needs repair first |
-| Development | `necattvpncnsrfcrwpjn` | Paused                                                      |
+| Environment | Supabase project       | State                                                        |
+| ----------- | ---------------------- | ------------------------------------------------------------ |
+| Staging     | `mjcuxvcmebmhvqqzcshm` | Active. All 39 migrations; empty, ready for the System Admin |
+| Production  | `ifyluztozjetusholoaw` | Paused. Untouched; its migration history needs repair first  |
+| Development | `necattvpncnsrfcrwpjn` | Paused                                                       |
 
 Vercel previews are protected by Vercel login. Until the real launch, the
 project's public main address `https://masjid-e-mamoor-2.vercel.app` serves
