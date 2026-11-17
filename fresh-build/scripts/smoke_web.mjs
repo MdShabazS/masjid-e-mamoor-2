@@ -1,9 +1,12 @@
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 
 const app = resolve('apps/web');
+// npm may install Next.js in the web app or hoist it to the workspace root.
+const nextBin = createRequire(resolve(app, 'package.json')).resolve('next/dist/bin/next');
 for (const name of ['.env', '.env.local', '.env.production', '.env.production.local'])
   if (existsSync(resolve(app, name)))
     throw new Error('Smoke requires an unconfigured web checkout');
@@ -27,14 +30,7 @@ for (const key of Object.keys(env))
 const canaries = (process.env.BUNDLE_SECRET_CANARIES ?? '').split(',').filter(Boolean);
 const server = spawn(
   process.execPath,
-  [
-    resolve(app, 'node_modules/next/dist/bin/next'),
-    'start',
-    '--port',
-    String(port),
-    '--hostname',
-    '127.0.0.1',
-  ],
+  [nextBin, 'start', '--port', String(port), '--hostname', '127.0.0.1'],
   { cwd: app, env, stdio: 'ignore' },
 );
 const base = `http://127.0.0.1:${port}`;

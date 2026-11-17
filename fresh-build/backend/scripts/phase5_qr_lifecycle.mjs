@@ -5,6 +5,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { closeSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
@@ -15,6 +16,8 @@ import { removeStaleQrObject } from '../ops/qr-cleanup.js';
 
 const backend = fileURLToPath(new URL('../', import.meta.url));
 const web = fileURLToPath(new URL('../../apps/web/', import.meta.url));
+// npm may install Next.js in the web app or hoist it to the workspace root.
+const nextBin = createRequire(`${web}package.json`).resolve('next/dist/bin/next');
 const container = 'supabase_db_masjid-e-mamoor-2-fresh';
 const webPort = 18088;
 
@@ -253,22 +256,18 @@ from public.payment_qr_versions where account_id='${accountId}'`),
     const qrBucket = createHash('sha256').update(`qr:${actors.president.id}`).digest('hex');
     sql(`delete from app_private.identity_rate_buckets where bucket_hash='${qrBucket}'`);
     webLog = openSync('/private/tmp/masjid-phase5-qr-web.log', 'w');
-    webServer = spawn(
-      process.execPath,
-      ['node_modules/next/dist/bin/next', 'dev', '--webpack', '-p', String(webPort)],
-      {
-        cwd: web,
-        env: {
-          ...process.env,
-          NEXT_PUBLIC_SUPABASE_URL: status.API_URL,
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: status.ANON_KEY,
-          SUPABASE_URL: status.API_URL,
-          SUPABASE_PUBLISHABLE_KEY: status.ANON_KEY,
-          SUPABASE_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY,
-        },
-        stdio: ['ignore', webLog, webLog],
+    webServer = spawn(process.execPath, [nextBin, 'dev', '--webpack', '-p', String(webPort)], {
+      cwd: web,
+      env: {
+        ...process.env,
+        NEXT_PUBLIC_SUPABASE_URL: status.API_URL,
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: status.ANON_KEY,
+        SUPABASE_URL: status.API_URL,
+        SUPABASE_PUBLISHABLE_KEY: status.ANON_KEY,
+        SUPABASE_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY,
       },
-    );
+      stdio: ['ignore', webLog, webLog],
+    });
     const webUrl = `http://127.0.0.1:${webPort}/api/management/payment-qr`;
     let ready = false;
     for (let attempt = 0; attempt < 80; attempt += 1) {

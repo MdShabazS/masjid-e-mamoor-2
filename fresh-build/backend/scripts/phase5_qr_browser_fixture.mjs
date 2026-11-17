@@ -6,11 +6,14 @@ import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { closeSync, openSync, writeFileSync, unlinkSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 import { setTimeout as delay } from 'node:timers/promises';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 
 const backend = fileURLToPath(new URL('../', import.meta.url));
 const web = fileURLToPath(new URL('../../apps/web/', import.meta.url));
+// npm may install Next.js in the web app or hoist it to the workspace root.
+const nextBin = createRequire(`${web}package.json`).resolve('next/dist/bin/next');
 const fixturePath = '/private/tmp/masjid-phase5-qr-browser-fixture.json';
 const imagePath = '/private/tmp/masjid-phase5-qr-browser.png';
 const webPort = 18089;
@@ -98,23 +101,19 @@ try {
     { mode: 0o600 },
   );
   webLog = openSync('/private/tmp/masjid-phase5-qr-browser-web.log', 'w');
-  webServer = spawn(
-    process.execPath,
-    ['node_modules/next/dist/bin/next', 'dev', '--webpack', '-p', String(webPort)],
-    {
-      cwd: web,
-      env: {
-        ...process.env,
-        NEXT_PUBLIC_SUPABASE_URL: status.API_URL,
-        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: status.ANON_KEY,
-        SUPABASE_URL: status.API_URL,
-        SUPABASE_PUBLISHABLE_KEY: status.ANON_KEY,
-        SUPABASE_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY,
-        IDENTITY_INTERNAL_DOMAIN: 'accounts.masjid.invalid',
-      },
-      stdio: ['ignore', webLog, webLog],
+  webServer = spawn(process.execPath, [nextBin, 'dev', '--webpack', '-p', String(webPort)], {
+    cwd: web,
+    env: {
+      ...process.env,
+      NEXT_PUBLIC_SUPABASE_URL: status.API_URL,
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: status.ANON_KEY,
+      SUPABASE_URL: status.API_URL,
+      SUPABASE_PUBLISHABLE_KEY: status.ANON_KEY,
+      SUPABASE_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY,
+      IDENTITY_INTERNAL_DOMAIN: 'accounts.masjid.invalid',
     },
-  );
+    stdio: ['ignore', webLog, webLog],
+  });
   let ready = false;
   for (let attempt = 0; attempt < 100; attempt += 1) {
     if (webServer.exitCode !== null) throw new Error('web server exited');
