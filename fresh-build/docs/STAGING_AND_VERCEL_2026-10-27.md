@@ -63,3 +63,15 @@ Readback: 38 recorded migrations, none pending; public tables 48 → 61; one acc
 Security advisor: the only anonymous security-definer function is still `list_published_community_posts`. Signed-in security-definer notices rose from 80 to 100; the 20 new ones are the new role-guarded RPCs.
 
 Production (`ifyluztozjetusholoaw`) is paused and was not touched. It has the same connector-style history and will need the same history repair before any push.
+
+## 17 November: public staging site for the phone ground test
+
+Owner decision 15 November: testers use the installable web app on Android and iPhone, served from Vercel's free Hobby plan. Vercel previews stay behind Vercel login; the project's main address is public, so it now serves staging until the real launch.
+
+- Staging Supabase (`mjcuxvcmebmhvqqzcshm`) had paused again on the free plan and was resumed from the dashboard; status `ACTIVE_HEALTHY`.
+- The four public staging values (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`) were widened from Preview to **Production and Preview**. The sensitive `SUPABASE_SERVICE_ROLE_KEY` (staging key `vercel_preview_20261028`) lost its old `feat/fresh-build-readiness` branch limit and is now Production and Preview. No value was copied, typed or recorded.
+- `main` at `e4381e8` was redeployed to Production without build cache: `https://masjid-e-mamoor-2.vercel.app`.
+- Checked from outside without any Vercel login: `/`, `/login`, `/manifest.webmanifest`, `/sw.js`, `/offline.html` and the icons return 200; `/api/v1/me` returns `AUTH_REQUIRED`; a wrong sign-in to `/api/v1/session` returns `INVALID_CREDENTIALS` from staging, so the server key and database are wired.
+- Not yet done: the 10 November account management migration on staging, staging test-data cleanup, the first real System Admin, and a signed-in journey on the public site.
+
+Before the real launch, Production must be switched to the production Supabase project with its own new server key, and this staging key removed from Production.

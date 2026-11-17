@@ -75,7 +75,8 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 
 ## Pending — before the phone ground test
 
-- [ ] Publish the staging web app at Vercel's public main address (free plan) with staging Supabase settings. Needs the owner's Vercel approval
+- [x] 17 November: the staging web app is public at `https://masjid-e-mamoor-2.vercel.app` (Vercel free plan, staging database, test data only). Pages, install files and the sign-in API answer without a Vercel login; a wrong sign-in reaches staging. No signed-in journey there yet
+
 - [ ] Apply the 10 November account management migration to staging
 - [ ] Remove staging test accounts (`stgtest*`) and the "STAGING TEST cash" account, then create the real first System Admin
 - [ ] Set a test check-in location for attendance
