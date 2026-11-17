@@ -82,7 +82,7 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] 17 November: the owner signed in as `sys.admin` on the public site and set their own password (audited); the temporary password file was deleted
 - [ ] Create the President and the test accounts for the ground test
 - [ ] Set a test check-in location for attendance
-- [ ] One-page tester guide: add to home screen on iPhone and Android, accounts, what to try
+- [x] 17 November: tester guide written (`docs/ground-test-guide.html`, also shared as a private page): install on iPhone and Android, first sign-in, setup order, a checklist per role, and what is switched off. The web reports page is fully off until the Board approves report fields
 - [ ] Test on 3–4 real phones, including at least one iPhone
 - [ ] Later: native Android APK from `eas.json` as a future update
 
