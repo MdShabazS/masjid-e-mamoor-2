@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { getBrowserClient } from '../../lib/supabase.js';
+import { userMessage } from '../../../../packages/api-client/messages.js';
 
 export default function ProfilePage() {
   const [status, setStatus] = useState('checking');
@@ -52,7 +53,7 @@ export default function ProfilePage() {
         if (active) setStatus('ready');
       } catch (cause) {
         if (active) {
-          setError(cause.message || 'Profile unavailable.');
+          setError(userMessage(cause, 'Profile unavailable.'));
           setStatus('error');
         }
       }
@@ -128,7 +129,7 @@ export default function ProfilePage() {
       });
       setNotice('Showing the active QR for this account.');
     } catch (cause) {
-      setError(cause.message || 'Could not load the current QR.');
+      setError(userMessage(cause, 'Could not load the current QR.'));
     } finally {
       setBusy(false);
     }
@@ -164,7 +165,7 @@ export default function ProfilePage() {
         'New payment QR is active for future requests. Existing requests keep their original QR.',
       );
     } catch (cause) {
-      setError(cause.message || 'QR update failed.');
+      setError(userMessage(cause, 'QR update failed.'));
     } finally {
       setBusy(false);
     }
@@ -173,7 +174,7 @@ export default function ProfilePage() {
   const account = accounts.find((item) => item.account_id === selected);
   return (
     <main className="management">
-      <Link href="/contributors">← Management</Link>
+      <Link href="/home">← Home</Link>
       <h1>My profile</h1>
       {status === 'checking' && <p>Checking your account…</p>}
       {status === 'signed-out' && (

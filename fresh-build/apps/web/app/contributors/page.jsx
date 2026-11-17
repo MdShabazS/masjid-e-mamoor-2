@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { createManagementApi, formatPaiseINR } from '../../../../packages/api-client/index.js';
 import { getBrowserClient } from '../../lib/supabase.js';
-import { MemberSelect } from '../../lib/management.js';
+import { MemberSelect, indiaToday } from '../../lib/management.js';
+import { donorMessage, whatsappLink } from '../../../../packages/api-client/whatsapp-share.js';
 import { enrollConsentedDonor } from '../../../../packages/api-client/donor-enrollment.js';
+import { userMessage } from '../../../../packages/api-client/messages.js';
 
 const allowedToEnroll = new Set([
   'president',
@@ -87,10 +89,22 @@ function DonorStaffControls({ donor, busy, onCorrection, onOptOut }) {
   );
 }
 
+/** Volunteers type local numbers; the server stores international format. */
+function indianWhatsApp(input) {
+  const digits = input.replace(/[\s-]/g, '');
+  if (/^[6-9][0-9]{9}$/.test(digits)) return `+91${digits}`;
+  if (/^0[6-9][0-9]{9}$/.test(digits)) return `+91${digits.slice(1)}`;
+  if (/^91[6-9][0-9]{9}$/.test(digits)) return `+${digits}`;
+  return digits;
+}
+
 export default function ContributorsPage() {
   const [session, setSession] = useState('checking');
   const [role, setRole] = useState(null);
   const [donors, setDonors] = useState([]);
+  // Donors this person may message this month (referrer, Treasurer, President), and if paid.
+  const [messageable, setMessageable] = useState(new Map());
+  const period = `${indiaToday().slice(0, 7)}-01`;
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const operationIds = useRef(new Map());
@@ -100,6 +114,9 @@ export default function ContributorsPage() {
     const [list, currentRole] = await Promise.all([api.listMonthlyDonors(), api.getMyRole()]);
     setDonors(list ?? []);
     setRole(currentRole);
+    if (currentRole === 'system_admin') return;
+    const { data: rows } = await client.rpc('list_messageable_donors', { p_period: period });
+    setMessageable(new Map((rows ?? []).map((row) => [row.donor_id, row.paid_for_period])));
   }
 
   useEffect(() => {
@@ -130,12 +147,12 @@ export default function ContributorsPage() {
         })
         .catch((cause) => {
           if (active) {
-            setNotice(cause.message || 'Could not load contributors.');
+            setNotice(userMessage(cause, 'Could not load contributors.'));
             setSession('error');
           }
         });
     } catch (cause) {
-      setNotice(cause.message);
+      setNotice(userMessage(cause));
       setSession('unconfigured');
     }
     return () => {
@@ -143,20 +160,44 @@ export default function ContributorsPage() {
     };
   }, []);
 
+  async function sendWhatsApp(donor, kind) {
+    setNotice('');
+    try {
+      const { data, error } = await getBrowserClient().rpc('prepare_donor_whatsapp', {
+        p_donor_id: donor.donor_id,
+        p_kind: kind,
+        p_period: period,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      const text = donorMessage(kind, {
+        name: row.donor_name,
+        suggestedAmountPaise: row.suggested_amount_paise,
+        period,
+      });
+      // Opens the volunteer's own WhatsApp with the donor chosen and the message typed.
+      window.location.assign(whatsappLink(row.whatsapp, text));
+    } catch (cause) {
+      setNotice(userMessage(cause, 'Could not open WhatsApp.'));
+    }
+  }
+
   async function enroll(event) {
     event.preventDefault();
+    // React clears currentTarget after the first await; keep the form element.
+    const formElement = event.currentTarget;
     setBusy(true);
     setNotice('');
     try {
       const client = getBrowserClient();
-      const form = new FormData(event.currentTarget);
+      const form = new FormData(formElement);
       if (form.get('consent') !== 'yes')
         throw new Error('Record the contributor’s consent evidence before enrollment.');
       await enrollConsentedDonor({
         client,
         input: {
           name: String(form.get('name')),
-          whatsapp: String(form.get('whatsapp')),
+          whatsapp: indianWhatsApp(String(form.get('whatsapp'))),
           suggestedAmountINR: String(form.get('amount')),
           referrerId: String(form.get('referrer') || '') || null,
           consentMethod: String(form.get('consentMethod')),
@@ -164,11 +205,11 @@ export default function ContributorsPage() {
           evidenceReference: String(form.get('evidence')),
         },
       });
-      event.currentTarget.reset();
+      formElement.reset();
       await load(client);
       setNotice('Contributor enrolled with consent recorded.');
     } catch (cause) {
-      setNotice(cause.message || 'Could not enroll contributor.');
+      setNotice(userMessage(cause, 'Could not enroll contributor.'));
     } finally {
       setBusy(false);
     }
@@ -191,7 +232,7 @@ export default function ContributorsPage() {
       }
       return true;
     } catch (cause) {
-      setNotice(cause.message || 'Could not save contributor change.');
+      setNotice(userMessage(cause, 'Could not save contributor change.'));
       return false;
     } finally {
       setBusy(false);
@@ -231,7 +272,7 @@ export default function ContributorsPage() {
       setRole(null);
       setSession('signed-out');
     } catch (cause) {
-      setNotice(cause.message || 'Could not sign out.');
+      setNotice(userMessage(cause, 'Could not sign out.'));
     } finally {
       setBusy(false);
     }
@@ -239,7 +280,7 @@ export default function ContributorsPage() {
 
   return (
     <main className="management">
-      <Link href="/">← Masjid E Mamoor 2</Link>
+      <Link href="/home">← Home</Link>
       <h1>Monthly contributors</h1>
       <p>
         <Link href="/claims">Open payment claims →</Link> · <Link href="/finance">Finance</Link>
@@ -301,12 +342,14 @@ export default function ContributorsPage() {
                   <input name="name" required maxLength={200} />
                 </label>
                 <label className="field">
-                  WhatsApp number
+                  WhatsApp number (10-digit Indian mobile, or with country code)
                   <input
                     name="whatsapp"
                     type="tel"
-                    placeholder="+919876543210"
-                    pattern="\+[1-9][0-9]{7,14}"
+                    inputMode="tel"
+                    placeholder="98765 43210"
+                    pattern="[+0-9 \-]{10,18}"
+                    title="A 10-digit mobile number, or a number starting with + and the country code"
                     required
                   />
                 </label>
@@ -370,6 +413,23 @@ export default function ContributorsPage() {
                         <small>{donor.active ? 'Active' : 'Inactive'}</small>
                       </span>
                       <span>{formatPaiseINR(donor.suggested_amount_paise)}</span>
+                      {messageable.has(donor.donor_id) && (
+                        <span className="button-row">
+                          <button
+                            type="button"
+                            onClick={() => sendWhatsApp(donor, 'monthly_request')}
+                          >
+                            Send monthly request on WhatsApp
+                          </button>
+                          {messageable.get(donor.donor_id) ? (
+                            <small>Paid for this month</small>
+                          ) : (
+                            <button type="button" onClick={() => sendWhatsApp(donor, 'reminder')}>
+                              Send reminder on WhatsApp
+                            </button>
+                          )}
+                        </span>
+                      )}
                       {donor.active && donorStaffRoles.has(role) && (
                         <DonorStaffControls
                           donor={donor}

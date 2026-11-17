@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { parseINRToPaise } from '../../../../packages/api-client/index.js';
 import { getBrowserClient } from '../../lib/supabase.js';
+import { indiaToday } from '../../lib/management.js';
+import { userMessage } from '../../../../packages/api-client/messages.js';
 
 const donationActors = new Set([
   'president',
@@ -59,7 +61,7 @@ function VerifyCashCountForm({ count, accounts, busy, onVerify }) {
         setCounted(false);
       }
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   return (
@@ -150,11 +152,11 @@ export default function FinancePage() {
   const [busy, setBusy] = useState(false);
   const [donor, setDonor] = useState(''),
     [donationAmount, setDonationAmount] = useState('');
-  const [donationDate, setDonationDate] = useState(''),
+  const [donationDate, setDonationDate] = useState(indiaToday),
     [donationEvidence, setDonationEvidence] = useState('');
   const [donationMethod, setDonationMethod] = useState('cash');
   const [directDonor, setDirectDonor] = useState(''),
-    [directDate, setDirectDate] = useState('');
+    [directDate, setDirectDate] = useState(indiaToday);
   const [directAmount, setDirectAmount] = useState(''),
     [directEvidence, setDirectEvidence] = useState('');
   const [directAccount, setDirectAccount] = useState(''),
@@ -192,7 +194,10 @@ export default function FinancePage() {
           await load();
           if (active) setSession('ready');
         } catch (cause) {
-          if (active) setError(cause.message);
+          if (active) {
+            setError(userMessage(cause));
+            setSession('error');
+          }
         }
       })
       .catch(() => {
@@ -221,7 +226,7 @@ export default function FinancePage() {
       }
       return true;
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
       return false;
     } finally {
       setBusy(false);
@@ -237,7 +242,7 @@ export default function FinancePage() {
     try {
       amountPaise = parseINRToPaise(directAmount);
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
       return;
     }
     const args = {
@@ -260,7 +265,7 @@ export default function FinancePage() {
       operationIds.current.delete(key);
       setNotice('Cash posted once to the selected account. The receipt is valid after posting.');
       setDirectDonor('');
-      setDirectDate('');
+      setDirectDate(indiaToday());
       setDirectAmount('');
       setDirectEvidence('');
       setDirectAccount('');
@@ -271,7 +276,7 @@ export default function FinancePage() {
         setError('Cash posted, but balances could not refresh. Reload the page.');
       }
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     } finally {
       setBusy(false);
     }
@@ -294,7 +299,7 @@ export default function FinancePage() {
       }
       return true;
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
       return false;
     } finally {
       setBusy(false);
@@ -318,7 +323,7 @@ export default function FinancePage() {
       }
       return true;
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
       return false;
     } finally {
       setBusy(false);
@@ -339,11 +344,11 @@ export default function FinancePage() {
       if (await submit('submit_one_time_donation', args, `donation:${JSON.stringify(args)}`)) {
         setDonor('');
         setDonationAmount('');
-        setDonationDate('');
+        setDonationDate(indiaToday());
         setDonationEvidence('');
       }
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   async function saveExpense(event) {
@@ -366,12 +371,12 @@ export default function FinancePage() {
         setMissingReason('');
       }
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
     }
   }
   return (
     <main className="management">
-      <Link href="/">← Masjid E Mamoor 2</Link>
+      <Link href="/home">← Home</Link>
       <h1>Finance submissions</h1>
       <p className="muted">
         A Treasurer must verify received donations. Expense approval and payment are separate

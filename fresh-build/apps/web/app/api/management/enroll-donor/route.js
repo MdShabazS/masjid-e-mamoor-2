@@ -73,6 +73,11 @@ export async function POST(request) {
     const { data: role, error: roleError } = await actor.rpc('current_app_role');
     if (roleError || !allowed.has(role)) return output(403, 'FORBIDDEN');
     const amount = parseINRToPaise(body.suggestedAmountINR);
+    // Phone clocks drift; a consent time slightly in the future would be rejected, so clamp it.
+    const claimedAt = new Date(body.consentRecordedAt);
+    const consentRecordedAt = Number.isNaN(claimedAt.getTime())
+      ? body.consentRecordedAt
+      : new Date(Math.min(claimedAt.getTime(), Date.now())).toISOString();
     const server = createClient(url, secretKey, { auth: { persistSession: false } });
     const { data, error } = await server.rpc('enroll_versioned_monthly_donor', {
       p_name: body.name,
@@ -81,7 +86,7 @@ export async function POST(request) {
       p_referrer_id: body.referrerId ?? null,
       p_entered_by: userData.user.id,
       p_consent_method: body.consentMethod,
-      p_consent_recorded_at: body.consentRecordedAt,
+      p_consent_recorded_at: consentRecordedAt,
       p_consent_version: consentVersion,
       p_evidence_reference: body.evidenceReference,
     });

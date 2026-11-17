@@ -114,7 +114,9 @@ export default function SalaryPage() {
                         Amount paid (₹)
                         <input
                           inputMode="decimal"
-                          value={entry.amount ?? ''}
+                          value={
+                            entry.amount ?? (Number(row.monthly_amount_paise) / 100).toFixed(2)
+                          }
                           onChange={(e) => update(row.staff_id, { amount: e.target.value })}
                         />
                       </label>
@@ -123,7 +125,7 @@ export default function SalaryPage() {
                         <input
                           type="date"
                           max={indiaToday()}
-                          value={entry.date ?? ''}
+                          value={entry.date ?? indiaToday()}
                           onChange={(e) => update(row.staff_id, { date: e.target.value })}
                         />
                       </label>
@@ -142,11 +144,15 @@ export default function SalaryPage() {
                           attempt(() => {
                             if (
                               !entry.account ||
-                              !entry.date ||
+                              !(entry.date ?? indiaToday()) ||
                               (entry.proof?.trim().length ?? 0) < 3
                             )
                               throw new Error('Choose the account, date and proof reference.');
-                            const amount = parseINRToPaise(entry.amount?.trim() ?? '');
+                            const amount = parseINRToPaise(
+                              (
+                                entry.amount ?? (Number(row.monthly_amount_paise) / 100).toFixed(2)
+                              ).trim(),
+                            );
                             if (!window.confirm(`Post ${formatPaiseINR(amount)} as salary?`))
                               return;
                             run(
@@ -156,7 +162,7 @@ export default function SalaryPage() {
                                 p_month: `${month}-01`,
                                 p_account_id: entry.account,
                                 p_amount_paise: amount,
-                                p_date: entry.date,
+                                p_date: entry.date ?? indiaToday(),
                                 p_proof: entry.proof.trim(),
                               },
                               'Salary payment posted.',

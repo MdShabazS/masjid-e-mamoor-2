@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { getBrowserClient } from '../../lib/supabase.js';
+import { userMessage } from '../../../../packages/api-client/messages.js';
 
 const editors = new Set(['president', 'vice_president', 'secretary', 'data_entry']);
 export default function ContentPage() {
@@ -44,7 +45,7 @@ export default function ContentPage() {
           if (active) setSession('ready');
         } catch (cause) {
           if (active) {
-            setError(cause.message);
+            setError(userMessage(cause));
             setSession('ready');
           }
         }
@@ -74,7 +75,7 @@ export default function ContentPage() {
       }
       return true;
     } catch (cause) {
-      setError(cause.message);
+      setError(userMessage(cause));
       return false;
     } finally {
       setBusy(false);
@@ -108,7 +109,8 @@ export default function ContentPage() {
     }
   }
   async function publish(post) {
-    const start = new Date(publishAt),
+    // An empty publish time means publish now.
+    const start = publishAt ? new Date(publishAt) : new Date(),
       end = expireAt ? new Date(expireAt) : null;
     if (!Number.isFinite(start.getTime()) || (end && !Number.isFinite(end.getTime()))) {
       setError('Enter a valid publication date and optional expiry.');
@@ -122,7 +124,9 @@ export default function ContentPage() {
         p_expire_at: end?.toISOString() ?? null,
         p_expected_revision: post.revision,
       },
-      'Publication scheduled. It becomes visible at its publication time.',
+      publishAt
+        ? 'Publication scheduled. It becomes visible at its publication time.'
+        : 'Published.',
     );
   }
   return (
@@ -232,7 +236,7 @@ export default function ContentPage() {
                   {post.status === 'draft' && (
                     <>
                       <label className="field">
-                        Publish time (your device time)
+                        Publish time (leave empty to publish now)
                         <input
                           type="datetime-local"
                           value={publishAt}
@@ -247,8 +251,8 @@ export default function ContentPage() {
                           onChange={(e) => setExpireAt(e.target.value)}
                         />
                       </label>
-                      <button disabled={busy || !publishAt} onClick={() => publish(post)}>
-                        Publish or schedule
+                      <button disabled={busy} onClick={() => publish(post)}>
+                        {publishAt ? 'Schedule' : 'Publish now'}
                       </button>
                     </>
                   )}

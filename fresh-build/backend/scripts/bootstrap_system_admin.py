@@ -4,7 +4,9 @@
 The app never lets anyone create the first administrator from a screen. Run this
 once per environment from `backend/` after `supabase link`:
 
-    python3 scripts/bootstrap_system_admin.py <username> <password-file>
+    python3 scripts/bootstrap_system_admin.py <username> <password-file> [--local]
+
+Add --local to use the local development stack (`supabase start`) instead.
 
 It refuses if any System Admin already exists. The temporary password is
 written only to <password-file> (mode 600) and never printed. The person must
@@ -33,11 +35,13 @@ def sql_text(value: str) -> str:
 
 
 def main() -> int:
-    if len(sys.argv) != 3:
+    args = [a for a in sys.argv[1:] if a != "--local"]
+    target = "--local" if "--local" in sys.argv[1:] else "--linked"
+    if len(args) != 2:
         print(__doc__.strip())
         return 2
-    username = sys.argv[1].strip().lower()
-    out_path = os.path.abspath(sys.argv[2])
+    username = args[0].strip().lower()
+    out_path = os.path.abspath(args[1])
     if not USERNAME.match(username):
         print("Username: 3-32 letters, numbers, dot, dash or underscore, starting with a letter.")
         return 2
@@ -48,9 +52,9 @@ def main() -> int:
     password = temporary_password()
     user_id = str(uuid.uuid4())
     email = f"{username}@{INTERNAL_DOMAIN}"
+    # One statement, so it is all-or-nothing on both the linked and the local query paths.
     sql = f"""
-begin;
-do $$ begin
+do $bootstrap$ begin
   if exists (select 1 from public.app_users where role = 'system_admin') then
     raise exception 'system_admin_already_exists';
   end if;
@@ -58,29 +62,27 @@ do $$ begin
      or exists (select 1 from auth.users where email = {sql_text(email)}) then
     raise exception 'username_taken';
   end if;
-end $$;
-insert into auth.users (
-  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
-  confirmation_token, recovery_token, email_change_token_new, email_change,
-  email_change_token_current, phone_change, phone_change_token, reauthentication_token)
-values (
-  {sql_text(user_id)}, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-  {sql_text(email)}, extensions.crypt({sql_text(password)}, extensions.gen_salt('bf')), now(),
-  '{{"provider":"email","providers":["email"]}}', '{{}}', now(), now(),
-  '', '', '', '', '', '', '', '');
-insert into auth.identities (id, provider_id, user_id, identity_data, provider, created_at, updated_at)
-values (
-  gen_random_uuid(), {sql_text(user_id)}, {sql_text(user_id)},
-  jsonb_build_object('sub', {sql_text(user_id)}, 'email', {sql_text(email)}, 'email_verified', true),
-  'email', now(), now());
-insert into public.app_users (id, role) values ({sql_text(user_id)}, 'system_admin');
-insert into app_private.username_aliases (user_id, username, must_change_password)
-values ({sql_text(user_id)}, {sql_text(username)}, true);
-insert into app_private.identity_audit (actor_id, target_id, event, new_role)
-values ({sql_text(user_id)}, {sql_text(user_id)}, 'provisioned', 'system_admin');
-commit;
-select count(*) as system_admins from public.app_users where role = 'system_admin';
+  insert into auth.users (
+    id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+    confirmation_token, recovery_token, email_change_token_new, email_change,
+    email_change_token_current, phone_change, phone_change_token, reauthentication_token)
+  values (
+    {sql_text(user_id)}, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+    {sql_text(email)}, extensions.crypt({sql_text(password)}, extensions.gen_salt('bf')), now(),
+    '{{"provider":"email","providers":["email"]}}', '{{}}', now(), now(),
+    '', '', '', '', '', '', '', '');
+  insert into auth.identities (id, provider_id, user_id, identity_data, provider, created_at, updated_at)
+  values (
+    gen_random_uuid(), {sql_text(user_id)}, {sql_text(user_id)},
+    jsonb_build_object('sub', {sql_text(user_id)}, 'email', {sql_text(email)}, 'email_verified', true),
+    'email', now(), now());
+  insert into public.app_users (id, role) values ({sql_text(user_id)}, 'system_admin');
+  insert into app_private.username_aliases (user_id, username, must_change_password)
+  values ({sql_text(user_id)}, {sql_text(username)}, true);
+  insert into app_private.identity_audit (actor_id, target_id, event, new_role)
+  values ({sql_text(user_id)}, {sql_text(user_id)}, 'provisioned', 'system_admin');
+end $bootstrap$;
 """
     fd, sql_path = tempfile.mkstemp(suffix=".sql")
     try:
@@ -88,7 +90,7 @@ select count(*) as system_admins from public.app_users where role = 'system_admi
             handle.write(sql)
         os.chmod(sql_path, 0o600)
         result = subprocess.run(
-            ["supabase", "db", "query", "--linked", "-f", sql_path],
+            ["supabase", "db", "query", target, "-f", sql_path],
             capture_output=True,
             text=True,
             check=False,
@@ -97,12 +99,22 @@ select count(*) as system_admins from public.app_users where role = 'system_admi
         os.remove(sql_path)
 
     output = result.stdout + result.stderr
+    if result.returncode == 0:
+        check = subprocess.run(
+            ["supabase", "db", "query", target,
+             f"select count(*) as system_admins from public.app_users where role = 'system_admin' and id = {sql_text(user_id)}"],
+            capture_output=True, text=True, check=False,
+        )
+        output += check.stdout + check.stderr
     if result.returncode != 0 or '"system_admins": 1' not in output:
         for code in ("system_admin_already_exists", "username_taken"):
             if code in output:
                 print(f"Not created: {code}")
                 return 1
+        reason = next((line.strip() for line in output.splitlines() if "ERROR" in line or '"message"' in line), "")
         print("Not created. The database rejected the request; nothing was saved.")
+        if reason:
+            print(reason.replace(password, "<hidden>")[:400])
         return 1
 
     old_umask = os.umask(0o077)

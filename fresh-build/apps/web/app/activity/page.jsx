@@ -41,7 +41,7 @@ export default function ActivityPage() {
 
   return (
     <main className="management">
-      <Link href="/contributors">← Management</Link>
+      <Link href="/home">← Home</Link>
       <h1>Activity points</h1>
       <p className="muted">
         A count of verified work, attended meetings and referred monthly support. It is not a

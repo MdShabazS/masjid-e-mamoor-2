@@ -42,7 +42,7 @@ export default function PrayersPage() {
 
   return (
     <main className="management">
-      <Link href="/contributors">← Management</Link>
+      <Link href="/home">← Home</Link>
       <h1>Hafiz prayer register</h1>
       {page.session === 'checking' && <p>Checking your account…</p>}
       {page.session === 'signed-out' && (

@@ -10,8 +10,8 @@
 
 ### Foundation
 
-- [x] Clean npm workspace, CI on GitHub, lint, formatting, typecheck, 188 automated tests and 19 rollback-only database test files
-- [x] 39 database migrations. Staging holds all 39 and no data yet; production is paused, holds no real data, and its migration history needs repair before use
+- [x] Clean npm workspace, CI on GitHub, lint, formatting, typecheck, 193 automated tests and 20 rollback-only database test files
+- [x] 40 database migrations. Staging holds 39 (the 18 November volunteer WhatsApp migration is next) and only the System Admin; production is paused, holds no real data, and its migration history needs repair before use
 - [x] Protected Vercel previews; nothing is live
 - [x] 8-role permission system, wrong-role denial matrix, username login, temporary password flow
 
@@ -72,6 +72,14 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] Documentation brought up to date: setup after cloning, environments, current counts. Unused local files and old backups removed; everything else is in Git
 - [x] A fresh clone of the repository installed, tested, linted, type-checked and built for web and Android
 - [x] Installable web app (owner decision 15 November: testers use the web app on Android and iPhone; the native app follows as a later update). Manifest, placeholder icon (dome and crescent until the masjid logo arrives) and a "No connection" page. Checked in a browser: the app is installable, and with the server stopped a screen showed the offline page. The phone stores only that page, never records
+
+### Phone end-to-end test, 17–18 November 2026
+
+- [x] All eight roles on four Android emulators against a local copy: accounts, money, advances, salary, GPS check-in, organizer and fallback finalization, tasks with waiting list, prayers, announcements, offline page, large text. Record: `docs/PHONE_E2E_2026-11-17.md`
+- [x] 14 problems found and fixed, including a new Home screen, plain messages instead of codes on 14 pages, usernames in task review, 10-digit WhatsApp numbers, a form reset bug and enrollment failing when a phone clock runs ahead
+- [x] Volunteer WhatsApp (owner decision 17 November): the donor's referrer, the Treasurer and the President get "Send monthly request / reminder on WhatsApp" buttons that open their own WhatsApp with the message typed; every hand-out is recorded. The WhatsApp Business API stays a future integration
+- [ ] Members-only announcements need the scheduler (or a small database change) before members see them; notifications show only the title
+- [ ] Apply migration `20261118120000_volunteer_whatsapp_send.sql` to staging
 
 ## Pending — before the phone ground test
 

@@ -71,7 +71,7 @@ export default function AdvancesPage() {
     const entry = form(row.advance_id);
     attempt(() => {
       if ((entry.reference?.trim().length ?? 0) < 3)
-        throw new Error('Enter the bill or receipt reference.');
+        throw new Error('Enter a bill, receipt or return slip reference.');
       if (kind === 'return' && !entry.returnAccount)
         throw new Error('Choose the account the money went into.');
       run(
@@ -230,7 +230,7 @@ export default function AdvancesPage() {
                       <input
                         type="date"
                         max={indiaToday()}
-                        value={entry.date ?? ''}
+                        value={entry.date ?? indiaToday()}
                         onChange={(e) => update(row.advance_id, { date: e.target.value })}
                       />
                     </label>
@@ -247,7 +247,7 @@ export default function AdvancesPage() {
                       disabled={
                         busy ||
                         !entry.account ||
-                        !entry.date ||
+                        !(entry.date ?? indiaToday()) ||
                         (entry.proof?.trim().length ?? 0) < 3
                       }
                       onClick={() => {
@@ -257,7 +257,7 @@ export default function AdvancesPage() {
                           {
                             p_id: row.advance_id,
                             p_account_id: entry.account,
-                            p_date: entry.date,
+                            p_date: entry.date ?? indiaToday(),
                             p_proof: entry.proof.trim(),
                           },
                           'Advance paid. It stays outstanding until settled.',
@@ -279,7 +279,7 @@ export default function AdvancesPage() {
                       />
                     </label>
                     <label className="field">
-                      Bill or receipt reference
+                      Bill, receipt or return slip reference
                       <input
                         maxLength={240}
                         value={entry.reference ?? ''}

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { createManagementApi } from '../../../../packages/api-client/index.js';
 import { getBrowserClient } from '../../lib/supabase.js';
+import { userMessage } from '../../../../packages/api-client/messages.js';
 
 const submitRoles = new Set([
   'president',
@@ -65,12 +66,12 @@ export default function ClaimsPage() {
         })
         .catch((cause) => {
           if (active) {
-            setNotice(cause.message);
+            setNotice(userMessage(cause));
             setState('error');
           }
         });
     } catch (cause) {
-      setNotice(cause.message);
+      setNotice(userMessage(cause));
       setState('error');
     }
     return () => {
@@ -80,10 +81,12 @@ export default function ClaimsPage() {
 
   async function submit(event) {
     event.preventDefault();
+    // React clears currentTarget after the first await; keep the form element.
+    const formElement = event.currentTarget;
     setBusy(true);
     setNotice('');
     try {
-      const form = new FormData(event.currentTarget);
+      const form = new FormData(formElement);
       const periodDate = String(form.get('period'));
       if (!/^\d{4}-\d{2}-01$/.test(periodDate))
         throw new Error('Choose the first day of the month.');
@@ -92,11 +95,11 @@ export default function ClaimsPage() {
         periodDate,
         transactionId: String(form.get('transaction')).trim(),
       });
-      event.currentTarget.reset();
+      formElement.reset();
       await refresh(getBrowserClient(), role);
       setNotice('Reference submitted for Treasurer review. No money has been posted yet.');
     } catch (cause) {
-      setNotice(cause.message || 'Could not submit claim.');
+      setNotice(userMessage(cause, 'Could not submit claim.'));
     } finally {
       setBusy(false);
     }
@@ -127,7 +130,7 @@ export default function ClaimsPage() {
       await refresh(getBrowserClient(), role);
       setNotice(`Verified and posted. Receipt code: ${code}`);
     } catch (cause) {
-      setNotice(cause.message || 'Could not verify claim.');
+      setNotice(userMessage(cause, 'Could not verify claim.'));
     } finally {
       setBusy(false);
     }
@@ -155,7 +158,7 @@ export default function ClaimsPage() {
         setNotice('Claim rejected. Reload the review list before taking another action.');
       }
     } catch (cause) {
-      setNotice(cause.message || 'Could not reject claim.');
+      setNotice(userMessage(cause, 'Could not reject claim.'));
     } finally {
       setBusy(false);
     }
@@ -175,7 +178,7 @@ export default function ClaimsPage() {
       });
       setMoreRejected(page.length === 50);
     } catch (cause) {
-      setNotice(cause.message || 'Could not load older rejected claims.');
+      setNotice(userMessage(cause, 'Could not load older rejected claims.'));
     } finally {
       setBusy(false);
     }
@@ -202,7 +205,7 @@ export default function ClaimsPage() {
         setNotice('Replacement submitted. Reload the claim lists before another action.');
       }
     } catch (cause) {
-      setNotice(cause.message || 'Could not resubmit rejected claim.');
+      setNotice(userMessage(cause, 'Could not resubmit rejected claim.'));
     } finally {
       setBusy(false);
     }
