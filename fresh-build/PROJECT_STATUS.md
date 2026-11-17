@@ -11,7 +11,7 @@
 ### Foundation
 
 - [x] Clean npm workspace, CI on GitHub, lint, formatting, typecheck, 188 automated tests and 19 rollback-only database test files
-- [x] 39 database migrations. Staging holds 38 of them with test data only; production is paused, holds no real data, and its migration history needs repair before use
+- [x] 39 database migrations. Staging holds all 39 and no data yet; production is paused, holds no real data, and its migration history needs repair before use
 - [x] Protected Vercel previews; nothing is live
 - [x] 8-role permission system, wrong-role denial matrix, username login, temporary password flow
 
@@ -75,9 +75,10 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 
 ## Pending — before the phone ground test
 
-- [ ] Publish the staging web app at Vercel's public main address (free plan) with staging Supabase settings. Needs the owner's Vercel approval
-- [ ] Apply the 10 November account management migration to staging
-- [ ] Remove staging test accounts (`stgtest*`) and the "STAGING TEST cash" account, then create the real first System Admin
+- [x] 17 November: the staging web app is public at `https://masjid-e-mamoor-2.vercel.app` (Vercel free plan, staging database, test data only). Pages, install files and the sign-in API answer without a Vercel login; a wrong sign-in reaches staging. No signed-in journey there yet
+
+- [x] 17 November: account management migration applied to staging (39 of 39). Staging test logins and the "STAGING TEST cash" account removed; all 19 database test files pass there
+- [ ] Create the real first System Admin on staging
 - [ ] Set a test check-in location for attendance
 - [ ] One-page tester guide: add to home screen on iPhone and Android, accounts, what to try
 - [ ] Test on 3–4 real phones, including at least one iPhone

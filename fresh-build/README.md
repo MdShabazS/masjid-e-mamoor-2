@@ -65,14 +65,17 @@ migrations.
 
 ## Environments
 
-| Environment | Supabase project       | State                                                       |
-| ----------- | ---------------------- | ----------------------------------------------------------- |
-| Staging     | `mjcuxvcmebmhvqqzcshm` | Active. 38 migrations applied; account management not yet   |
-| Production  | `ifyluztozjetusholoaw` | Paused. Untouched; its migration history needs repair first |
-| Development | `necattvpncnsrfcrwpjn` | Paused                                                      |
+| Environment | Supabase project       | State                                                        |
+| ----------- | ---------------------- | ------------------------------------------------------------ |
+| Staging     | `mjcuxvcmebmhvqqzcshm` | Active. All 39 migrations; empty, ready for the System Admin |
+| Production  | `ifyluztozjetusholoaw` | Paused. Untouched; its migration history needs repair first  |
+| Development | `necattvpncnsrfcrwpjn` | Paused                                                       |
 
-The web app deploys to Vercel previews only. They are protected by Vercel login,
-so phones cannot reach them yet. Details: `docs/STAGING_AND_VERCEL_2026-10-27.md`.
+Vercel previews are protected by Vercel login. Until the real launch, the
+project's public main address `https://masjid-e-mamoor-2.vercel.app` serves
+`main` against the **staging** database (test data only), so phones can install
+and test it. At launch, switch its settings to the production project. Details:
+`docs/STAGING_AND_VERCEL_2026-10-27.md`.
 
 Before any staging or production migration, take a verified database and object
 backup, and run `supabase db push --dry-run` first. Real-money launch stays
