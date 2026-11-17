@@ -1,0 +1,263 @@
+<title>Mamoor 2 Phone Test</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: one narrow reading column for phones; role checklists as tick lists that remember ticks on this phone only */
+:root {
+  --bg: #f7f6f0;
+  --surface: #ffffff;
+  --ink: #182e2a;
+  --muted: #5b6b66;
+  --line: #dbe2da;
+  --green: #145b49;
+  --green-soft: #e4f1ea;
+  --amber: #8a5a12;
+  --amber-soft: #fbf0dc;
+  --display: "Literata", Georgia, serif;
+  --body: "Source Sans 3", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111a18; --surface: #18231f; --ink: #e5ece8; --muted: #a3b3ad; --line: #2c3a35;
+    --green: #7fcdb1; --green-soft: #1d3a31; --amber: #e8b866; --amber-soft: #3a2e17; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111a18; --surface: #18231f; --ink: #e5ece8; --muted: #a3b3ad; --line: #2c3a35;
+  --green: #7fcdb1; --green-soft: #1d3a31; --amber: #e8b866; --amber-soft: #3a2e17; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 400 17px/1.55 var(--body); }
+.wrap {
+  max-width: 720px; margin: 0 auto; display: grid; gap: 40px;
+  padding-block: 32px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header { display: grid; gap: 10px; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green); }
+h1 { font: 600 clamp(30px, 7vw, 42px)/1.15 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 600 24px/1.25 var(--display); margin: 0; text-wrap: balance; }
+h3 { font-size: 18px; margin: 0; }
+p { margin: 0; }
+.lede { color: var(--muted); font-size: 18px; }
+section { display: grid; gap: 14px; min-width: 0; }
+.address { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.address code { font: 600 17px/1.3 ui-monospace, "SF Mono", Menlo, monospace; color: var(--green); word-break: break-all; flex: 1 1 220px; }
+button { font: inherit; font-weight: 700; color: var(--green); background: var(--green-soft); border: 1px solid var(--green); border-radius: 10px; padding: 8px 14px; cursor: pointer; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.warn { background: var(--amber-soft); color: var(--ink); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; }
+.warn strong { color: var(--amber); }
+ol, ul { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.tag { font-size: 13px; font-weight: 700; color: var(--green); }
+.roles { display: flex; flex-wrap: wrap; gap: 8px; }
+.roles a { text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-weight: 600; }
+.checks { list-style: none; padding: 0; display: grid; gap: 2px; }
+.checks li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 0; border-top: 1px solid var(--line); }
+.checks li:first-child { border-top: 0; }
+.checks input { width: 20px; height: 20px; margin: 3px 0 0; accent-color: var(--green); }
+.checks label { cursor: pointer; }
+.where { color: var(--muted); font-size: 15px; }
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 16px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 700; }
+tr:last-child td { border-bottom: 0; }
+.muted { color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Masjid E Mamoor 2 · test version</p>
+    <h1>Phone test guide</h1>
+    <p class="lede">How to install the app on your phone, sign in, and what to try for your role. Everything here is test data. No real money moves.</p>
+  </header>
+
+  <section aria-labelledby="open">
+    <h2 id="open">The app's address</h2>
+    <div class="address">
+      <code id="site">https://masjid-e-mamoor-2.vercel.app</code>
+      <button type="button" id="copy">Copy</button>
+    </div>
+    <div class="warn">
+      <p><strong>Test only.</strong> Use made-up amounts and names. Never enter real bank details, real donor phone numbers or your real passwords from other apps.</p>
+      <p>Passwords are shared in person or by phone call, never in a WhatsApp group.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="install">
+    <h2 id="install">1. Add it to your home screen</h2>
+    <div class="pair">
+      <div class="box">
+        <p class="tag">iPhone</p>
+        <ol>
+          <li>Open the address in <strong>Safari</strong> (or Chrome).</li>
+          <li>Tap the <strong>Share</strong> button (square with an arrow).</li>
+          <li>Scroll down and tap <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+          <li>Open <strong>Mamoor 2</strong> from your home screen.</li>
+        </ol>
+      </div>
+      <div class="box">
+        <p class="tag">Android</p>
+        <ol>
+          <li>Open the address in <strong>Chrome</strong>.</li>
+          <li>Tap the <strong>⋮</strong> menu at the top right.</li>
+          <li>Tap <strong>Add to Home screen</strong> or <strong>Install app</strong>.</li>
+          <li>Open <strong>Mamoor 2</strong> from your home screen.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="signin">
+    <h2 id="signin">2. Sign in for the first time</h2>
+    <ol>
+      <li>Tap <strong>Management sign in</strong>.</li>
+      <li>Enter the username and temporary password you were given (four groups of four letters and numbers, like <code>ABCD-2345-EFGH-6789</code>).</li>
+      <li>The app asks you to choose your own password: <strong>at least 12 characters</strong>. Write it somewhere safe.</li>
+      <li>You land on the management page. Its links take you to Finance, Tasks, Meetings and the rest. You only see what your role allows.</li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="setup">
+    <h2 id="setup">3. Setup before testing (organizer)</h2>
+    <p class="muted">Do these once, in this order, before the testers start.</p>
+    <ol>
+      <li><strong>System Admin</strong> (sys.admin) → People and roles → add the <strong>President</strong>. Give the shown password to them privately.</li>
+      <li><strong>System Admin</strong> → Meetings → <em>Masjid location for check-in</em>: enter the latitude and longitude of the place where you will test (in Google Maps, long-press the spot to see them). For this test it is the test place, not the real masjid.</li>
+      <li><strong>President</strong> → People and roles → add the <strong>Treasurer</strong>, <strong>Vice President</strong> and <strong>Member</strong>.</li>
+      <li><strong>President</strong> → Finance → Accounts → <em>Create account</em>: a Cash account, for example "Test cash box".</li>
+      <li><strong>Treasurer</strong> → Finance → Accounts → <em>Submit opening balance</em>: ₹10,000.</li>
+      <li><strong>President</strong> → Finance → Accounts → <em>Verify pending openings</em>. The cash box now shows ₹10,000.</li>
+      <li><strong>Vice President</strong> → Meetings → schedule a meeting <strong>for today</strong> at the test place and invite the Member and the Treasurer.</li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="roles">
+    <h2 id="roles">4. What to try, by role</h2>
+    <p class="muted">Tick each step as you go. Ticks are saved on your phone only.</p>
+    <nav class="roles" aria-label="Roles">
+      <a href="#member">Member</a>
+      <a href="#vp">Vice President</a>
+      <a href="#president">President</a>
+      <a href="#treasurer">Treasurer</a>
+      <a href="#everyone">Everyone</a>
+    </nav>
+
+    <div class="box" id="member">
+      <h3>Member</h3>
+      <ul class="checks">
+        <li><input type="checkbox" id="m1"><label for="m1">Submit a one-time donation of ₹500 in cash for review. <span class="where">Finance</span></label></li>
+        <li><input type="checkbox" id="m2"><label for="m2">Submit an expense request of ₹200 with a bill note. <span class="where">Finance</span></label></li>
+        <li><input type="checkbox" id="m3"><label for="m3">Request an advance of ₹300 for "repair materials". <span class="where">Advances</span></label></li>
+        <li><input type="checkbox" id="m4"><label for="m4">Accept the meeting invitation. <span class="where">Meetings</span></label></li>
+        <li><input type="checkbox" id="m5"><label for="m5">Check in to the meeting, first from far away (should refuse), then within 100 m of the test place (should accept). Allow location when asked. <span class="where">Meetings</span></label></li>
+        <li><input type="checkbox" id="m6"><label for="m6">Join a task, then submit it as completed. <span class="where">Tasks</span></label></li>
+        <li><input type="checkbox" id="m7"><label for="m7">Open your notifications and your Activity points. <span class="where">Notifications, Activity points</span></label></li>
+      </ul>
+    </div>
+
+    <div class="box" id="vp">
+      <h3>Vice President <span class="muted">(iPhone)</span></h3>
+      <ul class="checks">
+        <li><input type="checkbox" id="v1"><label for="v1">Approve the Member's ₹300 advance. <span class="where">Advances</span></label></li>
+        <li><input type="checkbox" id="v2"><label for="v2">Request your own ₹100 advance, then try to approve it yourself (should refuse; the President decides it). <span class="where">Advances</span></label></li>
+        <li><input type="checkbox" id="v3"><label for="v3">See who checked in to your meeting; mark someone present with a reason while you are at the test place. <span class="where">Meetings</span></label></li>
+        <li><input type="checkbox" id="v4"><label for="v4">Mark today's Fajr and Dhuhr for the Hafiz. <span class="where">Prayer register</span></label></li>
+        <li><input type="checkbox" id="v5"><label for="v5">Tomorrow: finalize the meeting. Anyone invited who never checked in becomes Absent. <span class="where">Meetings</span></label></li>
+      </ul>
+    </div>
+
+    <div class="box" id="president">
+      <h3>President</h3>
+      <ul class="checks">
+        <li><input type="checkbox" id="p1"><label for="p1">Approve the Member's ₹200 expense. <span class="where">Finance → Review</span></label></li>
+        <li><input type="checkbox" id="p2"><label for="p2">Create an open task with 2 places, for example "Clean the wudu area". <span class="where">Tasks</span></label></li>
+        <li><input type="checkbox" id="p3"><label for="p3">Accept the Member's completed task. <span class="where">Tasks</span></label></li>
+        <li><input type="checkbox" id="p4"><label for="p4">Reset the Member's password, then deactivate and reactivate their account. <span class="where">People and roles</span></label></li>
+        <li><input type="checkbox" id="p5"><label for="p5">Try to add another President (should not be offered). <span class="where">People and roles</span></label></li>
+      </ul>
+    </div>
+
+    <div class="box" id="treasurer">
+      <h3>Treasurer</h3>
+      <ul class="checks">
+        <li><input type="checkbox" id="t1"><label for="t1">Verify the Member's ₹500 donation into the cash box. <span class="where">Finance → Review</span></label></li>
+        <li><input type="checkbox" id="t2"><label for="t2">Pay the approved ₹200 expense from the cash box. <span class="where">Finance → Review</span></label></li>
+        <li><input type="checkbox" id="t3"><label for="t3">Pay the approved ₹300 advance, then record ₹250 of bills and ₹50 returned. <span class="where">Advances</span></label></li>
+        <li><input type="checkbox" id="t4"><label for="t4">Add a Hafiz at ₹300 a month and pay this month. <span class="where">Salaries</span></label></li>
+        <li><input type="checkbox" id="t5"><label for="t5">Check the cash box: ₹10,000 + ₹500 − ₹200 − ₹300 + ₹50 − ₹300 = <strong>₹9,750</strong>. <span class="where">Finance → Accounts</span></label></li>
+        <li><input type="checkbox" id="t6"><label for="t6">Open Reports: it should say reports are switched off for now. <span class="where">Finance → Reports</span></label></li>
+      </ul>
+    </div>
+
+    <div class="box" id="everyone">
+      <h3>Everyone</h3>
+      <ul class="checks">
+        <li><input type="checkbox" id="e1"><label for="e1">Sign in once with a wrong password and read the message.</label></li>
+        <li><input type="checkbox" id="e2"><label for="e2">Turn on airplane mode and open the app: it should show "No connection" with a Try again button.</label></li>
+        <li><input type="checkbox" id="e3"><label for="e3">Make your phone's text size large and check that the screens are still readable.</label></li>
+        <li><input type="checkbox" id="e4"><label for="e4">Close the app fully, open it again, and check you are still signed in.</label></li>
+      </ul>
+    </div>
+  </section>
+
+  <section aria-labelledby="off">
+    <h2 id="off">Switched off in this test</h2>
+    <p class="muted">These are built but waiting for the Board's approval or real setup, so they will say "off" or "not available". That is expected.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Feature</th><th>Why it's off</th></tr></thead>
+        <tbody>
+          <tr><td>Enrolling monthly contributors and their payment references</td><td>Board approval of the donor consent wording</td></tr>
+          <tr><td>Finance reports (on screen and as PDF or spreadsheet)</td><td>Board approval of report fields</td></tr>
+          <tr><td>Public receipt lookup</td><td>Board approval of receipt fields</td></tr>
+          <tr><td>Payment QR for real donations</td><td>Official bank and UPI details from the Treasurer</td></tr>
+          <tr><td>WhatsApp messages and phone notifications</td><td>Later release</td></tr>
+          <tr><td>Saving forms offline to send later</td><td>Only in the future Android app</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="report">
+    <h2 id="report">When something looks wrong</h2>
+    <p>Send the organizer a message with:</p>
+    <ul>
+      <li>your phone (for example "iPhone 13" or "Redmi Note 12") and your role</li>
+      <li>what you tapped, in order</li>
+      <li>what you expected, and what happened instead</li>
+      <li>a screenshot of the screen</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(function () {
+  var copy = document.getElementById('copy');
+  copy.addEventListener('click', function () {
+    var text = document.getElementById('site').textContent;
+    var done = function () { copy.textContent = 'Copied'; };
+    var select = function () {
+      var range = document.createRange();
+      range.selectNodeContents(document.getElementById('site'));
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      copy.textContent = 'Selected';
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, select);
+    else select();
+  });
+  var key = 'mamoor2-phone-test-ticks';
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { saved = {}; }
+  document.querySelectorAll('.checks input').forEach(function (box) {
+    box.checked = !!saved[box.id];
+    box.addEventListener('change', function () {
+      saved[box.id] = box.checked;
+      try { localStorage.setItem(key, JSON.stringify(saved)); } catch (e) {}
+    });
+  });
+})();
+</script>
