@@ -96,6 +96,7 @@ export default function MemberInbox({ client }) {
       {items.map((item) => (
         <View key={item.notification_id} style={styles.item}>
           <Text style={styles.title}>{item.title}</Text>
+          {!!item.body && <Text style={styles.body}>{item.body}</Text>}
           <Text style={styles.muted}>
             {new Intl.DateTimeFormat('en-IN', {
               dateStyle: 'medium',
@@ -132,6 +133,7 @@ const styles = StyleSheet.create({
   },
   heading: { color: '#182e2a', fontSize: 21, fontWeight: '700' },
   title: { color: '#182e2a', fontSize: 16, fontWeight: '600' },
+  body: { color: '#182e2a', fontSize: 15, lineHeight: 22 },
   muted: { color: '#5e6e68', fontSize: 14, lineHeight: 21 },
   item: { borderTopWidth: 1, borderColor: '#d9e1d9', paddingTop: 10, gap: 7 },
   button: { backgroundColor: '#145b49', padding: 12, borderRadius: 10, alignItems: 'center' },

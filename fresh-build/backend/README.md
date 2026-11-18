@@ -1,6 +1,6 @@
 # Fresh backend
 
-This folder holds the Supabase project (`supabase/config.toml`) and its 40
+This folder holds the Supabase project (`supabase/config.toml`) and its 41
 ordered migrations in `supabase/migrations/`, applied in file-name order. They
 are the only schema source. The old root `supabase/` tree is in Git history only
 and must never be applied.
@@ -9,13 +9,13 @@ Every app action goes through a `SECURITY DEFINER` function that checks the
 caller's role. Direct table access is revoked, money is stored in paise, finance
 history cannot be edited, and repeated requests are made safe by operation IDs.
 
-- `tests/`: 20 rollback-only SQL test files. Run them with `scripts/run_fresh_db_checks.sh` against a disposable database (see `../README.md`). `scripts/db_fixture_preflight.py` checks the list is complete and that every file rolls back.
+- `tests/`: 21 rollback-only SQL test files. Run them with `scripts/run_fresh_db_checks.sh` against a disposable database (see `../README.md`). `scripts/db_fixture_preflight.py` checks the list is complete and that every file rolls back.
 - `identity/`, `api/`: username sign-in, account creation and reset (used by the web `/api/v1` route).
 - `reports/`, `receipts/`, `qr/`, `jobs/`, `whatsapp/`, `backup/`, `ops/`: server services. Each is switched off by an environment flag until the owner approves it.
 - `scripts/`: operator and test scripts.
 
-State on 18 November 2026: staging has all 40 migrations and only the first
-System Admin. Production is paused and untouched. See
+State on 18 November 2026: staging has 40 of the 41 migrations (the
+notifications migration is next) and only the first System Admin. Production is paused and untouched. See
 `../PROJECT_STATUS.md`.
 
 For local start, reset and environment custody, see
