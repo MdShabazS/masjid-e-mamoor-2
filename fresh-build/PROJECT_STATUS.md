@@ -89,6 +89,10 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] Live staging site, public pages only: 10 visitors, 450 requests, 0 errors
 - [ ] Short signed-in traffic test on the hosted database before launch
 
+### Web app look, 18 November 2026
+
+- [x] One phone-first design across every screen: green top bar with Home, proper buttons (main actions solid green, Reject, Cancel and Deactivate marked in red), 16 px fields so iPhones do not zoom, 44 px tap targets, cards and spacing, two-column Home tiles, checkboxes beside their words, compact Activity table. All 20 screens checked at 320 px wide with nothing spilling sideways
+
 ## Pending — before the phone ground test
 
 - [x] 17 November: the staging web app is public at `https://masjid-e-mamoor-2.vercel.app` (Vercel free plan, staging database, test data only). Pages, install files and the sign-in API answer without a Vercel login; a wrong sign-in reaches staging. No signed-in journey there yet

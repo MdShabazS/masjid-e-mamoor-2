@@ -1,4 +1,5 @@
 import './styles.css';
+import AppBar from './app-bar.jsx';
 import RegisterServiceWorker from './register-sw.jsx';
 
 export const metadata = {
@@ -18,6 +19,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
+        <AppBar />
         {children}
         <RegisterServiceWorker />
       </body>

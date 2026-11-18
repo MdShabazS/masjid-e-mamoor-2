@@ -215,6 +215,7 @@ export default function AccountsPage() {
                           Reset password
                         </button>
                         <button
+                          className={account.active ? 'danger' : undefined}
                           disabled={busy}
                           onClick={() =>
                             (account.active

@@ -188,6 +188,7 @@ export function MeetingAttendance({ meeting, mine, busy, run, setError, version 
           )}
           {dayOver && !mine.finalized && (
             <button
+              className="primary"
               disabled={busy}
               onClick={() => {
                 if (
@@ -250,6 +251,7 @@ export function FinalizationFallback({ busy, run, version }) {
             />
           </label>
           <button
+            className="primary"
             disabled={busy || (reasons[item.meeting_id]?.trim().length ?? 0) < 3}
             onClick={() => {
               if (window.confirm('Finalize? Invited members who did not attend become absent.'))

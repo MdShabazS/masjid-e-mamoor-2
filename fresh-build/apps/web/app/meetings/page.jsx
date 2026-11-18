@@ -238,6 +238,7 @@ export default function MeetingsPage() {
                     new Date(meeting.starts_at).getTime() > Date.now() && (
                       <>
                         <button
+                          className="primary"
                           disabled={busy}
                           onClick={() =>
                             command(
@@ -333,6 +334,7 @@ export default function MeetingsPage() {
                         />
                       </label>
                       <button
+                        className="danger"
                         disabled={
                           busy || (cancelReasons[meeting.meeting_id]?.trim().length ?? 0) < 3
                         }

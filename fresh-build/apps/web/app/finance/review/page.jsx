@@ -202,7 +202,7 @@ export default function FinanceReviewPage() {
                       ))}
                   </select>
                 </label>
-                <button disabled={busy} onClick={() => verifyDonation(item)}>
+                <button className="primary" disabled={busy} onClick={() => verifyDonation(item)}>
                   Verify received amount
                 </button>
                 <label className="field">
@@ -214,6 +214,7 @@ export default function FinanceReviewPage() {
                   />
                 </label>
                 <button
+                  className="danger"
                   disabled={busy || (reason[item.donation_id] ?? '').trim().length < 3}
                   onClick={() =>
                     execute(
@@ -258,6 +259,7 @@ export default function FinanceReviewPage() {
                 {item.status === 'submitted' && (
                   <>
                     <button
+                      className="primary"
                       disabled={busy}
                       onClick={() =>
                         execute(
@@ -284,6 +286,7 @@ export default function FinanceReviewPage() {
                       />
                     </label>
                     <button
+                      className="danger"
                       disabled={busy || (reason[item.expense_id] ?? '').trim().length < 3}
                       onClick={() =>
                         execute(
@@ -347,7 +350,7 @@ export default function FinanceReviewPage() {
                         onChange={(e) => setProof({ ...proof, [item.expense_id]: e.target.value })}
                       />
                     </label>
-                    <button disabled={busy} onClick={() => postPayment(item)}>
+                    <button className="primary" disabled={busy} onClick={() => postPayment(item)}>
                       Record actual payment
                     </button>
                   </>

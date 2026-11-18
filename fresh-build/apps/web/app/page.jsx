@@ -8,7 +8,7 @@ export default async function Home() {
   return (
     <main className="page-shell">
       <header className="site-header">
-        <span className="brand-mark">✦</span>
+        <img className="brand-mark" src="/icon-192.png" alt="" width="36" height="36" />
         <span>Masjid E Mamoor 2</span>
         <nav aria-label="Main navigation">
           <Link href="/announcements">Announcements</Link>

@@ -721,6 +721,7 @@ export default function FinanceAccountsPage() {
                       {item.account_name} · {money(item.amount_paise)} · {item.evidence_reference}
                     </p>
                     <button
+                      className="primary"
                       disabled={busy}
                       onClick={() =>
                         execute(

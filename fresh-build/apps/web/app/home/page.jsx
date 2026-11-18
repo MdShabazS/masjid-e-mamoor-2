@@ -112,7 +112,7 @@ export default function HomePage() {
 
   return (
     <main className="management home">
-      <h1>Masjid E Mamoor 2</h1>
+      <h1>Assalamu alaikum</h1>
       {page.session === 'checking' && <p>Checking your account…</p>}
       {page.session === 'signed-out' && (
         <p>
