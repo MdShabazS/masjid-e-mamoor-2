@@ -67,7 +67,7 @@ migrations.
 
 | Environment | Supabase project       | State                                                       |
 | ----------- | ---------------------- | ----------------------------------------------------------- |
-| Staging     | `mjcuxvcmebmhvqqzcshm` | Active. 40 of 41 migrations; System Admin only              |
+| Staging     | `mjcuxvcmebmhvqqzcshm` | Active. All 41 migrations; System Admin only                |
 | Production  | `ifyluztozjetusholoaw` | Paused. Untouched; its migration history needs repair first |
 | Development | `necattvpncnsrfcrwpjn` | Paused                                                      |
 
