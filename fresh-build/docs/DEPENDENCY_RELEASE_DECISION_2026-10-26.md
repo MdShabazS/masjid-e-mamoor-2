@@ -48,3 +48,5 @@ New advisories had appeared since 30 October. The same 17 findings (3 high, 12 m
 `npm audit` began reporting GHSA-fc5q-39xc-vjpf (picomatch, regular-expression slowdown through repeated extglobs) as **high**. Every published picomatch up to 4.0.7 is affected and no fixed release exists; npm's only suggested fix is downgrading React Native, which is not acceptable. The paths are Expo CLI, Metro, Jest and their file-matching helpers, all used only when building the Android bundle. The website and the code that runs on phones do not include picomatch, and the patterns it matches come from our own build configuration, never from users.
 
 The release owner accepted it on 18 November 2026. `scripts/check_dependency_audit.py` lists the exact 21 high entries and their paths in `KNOWN_HIGH_VIA`; any other high advisory or path still fails CI. Remove the list when picomatch publishes a fix, then update the lockfile.
+
+Update the same day: GitHub withdrew GHSA-fc5q-39xc-vjpf at 15:38 UTC on 18 November 2026, and `npm audit` stopped reporting it. The accepted list is now empty, so any high finding fails CI again.

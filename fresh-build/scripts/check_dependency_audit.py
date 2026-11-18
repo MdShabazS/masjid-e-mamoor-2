@@ -41,32 +41,9 @@ KNOWN_MODERATE_VIA = {
 }
 
 
-# Accepted 18 November 2026 by the release owner: GHSA-fc5q-39xc-vjpf (picomatch ReDoS) reaches only
-# Android build tools (Expo CLI, Metro, Jest); no fixed picomatch exists yet. Remove when one ships.
-# See docs/DEPENDENCY_RELEASE_DECISION_2026-10-26.md.
-KNOWN_HIGH_VIA = {
-    "@expo/cli": {"@expo/metro", "@expo/metro-config", "@expo/metro-file-map", "glob", "picomatch"},
-    "@expo/metro": {"metro", "metro-config", "metro-file-map", "metro-transform-worker"},
-    "@expo/metro-config": {"@expo/metro", "glob", "picomatch"},
-    "@expo/metro-file-map": {"jest-worker"},
-    "@react-native/babel-plugin-codegen": {"@react-native/codegen"},
-    "@react-native/codegen": {"tinyglobby"},
-    "@react-native/community-cli-plugin": {"metro"},
-    "@react-native/virtualized-lists": {"react-native"},
-    "babel-preset-expo": {"@react-native/babel-plugin-codegen"},
-    "expo": {"@expo/fingerprint", "@expo/metro", "babel-preset-expo"},
-    "fdir": {"picomatch"},
-    "jest-util": {"picomatch"},
-    "jest-worker": {"jest-util"},
-    "metro": {"jest-worker", "metro-config", "metro-file-map", "metro-transform-worker"},
-    "metro-config": {"metro"},
-    "metro-file-map": {"jest-worker", "micromatch"},
-    "metro-transform-worker": {"metro"},
-    "micromatch": {"picomatch"},
-    "picomatch": {"https://github.com/advisories/GHSA-fc5q-39xc-vjpf"},
-    "react-native": {"@react-native/codegen", "@react-native/community-cli-plugin", "@react-native/virtualized-lists", "tinyglobby"},
-    "tinyglobby": {"fdir", "picomatch"},
-}
+# 18 November 2026: the picomatch high advisory (GHSA-fc5q-39xc-vjpf) accepted that day was withdrawn
+# by GitHub the same day, so no high finding is accepted. Any high finding fails CI.
+KNOWN_HIGH_VIA: dict[str, set[str]] = {}
 
 
 def check_audit(audit: object) -> list[str]:

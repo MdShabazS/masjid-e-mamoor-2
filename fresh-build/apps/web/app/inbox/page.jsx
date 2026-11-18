@@ -88,7 +88,7 @@ export default function InboxPage() {
                 <li key={item.notification_id}>
                   <span>
                     <strong>{item.title}</strong>
-                    <br />
+                    {item.body && <span className="inbox-body">{item.body}</span>}
                     <small>
                       {new Intl.DateTimeFormat('en-IN', {
                         dateStyle: 'medium',

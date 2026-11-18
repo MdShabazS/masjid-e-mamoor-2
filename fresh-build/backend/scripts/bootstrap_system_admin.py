@@ -50,6 +50,19 @@ def main() -> int:
         return 2
 
     password = temporary_password()
+    # Save the password first: an account whose only password was lost would need a manual repair.
+    old_umask = os.umask(0o077)
+    try:
+        with open(out_path, "x") as handle:
+            handle.write(
+                f"Username: {username}\nTemporary password: {password}\n"
+                "Sign in once and set your own password, then delete this file.\n"
+            )
+    except OSError as error:
+        print(f"Cannot write {out_path}: {error.strerror}. Nothing was created.")
+        return 2
+    finally:
+        os.umask(old_umask)
     user_id = str(uuid.uuid4())
     email = f"{username}@{INTERNAL_DOMAIN}"
     # One statement, so it is all-or-nothing on both the linked and the local query paths.
@@ -109,23 +122,16 @@ end $bootstrap$;
     if result.returncode != 0 or '"system_admins": 1' not in output:
         for code in ("system_admin_already_exists", "username_taken"):
             if code in output:
+                os.remove(out_path)
                 print(f"Not created: {code}")
                 return 1
         reason = next((line.strip() for line in output.splitlines() if "ERROR" in line or '"message"' in line), "")
+        os.remove(out_path)
         print("Not created. The database rejected the request; nothing was saved.")
         if reason:
             print(reason.replace(password, "<hidden>")[:400])
         return 1
 
-    old_umask = os.umask(0o077)
-    try:
-        with open(out_path, "x") as handle:
-            handle.write(
-                f"Username: {username}\nTemporary password: {password}\n"
-                "Sign in once and set your own password, then delete this file.\n"
-            )
-    finally:
-        os.umask(old_umask)
     print(f"Created System Admin {username}. Temporary password saved to {out_path}")
     return 0
 

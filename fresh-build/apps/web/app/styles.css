@@ -384,3 +384,4 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+.inbox-body{display:block;margin:6px 0;line-height:1.5;white-space:pre-line;font-weight:400}.roster li{align-items:flex-start}
