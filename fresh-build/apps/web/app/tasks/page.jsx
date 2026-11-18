@@ -532,6 +532,7 @@ export default function TasksPage() {
                                 task.status === 'active' && (
                                   <>
                                     <button
+                                      className="primary"
                                       disabled={busy || stale}
                                       onClick={async () => {
                                         if (
@@ -617,6 +618,7 @@ export default function TasksPage() {
                             />
                           </label>
                           <button
+                            className="danger"
                             disabled={busy || stale || cancelReason.trim().length < 3}
                             onClick={() =>
                               command(

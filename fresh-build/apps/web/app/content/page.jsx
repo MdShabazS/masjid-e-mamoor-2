@@ -258,6 +258,7 @@ export default function ContentPage() {
                   )}
                   {post.status !== 'archived' && (
                     <button
+                      className="danger"
                       disabled={busy}
                       onClick={() =>
                         command(

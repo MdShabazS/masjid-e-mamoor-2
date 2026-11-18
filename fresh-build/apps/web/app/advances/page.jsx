@@ -200,6 +200,7 @@ export default function AdvancesPage() {
                       />
                     </label>
                     <button
+                      className="danger"
                       disabled={busy || (entry.reason?.trim().length ?? 0) < 3}
                       onClick={() =>
                         run(
@@ -286,7 +287,7 @@ export default function AdvancesPage() {
                         onChange={(e) => update(row.advance_id, { reference: e.target.value })}
                       />
                     </label>
-                    <button disabled={busy} onClick={() => settle(row, 'bill')}>
+                    <button className="primary" disabled={busy} onClick={() => settle(row, 'bill')}>
                       Record bills
                     </button>
                     <AccountSelect
@@ -295,7 +296,11 @@ export default function AdvancesPage() {
                       value={entry.returnAccount}
                       onChange={(returnAccount) => update(row.advance_id, { returnAccount })}
                     />
-                    <button disabled={busy} onClick={() => settle(row, 'return')}>
+                    <button
+                      className="primary"
+                      disabled={busy}
+                      onClick={() => settle(row, 'return')}
+                    >
                       Record money returned
                     </button>
                   </>

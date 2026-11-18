@@ -96,7 +96,7 @@ export default function ActivityPage() {
           )}
           {!target && <p className="muted">Choose a member to see their points.</p>}
           {result && (
-            <div className="report-scroll">
+            <div className="table-fit">
               <h2>
                 {result.username} · {result.role.replaceAll('_', ' ')}
               </h2>
