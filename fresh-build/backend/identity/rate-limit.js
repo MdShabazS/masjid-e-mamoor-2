@@ -10,13 +10,15 @@ export function createIdentityLimiter(client) {
           ? [5, 300]
           : kind === 'password'
             ? [5, 600]
-            : kind === 'receipt'
-              ? [60, 60]
-              : kind === 'receipt-code'
-                ? [5, 60]
-                : kind === 'qr'
-                  ? [5, 3600]
-                  : [30, 60];
+            : kind === 'password-ip'
+              ? [60, 600]
+              : kind === 'receipt'
+                ? [60, 60]
+                : kind === 'receipt-code'
+                  ? [5, 60]
+                  : kind === 'qr'
+                    ? [5, 3600]
+                    : [30, 60];
       const hash = createHash('sha256').update(key).digest('hex');
       const { data, error } = await client.rpc('consume_identity_rate_limit', {
         p_hash: hash,

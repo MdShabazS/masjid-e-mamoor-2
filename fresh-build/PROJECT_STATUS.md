@@ -82,6 +82,13 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 - [x] 18 November: notifications migration applied to staging (41 of 41); its test, the content test and the security catalog pass there and left no data
 - [x] 18 November: volunteer WhatsApp migration applied to staging (40 of 40); its test, the security catalog and account tests pass there and left no data
 
+### Traffic test, 18 November 2026
+
+- [x] 4 emulator phones plus 10, 25 and 50 virtual phones at once against a local copy: 0 real errors, server replies typically under 20 ms and never over 0.3 s; a nonstop stress run reached 635 requests a second with 0 errors. A 40-place task gave exactly 40 joined and 10 waitlisted; 296 donations submitted, 296 stored. Record: `docs/LOAD_TEST_2026-11-18.md`
+- [x] Fixed: first-time password changes were limited to 5 per 10 minutes per internet address, which would have blocked testers sharing the masjid Wi-Fi; now counted per sign-in session with a looser cap per address
+- [x] Live staging site, public pages only: 10 visitors, 450 requests, 0 errors
+- [ ] Short signed-in traffic test on the hosted database before launch
+
 ## Pending — before the phone ground test
 
 - [x] 17 November: the staging web app is public at `https://masjid-e-mamoor-2.vercel.app` (Vercel free plan, staging database, test data only). Pages, install files and the sign-in API answer without a Vercel login; a wrong sign-in reaches staging. No signed-in journey there yet

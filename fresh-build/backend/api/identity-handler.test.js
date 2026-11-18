@@ -133,3 +133,27 @@ test('rate limit and denied actor propagate stable responses', async () => {
   });
   assert.equal((await a(req('/v1/session', { username: 'person', password: 'pass' }))).status, 429);
 });
+
+test('password change limits count per sign-in session and per address', async () => {
+  const keys = [];
+  const handle = identityHandler({
+    identity: { changePassword: async () => ({ changed: true }) },
+    limiter: {
+      consume: async (key) => {
+        keys.push(key);
+        return true;
+      },
+    },
+    trustedProxyIp: () => '203.0.113.7',
+  });
+  const body = { refreshToken: 'r', newPassword: 'long-new-password' };
+  await handle(req('/v1/session/change-password', body, 'token-one'));
+  await handle(req('/v1/session/change-password', body, 'token-two'));
+  const perSession = keys.filter((key) => key.startsWith('password:203.0.113.7:'));
+  assert.equal(new Set(perSession).size, 2, 'two people behind one address get separate counts');
+  assert.ok(
+    perSession.every((key) => !key.includes('token-')),
+    'tokens are hashed, never stored',
+  );
+  assert.equal(keys.filter((key) => key === 'password-ip:203.0.113.7').length, 2);
+});

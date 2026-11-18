@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { apiError, uuid, ContractError } from '../../packages/contracts/index.js';
 import { IdentityError } from '../identity/service.js';
 
@@ -79,7 +79,14 @@ export function identityHandler({ identity, limiter, trustedProxyIp }) {
       }
       if (path === '/v1/session/change-password' && request.method === 'POST') {
         const body = fields(await json(request), ['refreshToken', 'newPassword']);
-        if (!(await limiter.consume(`password:${ip}`))) throw new IdentityError('RATE_LIMITED');
+        // Phones at the masjid share one public address; count attempts per sign-in session, with a
+        // looser cap per address so guessing from one place is still slowed down.
+        const session = createHash('sha256').update(bearer(request)).digest('hex');
+        if (
+          !(await limiter.consume(`password:${ip}:${session}`)) ||
+          !(await limiter.consume(`password-ip:${ip}`))
+        )
+          throw new IdentityError('RATE_LIMITED');
         const result = await identity.changePassword({ accessToken: bearer(request), ...body });
         return answer({ data: result, requestId }, 200);
       }
