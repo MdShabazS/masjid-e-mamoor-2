@@ -93,6 +93,8 @@ Checked on the Pixel 8 emulator against a local database with a fake Treasurer u
 
 - [x] One phone-first design across every screen: green top bar with Home, proper buttons (main actions solid green, Reject, Cancel and Deactivate marked in red), 16 px fields so iPhones do not zoom, 44 px tap targets, cards and spacing, two-column Home tiles, checkboxes beside their words, compact Activity table. All 20 screens checked at 320 px wide with nothing spilling sideways
 
+- [x] 19 November: Emerald and gold theme chosen by the owner. Home now starts with what needs you (donations to verify, expenses and advances to decide or pay, today's meeting, invitations, tasks, new notifications), a money summary for finance roles, and a clear list of sections instead of tiles. App icon recoloured
+
 ## Pending — before the phone ground test
 
 - [x] 17 November: the staging web app is public at `https://masjid-e-mamoor-2.vercel.app` (Vercel free plan, staging database, test data only). Pages, install files and the sign-in API answer without a Vercel login; a wrong sign-in reaches staging. No signed-in journey there yet

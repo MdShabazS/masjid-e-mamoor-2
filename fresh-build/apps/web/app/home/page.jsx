@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ROLE_LABELS } from '../../../../packages/api-client/identity.js';
+import { formatPaiseINR } from '../../../../packages/api-client/index.js';
 import { userMessage } from '../../../../packages/api-client/messages.js';
 import { getBrowserClient } from '../../lib/supabase.js';
-import { Messages, useManagementPage } from '../../lib/management.js';
+import { Messages, indiaToday, rpc, useManagementPage } from '../../lib/management.js';
 
 const FINANCE_LEADERS = ['president', 'vice_president', 'secretary', 'treasurer'];
 const EVERYONE = [
@@ -94,9 +95,108 @@ const SECTIONS = [
   },
 ];
 
+const quietly = (promise) => promise.catch(() => null);
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+/** What is waiting for this person now. Each call is skipped quietly if the role cannot see it. */
+async function loadWaiting(role) {
+  const today = indiaToday();
+  const leader = FINANCE_LEADERS.includes(role);
+  const [donations, expenses, openings, advances, meetings, tasks, inbox, accounts] =
+    await Promise.all([
+      role === 'treasurer' ? quietly(rpc('list_pending_one_time_donations')) : null,
+      ['president', 'treasurer'].includes(role) ? quietly(rpc('list_actionable_expenses')) : null,
+      role === 'president' ? quietly(rpc('list_pending_finance_openings')) : null,
+      role !== 'system_admin' ? quietly(rpc('list_advances')) : null,
+      quietly(rpc('list_visible_committee_meetings')),
+      role !== 'system_admin' ? quietly(rpc('list_visible_work_tasks')) : null,
+      quietly(rpc('list_my_member_inbox', { p_limit: 25 })),
+      leader || role === 'system_admin' ? quietly(rpc('list_finance_accounts')) : null,
+    ]);
+  const items = [];
+  const add = (count, text, href, urgent = false) =>
+    count && items.push({ count, text, href, urgent });
+  add(
+    donations?.length,
+    plural(donations?.length ?? 0, 'donation to verify', 'donations to verify'),
+    '/finance/review',
+    true,
+  );
+  if (role === 'president') {
+    const n = (expenses ?? []).filter((e) => e.status === 'submitted').length;
+    add(n, plural(n, 'expense to approve', 'expenses to approve'), '/finance/review', true);
+    add(
+      openings?.length,
+      plural(openings?.length ?? 0, 'opening balance to verify', 'opening balances to verify'),
+      '/finance/accounts',
+      true,
+    );
+  }
+  if (role === 'treasurer') {
+    const n = (expenses ?? []).filter((e) =>
+      ['approved', 'partially_paid'].includes(e.status),
+    ).length;
+    add(
+      n,
+      plural(n, 'approved expense to pay', 'approved expenses to pay'),
+      '/finance/review',
+      true,
+    );
+  }
+  if (['president', 'vice_president'].includes(role)) {
+    const n = (advances ?? []).filter((a) => a.status === 'submitted' && !a.is_mine).length;
+    add(n, plural(n, 'advance to decide', 'advances to decide'), '/advances', true);
+  }
+  if (role === 'treasurer') {
+    const pay = (advances ?? []).filter((a) => a.status === 'approved').length;
+    const settle = (advances ?? []).filter((a) => a.status === 'paid').length;
+    add(pay, plural(pay, 'approved advance to pay', 'approved advances to pay'), '/advances', true);
+    add(
+      settle,
+      plural(settle, 'advance waiting for bills', 'advances waiting for bills'),
+      '/advances',
+    );
+  }
+  const active = (meetings ?? []).filter((m) => m.status === 'active');
+  for (const m of active.filter(
+    (m) => m.meeting_date === today && ['invited', 'accepted'].includes(m.my_rsvp),
+  ))
+    items.push({
+      count: 'Today',
+      text: `${m.title}: check in at the masjid`,
+      href: '/meetings',
+      urgent: true,
+    });
+  const invites = active.filter((m) => m.my_rsvp === 'invited' && m.meeting_date > today).length;
+  add(
+    invites,
+    plural(invites, 'meeting invitation to answer', 'meeting invitations to answer'),
+    '/meetings',
+  );
+  const returned = (tasks ?? []).filter(
+    (t) => t.status === 'active' && t.my_status === 'returned',
+  ).length;
+  add(
+    returned,
+    plural(returned, 'task returned for changes', 'tasks returned for changes'),
+    '/tasks',
+    true,
+  );
+  const toDo = (tasks ?? []).filter(
+    (t) => t.status === 'active' && t.my_status === 'confirmed',
+  ).length;
+  add(toDo, plural(toDo, 'task to complete', 'tasks to complete'), '/tasks');
+  const unread = (inbox ?? []).filter((n) => !n.read_at).length;
+  add(unread, plural(unread, 'new notification', 'new notifications'), '/inbox');
+  const money = (accounts ?? []).filter((a) => a.active !== false && a.account_kind !== 'advance');
+  const total = money.reduce((sum, a) => sum + BigInt(a.balance_paise ?? 0), 0n);
+  return { items, balance: money.length ? formatPaiseINR(total) : null, accounts: money.length };
+}
+
 export default function HomePage() {
   const router = useRouter();
-  const page = useManagementPage(null);
+  const [waiting, setWaiting] = useState(null);
+  const page = useManagementPage(async (role) => setWaiting(await loadWaiting(role)));
   const [busy, setBusy] = useState(false);
 
   async function signOut() {
@@ -112,7 +212,7 @@ export default function HomePage() {
 
   return (
     <main className="management home">
-      <h1>Assalamu alaikum</h1>
+      <p className="greeting">Assalamu alaikum</p>
       {page.session === 'checking' && <p>Checking your account…</p>}
       {page.session === 'signed-out' && (
         <p>
@@ -122,19 +222,54 @@ export default function HomePage() {
       <Messages error={page.error} notice="" />
       {page.session === 'ready' && page.role && (
         <>
-          <p className="muted">Signed in as {ROLE_LABELS[page.role] ?? page.role}.</p>
+          <h1>{ROLE_LABELS[page.role] ?? page.role}</h1>
+          {waiting?.balance && (
+            <Link className="summary" href="/finance/accounts">
+              <span>
+                Money in {waiting.accounts === 1 ? 'the account' : `${waiting.accounts} accounts`}
+              </span>
+              <strong>{waiting.balance}</strong>
+            </Link>
+          )}
+          <section className="home-section" aria-labelledby="waiting-title">
+            <h2 id="waiting-title">Needs you now</h2>
+            {!waiting && <p className="muted">Checking what is waiting…</p>}
+            {waiting && waiting.items.length === 0 && (
+              <p className="all-clear">Nothing is waiting for you. JazakAllah khair.</p>
+            )}
+            {waiting && waiting.items.length > 0 && (
+              <ul className="todo-list">
+                {waiting.items.map((item) => (
+                  <li key={item.text}>
+                    <Link className={item.urgent ? 'todo urgent' : 'todo'} href={item.href}>
+                      <span className="count">{item.count}</span>
+                      <span className="text">{item.text.replace(/^\d+ /, '')}</span>
+                      <span className="chev" aria-hidden="true">
+                        ›
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
           {SECTIONS.map((section) => {
             const items = section.items.filter((item) => item.roles.includes(page.role));
             if (!items.length) return null;
             return (
               <section key={section.title} className="home-section">
                 <h2>{section.title}</h2>
-                <ul className="home-grid">
+                <ul className="nav-list">
                   {items.map((item) => (
                     <li key={item.href}>
-                      <Link className="home-tile" href={item.href}>
-                        <strong>{item.label}</strong>
-                        <span>{item.note}</span>
+                      <Link href={item.href}>
+                        <span>
+                          <strong>{item.label}</strong>
+                          <small>{item.note}</small>
+                        </span>
+                        <span className="chev" aria-hidden="true">
+                          ›
+                        </span>
                       </Link>
                     </li>
                   ))}

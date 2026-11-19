@@ -5,7 +5,7 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import sharp from 'sharp';
 
-const GREEN = '#145b49';
+const GREEN = '#0b4a3a';
 
 // The artwork sits inside the central 60% so the "maskable" crop never cuts it.
 const PLACEHOLDER = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">

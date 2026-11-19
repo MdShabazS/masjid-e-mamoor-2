@@ -1,17 +1,19 @@
 /* Masjid E Mamoor 2 — one phone-first design system for every screen.
    Light theme on purpose (masjid green on warm paper); colours are tokens below. */
 :root {
-  --bg: #f6f4ec;
+  --bg: #f7f4ec;
   --surface: #ffffff;
-  --ink: #17322e;
-  --muted: #5e6e68;
-  --line: #dfe5de;
-  --line-strong: #c5d2ca;
-  --green: #0f5043;
-  --green-mid: #1d6b58;
-  --green-soft: #e8f3ed;
-  --gold: #967543;
-  --focus: #b4802f;
+  --ink: #13302a;
+  --muted: #5f6f68;
+  --line: #e7e1d2;
+  --line-strong: #d3cab4;
+  --green: #0b4a3a;
+  --green-mid: #0f5a47;
+  --green-soft: #e9f2ec;
+  --gold: #c9a24a;
+  --gold-ink: #8a6a1f;
+  --gold-soft: #f6edd6;
+  --focus: #c9a24a;
   --danger: #9b2c25;
   --danger-soft: #fdecea;
   --radius: 14px;
@@ -74,9 +76,11 @@ summary:focus-visible {
   padding-top: env(safe-area-inset-top, 0px);
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  background: var(--green);
-  color: #fff;
-  box-shadow: 0 1px 0 #0a3a30;
+  background-color: var(--green);
+  background-image: radial-gradient(#c9a24a40 1px, transparent 1.6px);
+  background-size: 14px 14px;
+  color: #f3e7c3;
+  box-shadow: 0 2px 0 var(--gold);
 }
 .app-bar a {
   color: #fff;
@@ -89,6 +93,7 @@ summary:focus-visible {
   font-weight: 700;
   font-size: 17px;
   min-height: var(--tap);
+  color: #f3e7c3;
 }
 .app-bar .brand img {
   width: 30px;
@@ -104,10 +109,12 @@ summary:focus-visible {
   border-radius: var(--radius-sm);
   font-weight: 600;
   font-size: 15px;
-  background: #ffffff1f;
+  background: #ffffff1a;
+  border: 1px solid #c9a24a80;
+  color: #f3e7c3;
 }
 .app-bar .home-link:hover {
-  background: #ffffff33;
+  background: #ffffff2e;
 }
 
 /* ---------- Page frames ---------- */
@@ -499,7 +506,7 @@ table {
   font-size: 13px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--gold-ink);
   font-weight: 700;
 }
 .hero h1 {
@@ -539,7 +546,7 @@ table {
   gap: 14px;
 }
 .feature-card span {
-  color: var(--gold);
+  color: var(--gold-ink);
 }
 .feature-card h2,
 .feature-card h3 {
@@ -666,4 +673,120 @@ img.brand-mark {
 }
 .table-fit tr:last-child td {
   border-bottom: 0;
+}
+
+/* ---------- Home: greeting, money summary, what needs you, section list ---------- */
+.greeting {
+  margin: 8px 0 0;
+  color: var(--gold-ink);
+  font-weight: 600;
+  font-size: 15px;
+}
+.home h1 {
+  margin-top: 0;
+}
+.summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 4px;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  background: var(--green-mid);
+  color: #f3e7c3;
+  text-decoration: none;
+  border-bottom: 3px solid var(--gold);
+}
+.summary span {
+  font-size: 14px;
+}
+.summary strong {
+  font: 600 24px / 1.1 var(--body);
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.todo-list,
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.todo-list li + li,
+.nav-list li + li {
+  border-top: 1px solid var(--line);
+}
+.todo,
+.nav-list a {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 60px;
+  padding: 12px 16px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.todo:hover,
+.nav-list a:hover {
+  background: #faf7ef;
+}
+.todo .count {
+  flex: none;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 8px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--green-soft);
+  color: var(--green);
+  font-weight: 700;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.todo.urgent .count {
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+}
+.todo .text {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.todo .text::first-letter {
+  text-transform: uppercase;
+}
+.nav-list a > span:first-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.nav-list strong {
+  font-size: 16px;
+}
+.nav-list small {
+  font-size: 14px;
+  color: var(--muted);
+}
+.chev {
+  flex: none;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--gold-ink);
+}
+.all-clear {
+  margin: 0;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--green-soft);
+  color: var(--green);
+  font-weight: 600;
 }
